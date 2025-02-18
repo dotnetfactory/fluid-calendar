@@ -67,6 +67,11 @@ const defaultSettings: Settings & { accounts: ConnectedAccount[] } = {
       autoSync: true,
       syncInterval: 5,
     },
+    outlookCalendar: {
+      enabled: true,
+      autoSync: true,
+      syncInterval: 5,
+    },
   },
   data: {
     autoBackup: true,
@@ -88,6 +93,11 @@ const defaultSettings: Settings & { accounts: ConnectedAccount[] } = {
     groupByProject: false,
   },
   system: {
+    googleClientId: undefined,
+    googleClientSecret: undefined,
+    outlookClientId: undefined,
+    outlookClientSecret: undefined,
+    outlookTenantId: undefined,
     logLevel: "none",
   },
   accounts: [],

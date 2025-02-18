@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { getGoogleCredentials } from "@/lib/auth";
+import AzureADProvider from "next-auth/providers/azure-ad";
+import { getGoogleCredentials, getOutlookCredentials } from "@/lib/auth";
+import { MICROSOFT_GRAPH_SCOPES } from "@/lib/outlook";
 
 declare module "next-auth" {
   interface Session {
@@ -24,12 +26,14 @@ declare module "next-auth/jwt" {
   }
 }
 
-const credentials = await getGoogleCredentials();
+const googleCredentials = await getGoogleCredentials();
+const outlookCredentials = await getOutlookCredentials();
+
 const handler = NextAuth({
   providers: [
     GoogleProvider({
-      clientId: credentials.clientId,
-      clientSecret: credentials.clientSecret,
+      clientId: googleCredentials.clientId,
+      clientSecret: googleCredentials.clientSecret,
       authorization: {
         params: {
           scope:
@@ -37,6 +41,16 @@ const handler = NextAuth({
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
+        },
+      },
+    }),
+    AzureADProvider({
+      clientId: outlookCredentials.clientId,
+      clientSecret: outlookCredentials.clientSecret,
+      tenantId: outlookCredentials.tenantId,
+      authorization: {
+        params: {
+          scope: MICROSOFT_GRAPH_SCOPES.join(" "),
         },
       },
     }),
@@ -49,6 +63,7 @@ const handler = NextAuth({
           accessToken: account.access_token,
           refreshToken: account.refresh_token,
           expiresAt: account.expires_at,
+          provider: account.provider,
         };
       }
       return token;
@@ -59,6 +74,7 @@ const handler = NextAuth({
         accessToken: token.accessToken,
         refreshToken: token.refreshToken,
         expiresAt: token.expiresAt,
+        provider: token.provider,
       };
     },
   },

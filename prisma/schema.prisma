@@ -81,6 +81,7 @@ model CalendarFeed {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   lastSync          DateTime?
+  syncToken         String? // For incremental sync
   error             String?
   channelId         String? // Google Calendar webhook channel ID
   resourceId        String? // Google Calendar webhook resource ID
@@ -230,10 +231,13 @@ model AutoScheduleSettings {
 }
 
 model SystemSettings {
-  id                 String   @id @default(cuid())
-  googleClientId     String?
-  googleClientSecret String?
-  logLevel           String   @default("none")
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  googleClientId      String?
+  googleClientSecret  String?
+  outlookClientId     String?
+  outlookClientSecret String?
+  outlookTenantId     String?
+  logLevel            String   @default("none")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }

@@ -44,6 +44,11 @@ export interface IntegrationSettings {
     autoSync: boolean;
     syncInterval: number; // minutes
   };
+  outlookCalendar: {
+    enabled: boolean;
+    autoSync: boolean;
+    syncInterval: number; // minutes
+  };
 }
 
 export interface DataSettings {
@@ -70,6 +75,9 @@ export interface AutoScheduleSettings {
 export interface SystemSettings {
   googleClientId?: string;
   googleClientSecret?: string;
+  outlookClientId?: string;
+  outlookClientSecret?: string;
+  outlookTenantId?: string;
   logLevel: "none" | "debug";
 }
 

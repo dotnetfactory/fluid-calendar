@@ -95,6 +95,8 @@ interface CalendarStore extends CalendarState {
   // New task-related methods
   getTasksAsEvents: (start: Date, end: Date) => CalendarEvent[];
   getAllCalendarItems: (start: Date, end: Date) => CalendarEvent[];
+
+  syncCalendar: (feedId: string) => Promise<void>;
 }
 
 export const useCalendarStore = create<CalendarStore>()((set, get) => ({
@@ -539,14 +541,23 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         if (!response.ok) {
           throw new Error("Failed to sync Google Calendar");
         }
+      } else if (feed.type === "OUTLOOK") {
+        const response = await fetch("/api/calendar/outlook/sync", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ feedId: id }),
+        });
 
-        // Reload events from database
-        await get().loadFromDatabase();
-        // Trigger auto-scheduling after event is created
-        const { scheduleAllTasks } = useTaskStore.getState();
-        await scheduleAllTasks();
-        return;
+        if (!response.ok) {
+          throw new Error("Failed to sync Outlook Calendar");
+        }
       }
+
+      // Reload events from database
+      await get().loadFromDatabase();
+      // Trigger auto-scheduling after event is created
+      const { scheduleAllTasks } = useTaskStore.getState();
+      await scheduleAllTasks();
     } catch (error) {
       console.error("Failed to sync feed:", error);
       // Update feed with error
@@ -642,8 +653,20 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
   syncCalendar: async (feedId: string) => {
     try {
       set({ isLoading: true, error: undefined });
-      const response = await fetch(`/api/calendar/google/${feedId}`, {
+
+      // Get the feed to determine its type
+      const feed = get().feeds.find((f) => f.id === feedId);
+      if (!feed) throw new Error("Calendar not found");
+
+      const endpoint =
+        feed.type === "GOOGLE"
+          ? `/api/calendar/google/${feedId}`
+          : `/api/calendar/outlook/sync`;
+
+      const response = await fetch(endpoint, {
         method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedId }),
       });
 
       if (!response.ok) {

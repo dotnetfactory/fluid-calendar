@@ -31,20 +31,20 @@ export class SlotScorer {
   }
 
   scoreSlot(slot: TimeSlot, task: Task): SlotScore {
-    logger.log("[DEBUG] Scoring slot:", {
-      slot: {
-        start: slot.start.toISOString(),
-        end: slot.end.toISOString(),
-      },
-      task: {
-        id: task.id,
-        title: task.title,
-        dueDate: task.dueDate?.toISOString(),
-        energyLevel: task.energyLevel,
-        preferredTime: task.preferredTime,
-        projectId: task.projectId,
-      },
-    });
+    // logger.log("[DEBUG] Scoring slot:", {
+    //   slot: {
+    //     start: slot.start.toISOString(),
+    //     end: slot.end.toISOString(),
+    //   },
+    //   task: {
+    //     id: task.id,
+    //     title: task.title,
+    //     dueDate: task.dueDate?.toISOString(),
+    //     energyLevel: task.energyLevel,
+    //     preferredTime: task.preferredTime,
+    //     projectId: task.projectId,
+    //   },
+    // });
 
     const factors = {
       workHourAlignment: this.scoreWorkHourAlignment(slot),
@@ -73,17 +73,17 @@ export class SlotScorer {
 
     const total = weightedSum / totalWeight;
 
-    logger.log("[DEBUG] Slot score details:", {
-      slot: {
-        start: slot.start.toISOString(),
-        end: slot.end.toISOString(),
-      },
-      factors,
-      weights,
-      totalWeight,
-      weightedSum,
-      total,
-    });
+    // logger.log("[DEBUG] Slot score details:", {
+    //   slot: {
+    //     start: slot.start.toISOString(),
+    //     end: slot.end.toISOString(),
+    //   },
+    //   factors,
+    //   weights,
+    //   totalWeight,
+    //   weightedSum,
+    //   total,
+    // });
 
     return {
       total,
@@ -139,21 +139,21 @@ export class SlotScorer {
 
   private scoreDeadlineProximity(slot: TimeSlot, task: Task): number {
     if (!task.dueDate) {
-      logger.log("[DEBUG] No due date for task, using neutral deadline score", {
-        taskId: task.id,
-        score: 0.5,
-      });
+      // logger.log("[DEBUG] No due date for task, using neutral deadline score", {
+      //   taskId: task.id,
+      //   score: 0.5,
+      // });
       return 0.5;
     }
 
     const minutesToDeadline = differenceInMinutes(task.dueDate, slot.end);
     if (minutesToDeadline < 0) {
-      logger.log("[DEBUG] Slot is past deadline", {
-        taskId: task.id,
-        slotEnd: slot.end.toISOString(),
-        dueDate: task.dueDate.toISOString(),
-        score: 0,
-      });
+      // logger.log("[DEBUG] Slot is past deadline", {
+      //   taskId: task.id,
+      //   slotEnd: slot.end.toISOString(),
+      //   dueDate: task.dueDate.toISOString(),
+      //   score: 0,
+      // });
       return 0;
     }
 
@@ -161,13 +161,13 @@ export class SlotScorer {
     const daysToDeadline = minutesToDeadline / dayInMinutes;
     const score = Math.min(1, Math.exp(-daysToDeadline / 7));
 
-    logger.log("[DEBUG] Deadline proximity score", {
-      taskId: task.id,
-      slotEnd: slot.end.toISOString(),
-      dueDate: task.dueDate.toISOString(),
-      daysToDeadline,
-      score,
-    });
+    // logger.log("[DEBUG] Deadline proximity score", {
+    //   taskId: task.id,
+    //   slotEnd: slot.end.toISOString(),
+    //   dueDate: task.dueDate.toISOString(),
+    //   daysToDeadline,
+    //   score,
+    // });
 
     return score;
   }

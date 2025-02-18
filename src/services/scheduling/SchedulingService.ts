@@ -35,35 +35,35 @@ export class SchedulingService {
       };
     }
 
-    logger.log("Creating TimeSlotManager with settings", {
-      workHours: {
-        start: settings.workHourStart,
-        end: settings.workHourEnd,
-      },
-      workDays: settings.workDays,
-      selectedCalendars: settings.selectedCalendars,
-      bufferMinutes: settings.bufferMinutes,
-      timeZone: useSettingsStore.getState().user.timeZone,
-    });
+    // logger.log("[DEBUG] Creating TimeSlotManager with settings", {
+    //   workHours: {
+    //     start: settings.workHourStart,
+    //     end: settings.workHourEnd,
+    //   },
+    //   workDays: settings.workDays,
+    //   selectedCalendars: settings.selectedCalendars,
+    //   bufferMinutes: settings.bufferMinutes,
+    //   timeZone: useSettingsStore.getState().user.timeZone,
+    // });
 
     return new TimeSlotManagerImpl(settings, this.calendarService, this.prisma);
   }
 
   async scheduleMultipleTasks(tasks: Task[]): Promise<Task[]> {
-    logger.log("Starting to schedule multiple tasks", {
-      tasks: tasks.map((t) => ({
-        id: t.id,
-        title: t.title,
-        duration: t.duration || DEFAULT_TASK_DURATION,
-        dueDate: t.dueDate,
-      })),
-    });
+    // logger.log("[DEBUG] Starting to schedule multiple tasks", {
+    //   tasks: tasks.map((t) => ({
+    //     id: t.id,
+    //     title: t.title,
+    //     duration: t.duration || DEFAULT_TASK_DURATION,
+    //     dueDate: t.dueDate,
+    //   })),
+    // });
 
     // Clear existing schedules for non-locked tasks
     const tasksToSchedule = tasks.filter((t) => !t.scheduleLocked);
-    logger.log(
-      `${tasksToSchedule.length} tasks to schedule (excluding locked tasks)`
-    );
+    // logger.log(
+    //   `[DEBUG] ${tasksToSchedule.length} tasks to schedule (excluding locked tasks)`
+    // );
 
     await this.prisma.task.updateMany({
       where: {
@@ -77,7 +77,7 @@ export class SchedulingService {
         isAutoScheduled: false,
       },
     });
-    logger.log("Cleared existing schedules for non-locked tasks");
+    // logger.log("[DEBUG] Cleared existing schedules for non-locked tasks");
 
     // Sort tasks by due date
     const sortedTasks = [...tasksToSchedule].sort((a, b) => {
@@ -86,14 +86,14 @@ export class SchedulingService {
       if (!b.dueDate) return -1;
       return a.dueDate.getTime() - b.dueDate.getTime();
     });
-    logger.log("Sorted tasks by due date", {
-      tasks: sortedTasks.map((t) => ({
-        id: t.id,
-        title: t.title,
-        dueDate: t.dueDate,
-        duration: t.duration || DEFAULT_TASK_DURATION,
-      })),
-    });
+    // logger.log("[DEBUG] Sorted tasks by due date", {
+    //   tasks: sortedTasks.map((t) => ({
+    //     id: t.id,
+    //     title: t.title,
+    //     dueDate: t.dueDate,
+    //     duration: t.duration || DEFAULT_TASK_DURATION,
+    //   })),
+    // });
 
     const timeSlotManager = this.getTimeSlotManager();
     const updatedTasks: Task[] = [];
@@ -105,31 +105,31 @@ export class SchedulingService {
         duration: task.duration || DEFAULT_TASK_DURATION,
       };
 
-      logger.log("Attempting to schedule task", {
-        id: taskWithDuration.id,
-        title: taskWithDuration.title,
-        duration: taskWithDuration.duration,
-      });
+      // logger.log("[DEBUG] Attempting to schedule task", {
+      //   id: taskWithDuration.id,
+      //   title: taskWithDuration.title,
+      //   duration: taskWithDuration.duration,
+      // });
 
       const scheduledTask = await this.scheduleTask(
         taskWithDuration,
         timeSlotManager
       );
       if (scheduledTask) {
-        logger.log("Successfully scheduled task", {
-          id: scheduledTask.id,
-          title: scheduledTask.title,
-          start: scheduledTask.scheduledStart,
-          end: scheduledTask.scheduledEnd,
-          duration: scheduledTask.duration,
-        });
+        // logger.log("[DEBUG] Successfully scheduled task", {
+        //   id: scheduledTask.id,
+        //   title: scheduledTask.title,
+        //   start: scheduledTask.scheduledStart,
+        //   end: scheduledTask.scheduledEnd,
+        //   duration: scheduledTask.duration,
+        // });
         updatedTasks.push(scheduledTask);
       } else {
-        logger.log("Failed to schedule task", {
-          id: task.id,
-          title: task.title,
-          duration: taskWithDuration.duration,
-        });
+        // logger.log("[DEBUG] Failed to schedule task", {
+        //   id: task.id,
+        //   title: task.title,
+        //   duration: taskWithDuration.duration,
+        // });
       }
     }
 
@@ -142,12 +142,12 @@ export class SchedulingService {
       },
     });
 
-    logger.log("Scheduling complete. Results", {
-      totalTasks: tasks.length,
-      scheduledTasks: updatedTasks.length,
-      failedTasks: tasksToSchedule.length - updatedTasks.length,
-      lockedTasks: tasks.length - tasksToSchedule.length,
-    });
+    // logger.log("[DEBUG] Scheduling complete. Results", {
+    //   totalTasks: tasks.length,
+    //   scheduledTasks: updatedTasks.length,
+    //   failedTasks: tasksToSchedule.length - updatedTasks.length,
+    //   lockedTasks: tasks.length - tasksToSchedule.length,
+    // });
 
     return allTasks;
   }
@@ -164,11 +164,11 @@ export class SchedulingService {
     ];
 
     for (const window of windows) {
-      logger.log(`Trying ${window.label} window for task`, {
-        id: task.id,
-        title: task.title,
-        duration: task.duration || DEFAULT_TASK_DURATION,
-      });
+      // logger.log(`[DEBUG] Trying ${window.label} window for task`, {
+      //   id: task.id,
+      //   title: task.title,
+      //   duration: task.duration || DEFAULT_TASK_DURATION,
+      // });
 
       const endDate = addDays(now, window.days);
       const availableSlots = await timeSlotManager.findAvailableSlots(
@@ -178,16 +178,16 @@ export class SchedulingService {
       );
 
       if (availableSlots.length > 0) {
-        logger.log(
-          `Found ${availableSlots.length} available slots in ${window.label} window`
-        );
+        // logger.log(
+        //   `[DEBUG] Found ${availableSlots.length} available slots in ${window.label} window`
+        // );
         const bestSlot = availableSlots[0]; // Already sorted by score
 
-        logger.log("Selected best slot", {
-          start: bestSlot.start,
-          end: bestSlot.end,
-          duration: task.duration || DEFAULT_TASK_DURATION,
-        });
+        // logger.log("[DEBUG] Selected best slot", {
+        //   start: bestSlot.start,
+        //   end: bestSlot.end,
+        //   duration: task.duration || DEFAULT_TASK_DURATION,
+        // });
 
         // Update the task with the selected slot
         const updatedTask = await this.prisma.task.update({
@@ -206,11 +206,11 @@ export class SchedulingService {
       }
     }
 
-    logger.log("Failed to find any available slots for task", {
-      id: task.id,
-      title: task.title,
-      duration: task.duration || DEFAULT_TASK_DURATION,
-    });
+    // logger.log("[DEBUG] Failed to find any available slots for task", {
+    //   id: task.id,
+    //   title: task.title,
+    //   duration: task.duration || DEFAULT_TASK_DURATION,
+    // });
 
     return null;
   }

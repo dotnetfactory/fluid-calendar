@@ -52,15 +52,17 @@ class Logger {
 
   async log(message: string, data?: Record<string, unknown>) {
     const logLevel = await this.getLogLevel();
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] ${message}${
+      data ? "\n" + JSON.stringify(data, null, 2) : ""
+    }\n`;
     if (
       process.env.NODE_ENV === "development" &&
       (logLevel === "debug" || process.env.LOG_LEVEL === "debug")
     ) {
-      const timestamp = new Date().toISOString();
-      const logMessage = `[${timestamp}] ${message}${
-        data ? "\n" + JSON.stringify(data, null, 2) : ""
-      }\n`;
       fs.appendFileSync(this.logFile, logMessage);
+    } else {
+      console.log(logMessage);
     }
   }
 }

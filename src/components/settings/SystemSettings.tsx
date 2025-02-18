@@ -13,6 +13,9 @@ export function SystemSettings() {
         updateSystemSettings({
           googleClientId: data.googleClientId,
           googleClientSecret: data.googleClientSecret,
+          outlookClientId: data.outlookClientId,
+          outlookClientSecret: data.outlookClientSecret,
+          outlookTenantId: data.outlookTenantId,
           logLevel: data.logLevel,
         });
       })
@@ -100,6 +103,95 @@ export function SystemSettings() {
               placeholder="Enter your client secret"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
+          </div>
+        </div>
+      </SettingRow>
+
+      <SettingRow
+        label="Outlook Calendar Integration"
+        description={
+          <div className="space-y-2">
+            <div>
+              Configure Microsoft Azure AD credentials for Outlook calendar
+              integration.
+            </div>
+            <div>
+              To get these credentials:
+              <ol className="list-decimal ml-4 mt-1">
+                <li>
+                  Go to the{" "}
+                  <a
+                    href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Azure Portal
+                  </a>
+                </li>
+                <li>Register a new application or select an existing one</li>
+                <li>Add Microsoft Graph Calendar permissions</li>
+                <li>Go to Authentication</li>
+                <li>Add platform and configure OAuth settings</li>
+                <li>
+                  Add redirect URI: {window.location.origin}
+                  /api/auth/callback/azure-ad
+                </li>
+                <li>
+                  Copy the Application (client) ID and create a client secret
+                </li>
+              </ol>
+            </div>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Outlook Client ID
+            </label>
+            <input
+              type="text"
+              value={system.outlookClientId || ""}
+              onChange={(e) =>
+                handleUpdate({ outlookClientId: e.target.value })
+              }
+              placeholder="your-client-id"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Outlook Client Secret
+            </label>
+            <input
+              type="password"
+              value={system.outlookClientSecret || ""}
+              onChange={(e) =>
+                handleUpdate({ outlookClientSecret: e.target.value })
+              }
+              placeholder="Enter your client secret"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Tenant ID (Optional)
+            </label>
+            <input
+              type="text"
+              value={system.outlookTenantId || ""}
+              onChange={(e) =>
+                handleUpdate({ outlookTenantId: e.target.value })
+              }
+              placeholder="common"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              Leave empty to allow any Microsoft account (recommended)
+            </p>
           </div>
         </div>
       </SettingRow>

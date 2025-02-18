@@ -6,14 +6,16 @@ interface AvailableCalendar {
   id: string;
   name: string;
   color: string;
-  accessRole: string;
+  accessRole?: string;
+  canEdit?: boolean;
 }
 
 interface Props {
   accountId: string;
+  provider: "GOOGLE" | "OUTLOOK";
 }
 
-export function AvailableCalendars({ accountId }: Props) {
+export function AvailableCalendars({ accountId, provider }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [calendars, setCalendars] = useState<AvailableCalendar[]>([]);
   const [addingCalendars, setAddingCalendars] = useState<Set<string>>(
@@ -23,9 +25,12 @@ export function AvailableCalendars({ accountId }: Props) {
   const loadAvailableCalendars = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `/api/calendar/google/available?accountId=${accountId}`
-      );
+      const endpoint =
+        provider === "GOOGLE"
+          ? `/api/calendar/google/available?accountId=${accountId}`
+          : `/api/calendar/outlook/available?accountId=${accountId}`;
+
+      const response = await fetch(endpoint);
       if (!response.ok) throw new Error("Failed to fetch calendars");
       const data = await response.json();
       setCalendars(data);
@@ -34,7 +39,7 @@ export function AvailableCalendars({ accountId }: Props) {
     } finally {
       setIsLoading(false);
     }
-  }, [accountId]);
+  }, [accountId, provider]);
 
   // Load calendars when component mounts
   useEffect(() => {
@@ -45,7 +50,12 @@ export function AvailableCalendars({ accountId }: Props) {
     async (calendar: AvailableCalendar) => {
       try {
         setAddingCalendars((prev) => new Set(prev).add(calendar.id));
-        const response = await fetch("/api/calendar/google", {
+        const endpoint =
+          provider === "GOOGLE"
+            ? "/api/calendar/google"
+            : "/api/calendar/outlook/sync";
+
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -72,7 +82,7 @@ export function AvailableCalendars({ accountId }: Props) {
         });
       }
     },
-    [accountId]
+    [accountId, provider]
   );
 
   if (isLoading) {
@@ -100,7 +110,9 @@ export function AvailableCalendars({ accountId }: Props) {
             className="flex items-center justify-between p-4 bg-white border rounded-lg"
           >
             <div className="flex items-center gap-2">
-              <Badge variant="outline">{calendar.accessRole}</Badge>
+              <Badge variant="outline">
+                {calendar.accessRole || (calendar.canEdit ? "owner" : "reader")}
+              </Badge>
               <span>{calendar.name}</span>
             </div>
             <Button

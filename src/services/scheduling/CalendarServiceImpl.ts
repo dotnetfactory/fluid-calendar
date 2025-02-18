@@ -12,11 +12,11 @@ export class CalendarServiceImpl implements CalendarService {
     selectedCalendarIds: string[],
     excludeTaskId?: string
   ): Promise<Conflict[]> {
-    logger.log("[DEBUG] Checking conflicts for slot:", {
-      start: slot.start,
-      end: slot.end,
-      selectedCalendars: selectedCalendarIds,
-    });
+    // logger.log("[DEBUG] Checking conflicts for slot:", {
+    //   start: slot.start,
+    //   end: slot.end,
+    //   selectedCalendars: selectedCalendarIds,
+    // });
 
     const conflicts: Conflict[] = [];
 
@@ -27,18 +27,18 @@ export class CalendarServiceImpl implements CalendarService {
       selectedCalendarIds
     );
 
-    logger.log(`[DEBUG] Found ${events.length} calendar events in range`);
-    if (events.length > 0) {
-      logger.log("[DEBUG] Calendar events:", {
-        events: events.map((e) => ({
-          id: e.id,
-          title: e.title,
-          start: e.start,
-          end: e.end,
-          feedId: e.feedId,
-        })),
-      });
-    }
+    // logger.log(`[DEBUG] Found ${events.length} calendar events in range`);
+    // if (events.length > 0) {
+    //   logger.log("[DEBUG] Calendar events:", {
+    //     events: events.map((e) => ({
+    //       id: e.id,
+    //       title: e.title,
+    //       start: e.start,
+    //       end: e.end,
+    //       feedId: e.feedId,
+    //     })),
+    //   });
+    // }
 
     for (const event of events) {
       if (
@@ -47,12 +47,12 @@ export class CalendarServiceImpl implements CalendarService {
           { start: event.start, end: event.end }
         )
       ) {
-        logger.log("[DEBUG] Found calendar conflict with event:", {
-          id: event.id,
-          title: event.title,
-          start: event.start,
-          end: event.end,
-        });
+        // logger.log("[DEBUG] Found calendar conflict with event:", {
+        //   id: event.id,
+        //   title: event.title,
+        //   start: event.start,
+        //   end: event.end,
+        // });
 
         conflicts.push({
           type: "calendar_event",
@@ -79,19 +79,19 @@ export class CalendarServiceImpl implements CalendarService {
       },
     });
 
-    logger.log(
-      `[DEBUG] Found ${scheduledTasks.length} scheduled tasks to check`
-    );
-    if (scheduledTasks.length > 0) {
-      logger.log("[DEBUG] Scheduled tasks:", {
-        tasks: scheduledTasks.map((t) => ({
-          id: t.id,
-          title: t.title,
-          start: t.scheduledStart,
-          end: t.scheduledEnd,
-        })),
-      });
-    }
+    // logger.log(
+    //   `[DEBUG] Found ${scheduledTasks.length} scheduled tasks to check`
+    // );
+    // if (scheduledTasks.length > 0) {
+    //   logger.log("[DEBUG] Scheduled tasks:", {
+    //     tasks: scheduledTasks.map((t) => ({
+    //       id: t.id,
+    //       title: t.title,
+    //       start: t.scheduledStart,
+    //       end: t.scheduledEnd,
+    //     })),
+    //   });
+    // }
 
     for (const task of scheduledTasks) {
       if (
@@ -102,12 +102,12 @@ export class CalendarServiceImpl implements CalendarService {
           { start: task.scheduledStart, end: task.scheduledEnd }
         )
       ) {
-        logger.log("[DEBUG] Found task conflict with:", {
-          id: task.id,
-          title: task.title,
-          start: task.scheduledStart,
-          end: task.scheduledEnd,
-        });
+        // logger.log("[DEBUG] Found task conflict with:", {
+        //   id: task.id,
+        //   title: task.title,
+        //   start: task.scheduledStart,
+        //   end: task.scheduledEnd,
+        // });
 
         conflicts.push({
           type: "task",
@@ -132,13 +132,13 @@ export class CalendarServiceImpl implements CalendarService {
   ): Promise<CalendarEvent[]> {
     // Only query if we have selected calendars
     if (selectedCalendarIds.length === 0) {
-      logger.log("[DEBUG] No calendars selected, skipping event check");
+      // logger.log("[DEBUG] No calendars selected, skipping event check");
       return [];
     }
 
-    logger.log("[DEBUG] Fetching events for calendars:", {
-      calendarIds: selectedCalendarIds,
-    });
+    // logger.log("[DEBUG] Fetching events for calendars:", {
+    //   calendarIds: selectedCalendarIds,
+    // });
     return this.prisma.calendarEvent.findMany({
       where: {
         feedId: {

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useCalendarStore } from "@/store/calendar";
-import { BsTrash, BsArrowRepeat, BsGoogle } from "react-icons/bs";
+import { BsTrash, BsArrowRepeat, BsGoogle, BsMicrosoft } from "react-icons/bs";
 import { cn } from "@/lib/utils";
 
 export function FeedManager() {
@@ -55,6 +55,9 @@ export function FeedManager() {
               <span className="text-gray-900">{feed.name}</span>
               {feed.type === "GOOGLE" && (
                 <BsGoogle className="w-4 h-4 text-gray-500" />
+              )}
+              {feed.type === "OUTLOOK" && (
+                <BsMicrosoft className="w-4 h-4 text-gray-500" />
               )}
             </div>
             <div className="flex items-center gap-2">

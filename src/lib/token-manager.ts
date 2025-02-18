@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { createGoogleOAuthClient } from "@/lib/google";
+import { MICROSOFT_GRAPH_AUTH_ENDPOINTS } from "./outlook";
+import { getOutlookCredentials } from "@/lib/auth";
 
 export type Provider = "GOOGLE" | "OUTLOOK";
 
@@ -151,5 +153,61 @@ export class TokenManager {
       email: account.email,
       calendars: account.calendars,
     }));
+  }
+
+  async refreshOutlookTokens(accountId: string): Promise<TokenInfo | null> {
+    const account = await prisma.connectedAccount.findUnique({
+      where: { id: accountId },
+    });
+
+    if (!account || !account.refreshToken) {
+      return null;
+    }
+
+    // Get credentials using the helper function
+    const { clientId, clientSecret } = await getOutlookCredentials();
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: account.refreshToken,
+      grant_type: "refresh_token",
+    });
+
+    try {
+      const response = await fetch(MICROSOFT_GRAPH_AUTH_ENDPOINTS.token, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params.toString(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Token refresh failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const expiresAt = new Date(Date.now() + data.expires_in * 1000);
+
+      // Update tokens in database
+      const updatedAccount = await prisma.connectedAccount.update({
+        where: { id: accountId },
+        data: {
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token || account.refreshToken,
+          expiresAt,
+        },
+      });
+
+      return {
+        accessToken: updatedAccount.accessToken,
+        refreshToken: updatedAccount.refreshToken || undefined,
+        expiresAt: updatedAccount.expiresAt,
+      };
+    } catch (error) {
+      console.error("Failed to refresh Outlook tokens:", error);
+      return null;
+    }
   }
 }

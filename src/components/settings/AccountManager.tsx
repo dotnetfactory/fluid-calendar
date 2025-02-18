@@ -26,8 +26,9 @@ export function AccountManager() {
   const handleConnect = (provider: "GOOGLE" | "OUTLOOK") => {
     if (provider === "GOOGLE") {
       window.location.href = `/api/calendar/google/auth`;
+    } else if (provider === "OUTLOOK") {
+      window.location.href = `/api/calendar/outlook/auth`;
     }
-    // TODO: Add Outlook support
   };
 
   const handleRemove = async (accountId: string) => {
@@ -44,8 +45,11 @@ export function AccountManager() {
     );
   }, []);
 
-  const showCredentialsWarning =
+  const showGoogleCredentialsWarning =
     !system.googleClientId || !system.googleClientSecret;
+
+  const showOutlookCredentialsWarning =
+    !system.outlookClientId || !system.outlookClientSecret;
 
   return (
     <div className="space-y-6">
@@ -53,12 +57,11 @@ export function AccountManager() {
         <CardHeader>
           <CardTitle>Connected Accounts</CardTitle>
           <CardDescription>
-            Manage your connected calendar accounts. Outlook integration coming
-            soon!
+            Manage your connected calendar accounts
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {showCredentialsWarning && (
+          {showGoogleCredentialsWarning && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Missing Google Credentials</AlertTitle>
@@ -69,14 +72,27 @@ export function AccountManager() {
             </Alert>
           )}
 
+          {showOutlookCredentialsWarning && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Missing Outlook Credentials</AlertTitle>
+              <AlertDescription>
+                Please go to the System Settings tab and configure your Outlook
+                Client ID and Secret before connecting Outlook Calendar.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="flex gap-2">
-            <Button onClick={() => handleConnect("GOOGLE")} disabled={showCredentialsWarning}>
+            <Button
+              onClick={() => handleConnect("GOOGLE")}
+              disabled={showGoogleCredentialsWarning}
+            >
               Connect Google Calendar
             </Button>
             <Button
               onClick={() => handleConnect("OUTLOOK")}
-              disabled
-              title="Coming soon"
+              disabled={showOutlookCredentialsWarning}
             >
               Connect Outlook Calendar
             </Button>
@@ -100,16 +116,14 @@ export function AccountManager() {
                     </Badge>
                   </div>
                   <div className="flex gap-2">
-                    {account.provider === "GOOGLE" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toggleAvailableCalendars(account.id)}
-                      >
-                        {showAvailableFor === account.id ? "Hide" : "Show"}{" "}
-                        Available Calendars
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => toggleAvailableCalendars(account.id)}
+                    >
+                      {showAvailableFor === account.id ? "Hide" : "Show"}{" "}
+                      Available Calendars
+                    </Button>
                     <Button
                       variant="destructive"
                       size="sm"
@@ -120,7 +134,10 @@ export function AccountManager() {
                   </div>
                 </div>
                 {showAvailableFor === account.id && (
-                  <AvailableCalendars accountId={account.id} />
+                  <AvailableCalendars
+                    accountId={account.id}
+                    provider={account.provider}
+                  />
                 )}
               </div>
             ))}
