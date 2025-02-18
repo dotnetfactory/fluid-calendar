@@ -571,6 +571,7 @@ function convertRRuleToOutlookRecurrence(rrule: RRule) {
   return { pattern, range };
 }
 
+
 export function convertOutlookRecurrenceToRRule(recurrence: {
   pattern: {
     type: string;
@@ -589,19 +590,41 @@ export function convertOutlookRecurrenceToRRule(recurrence: {
     recurrenceTimeZone?: string;
   };
 }): string {
-  const freq = recurrence.pattern.type.toUpperCase();
+  // Convert Outlook's relativemonthly to standard monthly with BYDAY
+  let freq = recurrence.pattern.type.toUpperCase();
+  if (freq === "RELATIVEMONTHLY") {
+    freq = "MONTHLY";
+  }
+  
   const interval = recurrence.pattern.interval;
   const parts = [`FREQ=${freq}`, `INTERVAL=${interval}`];
 
-  // Add BYDAY for weekly recurrence
+  // Add BYDAY for weekly recurrence or relativemonthly
   if (
     recurrence.pattern.daysOfWeek &&
     recurrence.pattern.daysOfWeek.length > 0
   ) {
-    const days = recurrence.pattern.daysOfWeek
-      .map((day) => day.slice(0, 2).toUpperCase())
-      .join(",");
-    parts.push(`BYDAY=${days}`);
+    // For relativemonthly, we need to add the week index (e.g., -1 for last, 1 for first)
+    if (recurrence.pattern.type === "relativemonthly" && recurrence.pattern.index) {
+      const weekIndex = {
+        first: 1,
+        second: 2,
+        third: 3,
+        fourth: 4,
+        last: -1,
+      }[recurrence.pattern.index.toLowerCase()] || 1;
+
+      const days = recurrence.pattern.daysOfWeek
+        .map((day) => `${weekIndex}${day.slice(0, 2).toUpperCase()}`)
+        .join(",");
+      parts.push(`BYDAY=${days}`);
+    } else {
+      // Regular weekly recurrence
+      const days = recurrence.pattern.daysOfWeek
+        .map((day) => day.slice(0, 2).toUpperCase())
+        .join(",");
+      parts.push(`BYDAY=${days}`);
+    }
   }
 
   // Add BYMONTHDAY for monthly recurrence
