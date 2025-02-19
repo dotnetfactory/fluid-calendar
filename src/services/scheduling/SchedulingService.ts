@@ -2,7 +2,7 @@ import { PrismaClient, Task, AutoScheduleSettings } from "@prisma/client";
 import { TimeSlotManagerImpl, TimeSlotManager } from "./TimeSlotManager";
 import { CalendarServiceImpl } from "./CalendarServiceImpl";
 import { useSettingsStore } from "@/store/settings";
-import { addDays } from "date-fns";
+import { addDays } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 
 const DEFAULT_TASK_DURATION = 30; // Default duration in minutes

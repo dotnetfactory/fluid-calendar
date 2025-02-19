@@ -6,7 +6,7 @@ import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import { formatDate } from "@/lib/utils";
 import { WeekView } from "@/components/calendar/WeekView";
 import { FeedManager } from "@/components/calendar/FeedManager";
-import { addDays, subDays } from "date-fns";
+import { addDays, subDays } from "@/lib/date-utils";
 import { useViewStore } from "@/store/calendar";
 import { useTaskStore } from "@/store/task";
 import { cn } from "@/lib/utils";

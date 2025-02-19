@@ -8,6 +8,7 @@ import { useCalendarStore } from "@/store/calendar";
 import { useSettingsStore } from "@/store/settings";
 import { IoClose } from "react-icons/io5";
 import { cn } from "@/lib/utils";
+import { formatToLocalISOString } from "@/lib/date-utils";
 
 interface EventModalProps {
   isOpen: boolean;
@@ -194,11 +195,6 @@ export function EventModal({
       setShowRecurrenceDialog(true);
     }
   }, [isOpen, event?.isRecurring, editMode, showRecurrenceDialog]);
-
-  const formatToLocalISOString = (date: Date) => {
-    const tzOffset = date.getTimezoneOffset() * 60000; // offset in milliseconds
-    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

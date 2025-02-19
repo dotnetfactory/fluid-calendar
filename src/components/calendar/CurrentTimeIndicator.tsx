@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { isSameDay } from "date-fns";
+import { isSameDay } from "@/lib/date-utils";
 
 interface CurrentTimeIndicatorProps {
   date: Date;

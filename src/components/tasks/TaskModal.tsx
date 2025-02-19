@@ -13,7 +13,7 @@ import {
 import { useProjectStore } from "@/store/project";
 import { RRule } from "rrule";
 import { Switch } from "@/components/ui/switch";
-import { format } from "date-fns";
+import { format } from "@/lib/date-utils";
 
 interface TaskModalProps {
   isOpen: boolean;

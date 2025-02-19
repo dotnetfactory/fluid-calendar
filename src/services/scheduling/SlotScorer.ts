@@ -1,7 +1,7 @@
 import { TimeSlot, SlotScore, EnergyLevel } from "@/types/scheduling";
 import { AutoScheduleSettings, Task } from "@prisma/client";
 import { getEnergyLevelForTime } from "@/lib/autoSchedule";
-import { differenceInMinutes, differenceInHours } from "date-fns";
+import { differenceInMinutes, differenceInHours } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 
 interface ProjectTask {

@@ -8,8 +8,9 @@ import {
   setMinutes,
   getDay,
   differenceInHours,
-} from "date-fns";
-import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+  formatInTimeZone,
+  toZonedTime,
+} from "@/lib/date-utils";
 import { CalendarService } from "./CalendarService";
 import { SlotScorer } from "./SlotScorer";
 import { Task, PrismaClient } from "@prisma/client";

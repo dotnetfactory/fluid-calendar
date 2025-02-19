@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { convertOutlookRecurrenceToRRule } from "@/lib/outlook-calendar";
 import type { Prisma } from "@prisma/client";
+import { convertToUTC } from "@/lib/date-utils";
 
 interface OutlookAttendee {
   emailAddress: {
@@ -60,23 +61,6 @@ const now = new Date();
 const timeMin = new Date(now.getFullYear() - 1, 0, 1); // 2 years ago, January 1st
 const timeMax = new Date(now.getFullYear() + 1, 11, 31); // End of next year
 const PAGE_SIZE = 200;
-
-// Helper to convert a datetime string and timezone to UTC Date
-function convertToUTC(dateTimeString: string, timeZone: string): Date {
-  // Create a date in the original timezone
-  const originalDate = new Date(dateTimeString);
-
-  // Get the UTC timestamp while respecting the original timezone
-  const utcDate = new Date(
-    originalDate.toLocaleString("en-US", {
-      timeZone: timeZone,
-    })
-  );
-
-  // Adjust for timezone offset
-  const offset = originalDate.getTime() - utcDate.getTime();
-  return new Date(originalDate.getTime() + offset);
-}
 
 // Helper to create base event data shared between master and instance events
 export function createBaseEventData(

@@ -3,7 +3,13 @@
 import { Task, TimePreference } from "@/types/task";
 import { useDraggable } from "@dnd-kit/core";
 import { HiPencil, HiTrash, HiClock, HiLockClosed } from "react-icons/hi";
-import { format, isToday, isTomorrow, isThisWeek, isThisYear } from "date-fns";
+import {
+  format,
+  isToday,
+  isTomorrow,
+  isThisWeek,
+  isThisYear,
+} from "@/lib/date-utils";
 
 interface BoardTaskProps {
   task: Task;
@@ -60,11 +66,7 @@ const formatContextualDate = (date: Date) => {
   return { text, isOverdue };
 };
 
-export function BoardTask({
-  task,
-  onEdit,
-  onDelete,
-}: BoardTaskProps) {
+export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: task.id,

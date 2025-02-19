@@ -6,6 +6,7 @@ import { TokenManager } from "./token-manager";
 import { logger } from "./logger";
 import { RRule, Frequency } from "rrule";
 import { useSettingsStore } from "@/store/settings";
+import { formatDateToLocal } from "@/lib/date-utils";
 
 export interface MSGraphEvent {
   id: string;
@@ -353,11 +354,15 @@ export async function createOutlookEvent(
       content: event.description || "",
     },
     start: {
-      dateTime: event.start.toISOString(),
+      dateTime: event.allDay
+        ? event.start.toISOString().split("T")[0]
+        : formatDateToLocal(event.start),
       timeZone,
     },
     end: {
-      dateTime: event.end.toISOString(),
+      dateTime: event.allDay
+        ? event.end.toISOString().split("T")[0]
+        : formatDateToLocal(event.end),
       timeZone,
     },
     location: event.location ? { displayName: event.location } : undefined,
@@ -538,8 +543,16 @@ function convertRRuleToOutlookRecurrence(rrule: RRule) {
 
   if (options.byweekday) {
     pattern.daysOfWeek = options.byweekday.map((day) => {
-      const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
-      return days[day].toString().toLowerCase();
+      const days = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ];
+      return days[day];
     });
   }
 

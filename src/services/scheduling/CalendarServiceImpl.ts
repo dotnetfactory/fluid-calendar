@@ -1,7 +1,7 @@
 import { CalendarEvent, PrismaClient } from "@prisma/client";
 import { TimeSlot, Conflict } from "@/types/scheduling";
 import { CalendarService } from "./CalendarService";
-import { areIntervalsOverlapping } from "date-fns";
+import { areIntervalsOverlapping } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 
 export class CalendarServiceImpl implements CalendarService {

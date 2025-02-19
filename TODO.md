@@ -13,6 +13,7 @@
 - [ ] show spinner when deleting/creating/updating in event modal
 - [ ] get rid of the master event concept.
 - [ ] Use AI to break down tasks
+- [ ] add spinner to event modal
 
 ## Outlook sync issues
 - [ ] deleting one instance doesn't sync correctly

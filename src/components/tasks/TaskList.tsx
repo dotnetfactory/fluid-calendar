@@ -1,6 +1,12 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { Task, TaskStatus, EnergyLevel, TimePreference } from "@/types/task";
-import { format, isToday, isTomorrow, isThisWeek, isThisYear } from "date-fns";
+import {
+  format,
+  isToday,
+  isTomorrow,
+  isThisWeek,
+  isThisYear,
+} from "@/lib/date-utils";
 import {
   HiChevronUp,
   HiChevronDown,
