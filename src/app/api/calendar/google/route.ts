@@ -231,14 +231,14 @@ export async function POST(request: Request) {
           const existingMaster = await tx.calendarEvent.findFirst({
             where: {
               feedId: feed.id,
-              googleEventId: eventId,
+              externalEventId: eventId,
               isMaster: true,
             },
           });
 
           const masterEventRecord = {
             feedId: feed.id,
-            googleEventId: eventId,
+            externalEventId: eventId,
             title: masterEventData.summary || "Untitled Event",
             description: masterEventData.description || "",
             start: new Date(
@@ -303,7 +303,7 @@ export async function POST(request: Request) {
             ? await tx.calendarEvent.findFirst({
                 where: {
                   feedId: feed.id,
-                  googleEventId: event.recurringEventId,
+                  externalEventId: event.recurringEventId,
                   isMaster: true,
                 },
               })
@@ -311,7 +311,7 @@ export async function POST(request: Request) {
 
           const eventRecord = {
             feedId: feed.id,
-            googleEventId: event.id,
+            externalEventId: event.id,
             title: event.summary || "Untitled Event",
             description: event.description || "",
             start: new Date(event.start?.dateTime || event.start?.date || ""),
@@ -350,7 +350,7 @@ export async function POST(request: Request) {
           const existingEvent = await tx.calendarEvent.findFirst({
             where: {
               feedId: feed.id,
-              googleEventId: event.id,
+              externalEventId: event.id,
             },
           });
 
@@ -467,7 +467,7 @@ export async function PUT(request: Request) {
           data: {
             id: event.id || undefined,
             feedId: feed.id,
-            googleEventId: event.id,
+            externalEventId: event.id,
             title: event.summary || "Untitled Event",
             description: event.description || "",
             start: new Date(event.start.dateTime || event.start.date || ""),

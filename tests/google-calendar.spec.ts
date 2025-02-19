@@ -167,7 +167,7 @@ test.describe("Google Calendar Integration", () => {
         title: eventTitle,
       },
     });
-    if (!event || !event.googleEventId) {
+    if (!event || !event.externalEventId) {
       throw new Error("Could not find event in database");
     }
     console.log("Created event:", event);
@@ -177,7 +177,7 @@ test.describe("Google Calendar Integration", () => {
     const eventData = await getGoogleEvent(
       testCalendar.accountId,
       testCalendar.calendarId,
-      event.googleEventId
+      event.externalEventId
     );
     console.log("API Event Data:", eventData);
 
@@ -216,7 +216,7 @@ test.describe("Google Calendar Integration", () => {
     await verifyEventDeletion(
       testCalendar.accountId,
       testCalendar.calendarId,
-      event.googleEventId
+      event.externalEventId
     );
   });
 
@@ -315,7 +315,7 @@ test.describe("Google Calendar Integration", () => {
         title: eventTitle,
       },
     });
-    if (!event || !event.googleEventId || !event.recurringEventId) {
+    if (!event || !event.externalEventId || !event.recurringEventId) {
       throw new Error("Could not find event in database");
     }
     console.log("Created event:", event);
@@ -325,7 +325,7 @@ test.describe("Google Calendar Integration", () => {
     const eventData = await getGoogleEvent(
       testCalendar.accountId,
       testCalendar.calendarId,
-      event.googleEventId
+      event.externalEventId
     );
     console.log("API Event Data:", eventData);
 

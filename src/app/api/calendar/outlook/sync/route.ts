@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOutlookCalendarClient } from "@/lib/outlook-calendar";
-import {
-  fetchAllEvents,
-  processMasterEvent,
-  createBaseEventData,
-  saveEventToDatabase,
-} from "@/lib/outlook-sync";
+import { syncOutlookCalendar } from "@/lib/outlook-sync";
 import { logger } from "@/lib/logger";
-import { Client } from "@microsoft/microsoft-graph-client";
 
 export async function GET() {
   return NextResponse.json(
@@ -18,101 +12,7 @@ export async function GET() {
 }
 
 // Shared sync function
-async function syncOutlookCalendar(
-  client: Client,
-  feed: { id: string; url: string },
-  lastSyncToken?: string | null
-) {
-  // Fetch all events
-  const {
-    events: allEvents,
-    deletedEventIds,
-    nextSyncToken,
-  } = await fetchAllEvents(client, feed.url, lastSyncToken);
-  logger.log("Fetched events from Outlook", {
-    totalCount: allEvents.length,
-    deletedEventsCount: deletedEventIds?.length || 0,
-    nextSyncToken: nextSyncToken ? "present" : "not present",
-  });
 
-  // Handle deleted events first if this is a delta sync
-  if (lastSyncToken && deletedEventIds?.length > 0) {
-    for (const eventId of deletedEventIds) {
-      try {
-        // Find and delete the event from our database
-        const existingEvent = await prisma.calendarEvent.findFirst({
-          where: {
-            feedId: feed.id,
-            googleEventId: eventId,
-          },
-        });
-        if (existingEvent) {
-          await prisma.calendarEvent.delete({
-            where: { id: existingEvent.id },
-          });
-        }
-      } catch (error) {
-        logger.log("Failed to delete event", {
-          eventId,
-          error,
-        });
-      }
-    }
-  }
-
-  // First, collect master events and non-recurring events
-  const masterEvents = new Map();
-  const nonRecurringEvents = [];
-
-  for (const event of allEvents) {
-    if (event.recurrence) {
-      masterEvents.set(event.id, event);
-    } else if (!event.seriesMasterId) {
-      nonRecurringEvents.push(event);
-    }
-  }
-
-  logger.log("Retrieved events from Outlook", {
-    totalCount: allEvents.length,
-    masterEventsCount: masterEvents.size,
-    nonRecurringCount: nonRecurringEvents.length,
-    deletedEventsCount: deletedEventIds?.length || 0,
-    nextSyncToken: nextSyncToken ? "present" : "not present",
-  });
-
-  // Process each event
-  const processedEventIds = new Set<string>();
-
-  // First, process non-recurring events
-  for (const event of nonRecurringEvents) {
-    try {
-      processedEventIds.add(event.id);
-
-      const eventData = {
-        ...createBaseEventData(event, feed.id, false, false),
-        recurrenceRule: null,
-        masterEventId: null,
-        recurringEventId: null,
-      };
-
-      await saveEventToDatabase(eventData, feed.id, event.id);
-    } catch (error) {
-      logger.log("Failed to process non-recurring event", {
-        eventId: event.id,
-        subject: event.subject,
-        error,
-      });
-    }
-  }
-
-  // Then, process recurring events
-  for (const [, masterEvent] of masterEvents) {
-    const processedIds = await processMasterEvent(client, masterEvent, feed);
-    processedIds.forEach((id) => processedEventIds.add(id));
-  }
-
-  return { processedEventIds, nextSyncToken };
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -219,10 +119,10 @@ export async function PUT(req: NextRequest) {
     // Get all existing event IDs for this feed
     // const existingEvents = await prisma.calendarEvent.findMany({
     //   where: { feedId },
-    //   select: { id: true, googleEventId: true },
+    //   select: { id: true, externalEventId: true },
     // });
     // const existingEventMap = new Map(
-    //   existingEvents.map((e) => [e.googleEventId, e.id])
+    //   existingEvents.map((e) => [e.externalEventId, e.id])
     // );
 
     // Get events from Outlook
@@ -236,7 +136,8 @@ export async function PUT(req: NextRequest) {
     const { processedEventIds, nextSyncToken } = await syncOutlookCalendar(
       client,
       { id: feed.id, url: feed.url as string },
-      feed.syncToken
+      feed.syncToken,
+      true
     );
 
     // Update the feed's sync token
@@ -251,8 +152,8 @@ export async function PUT(req: NextRequest) {
 
     // // Delete events that no longer exist in Outlook
     // let deletedCount = 0;
-    // for (const [googleEventId, id] of existingEventMap.entries()) {
-    //   if (googleEventId && !processedEventIds.has(googleEventId)) {
+    // for (const [externalEventId, id] of existingEventMap.entries()) {
+    //   if (externalEventId && !processedEventIds.has(externalEventId)) {
     //     try {
     //       await prisma.calendarEvent.delete({
     //         where: { id },
@@ -260,7 +161,7 @@ export async function PUT(req: NextRequest) {
     //       deletedCount++;
     //     } catch (deleteError) {
     //       logger.log("Failed to delete event", {
-    //         eventId: googleEventId,
+    //         eventId: externalEventId,
     //         error: deleteError,
     //       });
     //     }
@@ -277,7 +178,7 @@ export async function PUT(req: NextRequest) {
 
     logger.log("Completed Outlook calendar sync", {
       feedId,
-      processedEvents: processedEventIds.size
+      processedEvents: processedEventIds.size,
     });
 
     return NextResponse.json({ success: true });

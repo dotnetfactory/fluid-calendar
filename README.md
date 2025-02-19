@@ -4,6 +4,19 @@ An open-source alternative to Motion, designed for intelligent task scheduling a
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+⚠️ **WARNING: ACTIVE DEVELOPMENT** ⚠️
+
+This project is in active development and currently contains many bugs and incomplete features. It is not yet recommended for production use. If you encounter issues:
+
+1. Please check the [existing issues](https://github.com/fluidcalendar/fluidcalendar/issues) to see if it's already reported
+2. If not found, [create a new issue](https://github.com/fluidcalendar/fluidcalendar/issues/new) with:
+   - Steps to reproduce
+   - Expected behavior
+   - Actual behavior
+   - Any relevant error messages or screenshots
+
+Your bug reports help make FluidCalendar better! We appreciate your patience and contributions as we work to stabilize the platform.
+
 ## About
 
 FluidCalendar is built for people who want full control over their scheduling workflow. It combines the power of automatic task scheduling with the flexibility of open-source software. Read more about the journey and motivation in [Part 1 of my blog series](https://medium.com/front-end-weekly/fluid-calendar-an-open-source-alternative-to-motion-part-1-7a5b52bf219d).

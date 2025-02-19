@@ -109,7 +109,11 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
   selectedView: "week",
 
   // Helper function to expand recurring events
-  getExpandedEvents: (start: Date, end: Date, expandInstances: boolean = false) => {
+  getExpandedEvents: (
+    start: Date,
+    end: Date,
+    expandInstances: boolean = false
+  ) => {
     const { events } = get();
     const expandedEvents: CalendarEvent[] = [];
     console.log("getExpandedEvents called with:", { start, end });
@@ -408,6 +412,27 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         return;
       }
 
+      // For Outlook Calendar feeds, use the Outlook Calendar API
+      if (feed.type === "OUTLOOK") {
+        const response = await fetch("/api/calendar/outlook/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newEvent),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to add event to Outlook Calendar");
+        }
+
+        // Reload from database to get the latest state
+        await get().loadFromDatabase();
+
+        // Trigger auto-scheduling after event is created
+        const { scheduleAllTasks } = useTaskStore.getState();
+        await scheduleAllTasks();
+        return;
+      }
+
       // For other calendars, use the existing API
       const response = await fetch("/api/events", {
         method: "POST",
@@ -460,6 +485,26 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         return;
       }
 
+      // For Outlook Calendar feeds, use the Outlook Calendar API
+      if (feed.type === "OUTLOOK") {
+        const response = await fetch(`/api/calendar/outlook/events`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId: id, mode, ...updates }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to update event in Outlook Calendar");
+        }
+
+        // Reload from database to get the latest state
+        await get().loadFromDatabase();
+        // Trigger auto-scheduling after event is created
+        const { scheduleAllTasks } = useTaskStore.getState();
+        await scheduleAllTasks();
+        return;
+      }
+
       // For other calendars, use the existing API
       const response = await fetch(`/api/events/${id}`, {
         method: "PATCH",
@@ -500,6 +545,17 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
 
         if (!response.ok) {
           throw new Error("Failed to delete event from Google Calendar");
+        }
+      } else if (feed.type === "OUTLOOK") {
+        // For Outlook Calendar feeds, use the Outlook Calendar API
+        const response = await fetch(`/api/calendar/outlook/events`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId: id, mode }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete event from Outlook Calendar");
         }
       } else {
         // For other calendars, use the existing API

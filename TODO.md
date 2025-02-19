@@ -14,10 +14,17 @@
 - [ ] get rid of the master event concept.
 - [ ] Use AI to break down tasks
 
+## Outlook sync issues
+- [ ] deleting one instance doesn't sync correctly
+- [ ] test
+  - [x] CRUD event
+  - [ ] CRUD recurring event
+
 ## Tasks
 - [ ] task dependencies
 - [ ] task recurrence
 - [ ] task auto-scheduling
+- [ ] reschedule tasks after calendars to consider are changed
 
 ## 1. Core Calendar Features
 - [x] Basic layout with sidebar and header

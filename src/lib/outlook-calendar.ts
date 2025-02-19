@@ -368,6 +368,60 @@ export async function createOutlookEvent(
   return response;
 }
 
+export async function getOutlookEvent(
+  accountId: string,
+  calendarId: string,
+  eventId: string
+) {
+  const client = await getOutlookCalendarClient(accountId);
+
+  try {
+    const event = await client
+      .api(`/me/calendars/${calendarId}/events/${eventId}`)
+      .get();
+
+    let instances: MSGraphEvent[] = [];
+    let masterEvent = event;
+
+    // If this is an instance of a recurring event
+    if (event.seriesMasterId) {
+      try {
+        masterEvent = await client
+          .api(`/me/calendars/${calendarId}/events/${event.seriesMasterId}`)
+          .get();
+      } catch (error) {
+        logger.log("Failed to get master event", { error });
+        masterEvent = event;
+      }
+    }
+
+    // If this is a recurring event, get instances
+    if (masterEvent.recurrence) {
+      const response = await client
+        .api(`/me/calendars/${calendarId}/events/${masterEvent.id}/instances`)
+        .query({
+          startDateTime: new Date(new Date().getFullYear(), 0, 1).toISOString(),
+          endDateTime: new Date(
+            new Date().getFullYear() + 1,
+            0,
+            1
+          ).toISOString(),
+        })
+        .get();
+
+      instances = response.value || [];
+    }
+
+    return {
+      event: masterEvent,
+      instances,
+    };
+  } catch (error) {
+    logger.log("Failed to get event", { error });
+    throw error;
+  }
+}
+
 export async function updateOutlookEvent(
   accountId: string,
   calendarId: string,
@@ -465,60 +519,6 @@ export async function deleteOutlookEvent(
       .delete();
   } catch (error) {
     logger.log("Failed to delete event", { error });
-    throw error;
-  }
-}
-
-export async function getOutlookEvent(
-  accountId: string,
-  calendarId: string,
-  eventId: string
-) {
-  const client = await getOutlookCalendarClient(accountId);
-
-  try {
-    const event = await client
-      .api(`/me/calendars/${calendarId}/events/${eventId}`)
-      .get();
-
-    let instances: MSGraphEvent[] = [];
-    let masterEvent = event;
-
-    // If this is an instance of a recurring event
-    if (event.seriesMasterId) {
-      try {
-        masterEvent = await client
-          .api(`/me/calendars/${calendarId}/events/${event.seriesMasterId}`)
-          .get();
-      } catch (error) {
-        logger.log("Failed to get master event", { error });
-        masterEvent = event;
-      }
-    }
-
-    // If this is a recurring event, get instances
-    if (masterEvent.recurrence) {
-      const response = await client
-        .api(`/me/calendars/${calendarId}/events/${masterEvent.id}/instances`)
-        .query({
-          startDateTime: new Date(new Date().getFullYear(), 0, 1).toISOString(),
-          endDateTime: new Date(
-            new Date().getFullYear() + 1,
-            0,
-            1
-          ).toISOString(),
-        })
-        .get();
-
-      instances = response.value || [];
-    }
-
-    return {
-      event: masterEvent,
-      instances,
-    };
-  } catch (error) {
-    logger.log("Failed to get event", { error });
     throw error;
   }
 }

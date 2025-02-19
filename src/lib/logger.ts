@@ -62,7 +62,7 @@ class Logger {
     ) {
       fs.appendFileSync(this.logFile, logMessage);
     } else {
-      console.log(logMessage);
+      console.log(message, data);
     }
   }
 }

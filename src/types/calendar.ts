@@ -21,7 +21,8 @@ export interface ExtendedEventProps {
 export interface CalendarEvent {
   id: string;
   feedId: string;
-  googleEventId?: string;
+  externalEventId?: string;
+  outlookEventId?: string;
   title: string;
   description?: string;
   start: Date;

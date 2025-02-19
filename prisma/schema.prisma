@@ -96,26 +96,26 @@ model CalendarFeed {
 }
 
 model CalendarEvent {
-  id             String       @id @default(uuid())
-  feedId         String
-  feed           CalendarFeed @relation(fields: [feedId], references: [id], onDelete: Cascade)
-  googleEventId  String? // Google Calendar Event ID
-  title          String
-  description    String?
-  start          DateTime
-  end            DateTime
-  location       String?
-  isRecurring    Boolean      @default(false)
-  recurrenceRule String?
-  allDay         Boolean      @default(false)
-  status         String?
-  sequence       Int?
-  created        DateTime?
-  lastModified   DateTime?
-  organizer      Json? // Stored as JSON { name?: string, email: string }
-  attendees      Json? // Stored as JSON array of { name?: string, email: string, status?: string }
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id              String       @id @default(uuid())
+  feedId          String
+  feed            CalendarFeed @relation(fields: [feedId], references: [id], onDelete: Cascade)
+  externalEventId String? // External Calendar Event ID (Google, Outlook, etc.)
+  title           String
+  description     String?
+  start           DateTime
+  end             DateTime
+  location        String?
+  isRecurring     Boolean      @default(false)
+  recurrenceRule  String?
+  allDay          Boolean      @default(false)
+  status          String?
+  sequence        Int?
+  created         DateTime?
+  lastModified    DateTime?
+  organizer       Json? // Stored as JSON { name?: string, email: string }
+  attendees       Json? // Stored as JSON array of { name?: string, email: string, status?: string }
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   // New fields for hybrid approach
   isMaster         Boolean         @default(false) // True if this is a master event
@@ -126,7 +126,7 @@ model CalendarEvent {
 
   @@index([feedId])
   @@index([start, end])
-  @@index([googleEventId])
+  @@index([externalEventId])
   @@index([masterEventId])
   @@index([recurringEventId])
 }

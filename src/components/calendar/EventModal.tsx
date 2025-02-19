@@ -231,7 +231,7 @@ export function EventModal({
     try {
       if (event?.id) {
         // For existing events
-        if (feed.type === "GOOGLE" && !event.googleEventId) {
+        if (feed.type === "GOOGLE" && !event.externalEventId) {
           throw new Error("Cannot edit this Google Calendar event");
         }
         await updateEvent(event.id, eventData, editMode);

@@ -24,7 +24,7 @@ async function writeEventToDatabase(
     const masterEvent = await prisma.calendarEvent.create({
       data: {
         feedId,
-        googleEventId: event.id,
+        externalEventId: event.id,
         title: event.summary || "Untitled Event",
         description: event.description || "",
         start: new Date(event.start?.dateTime || event.start?.date || ""),
@@ -60,7 +60,7 @@ async function writeEventToDatabase(
       const createdInstance = await prisma.calendarEvent.create({
         data: {
           feedId,
-          googleEventId: instance.id,
+          externalEventId: instance.id,
           title: instance.summary || "Untitled Event",
           description: instance.description || "",
           start: new Date(
@@ -171,7 +171,6 @@ export async function PUT(request: Request) {
     });
 
     console.log("event:", event);
-    
 
     if (!event || !event.feed || !event.feed.url || !event.feed.accountId) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
@@ -184,7 +183,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    if (!event.googleEventId) {
+    if (!event.externalEventId) {
       return NextResponse.json(
         { error: "No Google Calendar event ID found" },
         { status: 400 }
@@ -195,7 +194,7 @@ export async function PUT(request: Request) {
     const googleEvent = await updateGoogleEvent(
       event.feed.accountId,
       event.feed.url,
-      event.googleEventId,
+      event.externalEventId,
       {
         ...updates,
         mode,
@@ -265,7 +264,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    if (!event.googleEventId) {
+    if (!event.externalEventId) {
       return NextResponse.json(
         { error: "No Google Calendar event ID found" },
         { status: 400 }
@@ -276,7 +275,7 @@ export async function DELETE(request: Request) {
     await deleteGoogleEvent(
       event.feed.accountId,
       event.feed.url,
-      event.googleEventId,
+      event.externalEventId,
       mode
     );
 
@@ -298,12 +297,13 @@ export async function DELETE(request: Request) {
     );
   }
 }
+
 async function deleteEvent(event: CalendarEvent) {
   if (!event.recurringEventId) {
-    console.log("deleting single event", event.googleEventId);
+    console.log("deleting single event", event.externalEventId);
     await prisma.calendarEvent.deleteMany({
       where: {
-        googleEventId: event.googleEventId,
+        externalEventId: event.externalEventId,
       },
     });
   } else {
@@ -311,11 +311,10 @@ async function deleteEvent(event: CalendarEvent) {
     await prisma.calendarEvent.deleteMany({
       where: {
         OR: [
-          { googleEventId: event.googleEventId },
+          { externalEventId: event.externalEventId },
           { recurringEventId: event.recurringEventId },
         ],
       },
     });
   }
 }
-

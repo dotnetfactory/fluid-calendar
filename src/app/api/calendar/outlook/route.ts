@@ -4,6 +4,7 @@ import { MICROSOFT_GRAPH_AUTH_ENDPOINTS } from "@/lib/outlook";
 import { TokenManager } from "@/lib/token-manager";
 import { OutlookCalendarService } from "@/lib/outlook-calendar";
 import { prisma } from "@/lib/prisma";
+import { GraphError } from "@microsoft/microsoft-graph-client";
 
 export async function GET(req: NextRequest) {
   try {
@@ -85,22 +86,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(
         `${process.env.NEXTAUTH_URL}/settings?success=true`
       );
-    } catch (error: any) {
-      console.error("Failed to get user profile:", {
-        error: error.message,
-        details: error.body || error,
-        stack: error.stack,
-      });
+    } catch (error: unknown) {
+      if (error instanceof GraphError) {
+        console.error("Failed to get user profile:", {
+          error: error.message,
+          details: error.body || error,
+          stack: error.stack,
+        });
+      }
       return NextResponse.redirect(
         `${process.env.NEXTAUTH_URL}/settings?error=profile-failed`
       );
     }
-  } catch (error: any) {
-    console.error("Failed to handle Outlook callback:", {
-      error: error.message,
-      details: error.body || error,
-      stack: error.stack,
-    });
+  } catch (error: unknown) {
+    if (error instanceof GraphError) {
+      console.error("Failed to handle Outlook callback:", {
+        error: error.message,
+        details: error.body || error,
+        stack: error.stack,
+      });
+    }
     return NextResponse.redirect(
       `${process.env.NEXTAUTH_URL}/settings?error=callback-failed`
     );
