@@ -109,7 +109,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
   selectedView: "week",
 
   // Helper function to expand recurring events
-  getExpandedEvents: (start: Date, end: Date) => {
+  getExpandedEvents: (start: Date, end: Date, expandInstances: boolean = false) => {
     const { events } = get();
     const expandedEvents: CalendarEvent[] = [];
     console.log("getExpandedEvents called with:", { start, end });
@@ -136,7 +136,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
       }
 
       // For master events, expand the recurrence
-      if (event.isMaster && event.recurrenceRule) {
+      if (expandInstances && event.isMaster && event.recurrenceRule) {
         try {
           // Parse the recurrence rule
           const rule = RRule.fromString(event.recurrenceRule);

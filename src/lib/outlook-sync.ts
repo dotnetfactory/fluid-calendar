@@ -257,6 +257,23 @@ export async function processMasterEvent(
   processedIds.add(masterEvent.id);
 
   try {
+        // Create master event data
+    const masterEventData = {
+      ...createBaseEventData(masterEvent, feed.id, true, true),
+      recurrenceRule: masterEvent.recurrence
+        ? convertOutlookRecurrenceToRRule(masterEvent.recurrence)
+        : null,
+      masterEventId: null,
+      recurringEventId: null,
+    };
+
+    // Save master event
+    const savedMaster = await saveEventToDatabase(
+      masterEventData,
+      feed.id,
+      masterEvent.id,
+      true
+    );
     // Fetch and process instances
     const instances = await fetchEventInstances(
       client,
@@ -275,9 +292,10 @@ export async function processMasterEvent(
             ? convertOutlookRecurrenceToRRule(masterEvent.recurrence)
             : null,
           recurringEventId: masterEvent.id,
+          masterEventId: savedMaster.id,
         };
 
-        await saveEventToDatabase(instanceData, feed.id, instance.id);
+        await saveEventToDatabase(instanceData, feed.id, instance.id, false);
       } catch (error) {
         logger.log("Failed to process instance", {
           instanceId: instance.id,
