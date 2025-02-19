@@ -44,6 +44,7 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
   ) {
     this.slotScorer = new SlotScorer(settings);
     this.timeZone = useSettingsStore.getState().user.timeZone;
+    logger.log("[DEBUG] TimeSlotManager constructor");
   }
 
   async updateScheduledTasks(): Promise<void> {

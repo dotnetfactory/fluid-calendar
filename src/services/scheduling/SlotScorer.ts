@@ -13,7 +13,9 @@ export class SlotScorer {
   constructor(
     private settings: AutoScheduleSettings,
     private scheduledTasks: Map<string, ProjectTask[]> = new Map()
-  ) {}
+  ) {
+    logger.log("[DEBUG] SlotScorer constructor");
+  }
 
   // Add method to update scheduled tasks
   updateScheduledTasks(tasks: Task[]) {

@@ -2,6 +2,7 @@ import { Client } from "@microsoft/microsoft-graph-client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { convertOutlookRecurrenceToRRule } from "@/lib/outlook-calendar";
+import type { Prisma } from "@prisma/client";
 
 interface OutlookAttendee {
   emailAddress: {
@@ -30,7 +31,23 @@ interface OutlookEvent {
   location?: {
     displayName: string;
   };
-  recurrence?: any;
+  recurrence?: {
+    pattern: {
+      type: string;
+      interval: number;
+      month?: number;
+      dayOfMonth?: number;
+      daysOfWeek?: string[];
+      firstDayOfWeek?: string;
+      index?: string;
+    };
+    range: {
+      type: string;
+      startDate: string;
+      endDate?: string;
+      numberOfOccurrences?: number;
+    };
+  };
   isAllDay?: boolean;
   showAs?: string;
   createdDateTime?: string;
@@ -102,7 +119,7 @@ export function createBaseEventData(
 
 // Helper to save an event to the database
 export async function saveEventToDatabase(
-  eventData: any,
+  eventData: Prisma.CalendarEventCreateInput | Prisma.CalendarEventUpdateInput,
   feedId: string,
   googleEventId: string,
   isMaster: boolean = false
@@ -118,45 +135,80 @@ export async function saveEventToDatabase(
   if (existingEvent) {
     return await prisma.calendarEvent.update({
       where: { id: existingEvent.id },
-      data: eventData,
+      data: eventData as Prisma.CalendarEventUpdateInput,
     });
   }
 
   return await prisma.calendarEvent.create({
-    data: eventData,
+    data: eventData as Prisma.CalendarEventCreateInput,
   });
 }
 
 // Helper to fetch all events from Outlook with pagination
-export async function fetchAllEvents(client: Client, calendarId: string) {
+export async function fetchAllEvents(
+  client: Client,
+  calendarId: string,
+  syncToken?: string | null
+) {
   let allEvents = [];
   let nextLink = null;
 
-  // Initial request
+  // Initial request - use delta query if sync token is provided
+  const apiPath = `/me/calendars/${calendarId}/calendarView/delta`;
+  const queryParams = [];
+
+  // Always include startDateTime and endDateTime as required by the API
+  queryParams.push(`startDateTime=${timeMin.toISOString()}`);
+  queryParams.push(`endDateTime=${timeMax.toISOString()}`);
+
+  if (syncToken) {
+    logger.log("Using delta query for incremental sync");
+    queryParams.push(`$deltatoken=${syncToken}`);
+  }
+
   let response = await client
-    .api(`/me/calendars/${calendarId}/events`)
-    .filter(
-      `start/dateTime ge '${timeMin.toISOString()}' and end/dateTime le '${timeMax.toISOString()}'`
-    )
-    .select("id,subject,start,end,body,location,recurrence,seriesMasterId")
-    .orderby("start/dateTime")
-    .top(PAGE_SIZE)
+    .api(apiPath + (queryParams.length > 0 ? `?${queryParams.join("&")}` : ""))
+    .header("Prefer", `odata.maxpagesize=${PAGE_SIZE}`)
     .get();
 
   allEvents = response.value;
   nextLink = response["@odata.nextLink"];
+  let deltaLink = response["@odata.deltaLink"]; // Track deltaLink from first response
 
   // Handle pagination
   while (nextLink) {
     logger.log("Fetching next page of events", { nextLink });
-    response = await client.api(nextLink).get();
+    response = await client
+      .api(nextLink)
+      .header("Prefer", `odata.maxpagesize=${PAGE_SIZE}`)
+      .get();
     allEvents = allEvents.concat(response.value);
     nextLink = response["@odata.nextLink"];
+
+    // Update deltaLink if present in this response
+    if (response["@odata.deltaLink"]) {
+      deltaLink = response["@odata.deltaLink"];
+    }
   }
 
+  logger.log("Sync completed", {
+    totalEvents: allEvents.length,
+    hasDeltaLink: !!deltaLink,
+    deltaLink,
+  });
+
+  // For delta query, the response includes information about deleted events
+  const deletedEvents = allEvents.filter(
+    (event: OutlookEvent & { "@removed"?: boolean }) => event["@removed"]
+  );
+  const activeEvents = allEvents.filter(
+    (event: OutlookEvent & { "@removed"?: boolean }) => !event["@removed"]
+  );
+
   return {
-    events: allEvents,
-    nextSyncToken: response["@odata.deltaLink"]?.split("deltatoken=")[1],
+    events: activeEvents,
+    deletedEventIds: deletedEvents.map((event: OutlookEvent) => event.id),
+    nextSyncToken: deltaLink?.split("deltatoken=")[1],
   };
 }
 

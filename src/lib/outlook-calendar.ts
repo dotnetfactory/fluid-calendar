@@ -43,6 +43,7 @@ export interface MSGraphEvent {
       numberOfOccurrences?: number;
     };
   };
+  instances?: MSGraphEvent[];
   type?: "occurrence" | "exception" | "seriesMaster";
   seriesMasterId?: string;
   isOrganizer?: boolean;
@@ -543,11 +544,11 @@ function convertRRuleToOutlookRecurrence(rrule: RRule) {
   }
 
   if (options.bymonthday) {
-    pattern.dayOfMonth = options.bymonthday;
+    pattern.dayOfMonth = options.bymonthday[0];
   }
 
   if (options.bymonth) {
-    pattern.month = options.bymonth;
+    pattern.month = options.bymonth[0];
   }
 
   const range: {
@@ -570,7 +571,6 @@ function convertRRuleToOutlookRecurrence(rrule: RRule) {
 
   return { pattern, range };
 }
-
 
 export function convertOutlookRecurrenceToRRule(recurrence: {
   pattern: {
@@ -595,7 +595,7 @@ export function convertOutlookRecurrenceToRRule(recurrence: {
   if (freq === "RELATIVEMONTHLY") {
     freq = "MONTHLY";
   }
-  
+
   const interval = recurrence.pattern.interval;
   const parts = [`FREQ=${freq}`, `INTERVAL=${interval}`];
 
@@ -605,14 +605,18 @@ export function convertOutlookRecurrenceToRRule(recurrence: {
     recurrence.pattern.daysOfWeek.length > 0
   ) {
     // For relativemonthly, we need to add the week index (e.g., -1 for last, 1 for first)
-    if (recurrence.pattern.type === "relativemonthly" && recurrence.pattern.index) {
-      const weekIndex = {
-        first: 1,
-        second: 2,
-        third: 3,
-        fourth: 4,
-        last: -1,
-      }[recurrence.pattern.index.toLowerCase()] || 1;
+    if (
+      recurrence.pattern.type === "relativemonthly" &&
+      recurrence.pattern.index
+    ) {
+      const weekIndex =
+        {
+          first: 1,
+          second: 2,
+          third: 3,
+          fourth: 4,
+          last: -1,
+        }[recurrence.pattern.index.toLowerCase()] || 1;
 
       const days = recurrence.pattern.daysOfWeek
         .map((day) => `${weekIndex}${day.slice(0, 2).toUpperCase()}`)

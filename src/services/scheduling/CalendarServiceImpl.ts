@@ -132,7 +132,7 @@ export class CalendarServiceImpl implements CalendarService {
   ): Promise<CalendarEvent[]> {
     // Only query if we have selected calendars
     if (selectedCalendarIds.length === 0) {
-      // logger.log("[DEBUG] No calendars selected, skipping event check");
+      logger.log("[DEBUG] No calendars selected, skipping event check");
       return [];
     }
 
