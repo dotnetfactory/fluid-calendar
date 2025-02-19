@@ -8,7 +8,11 @@ import {
 } from "@/lib/google-calendar";
 import { GaxiosError } from "gaxios";
 import { calendar_v3 } from "googleapis";
-import { CalendarEvent } from "@prisma/client";
+import {
+  deleteCalendarEvent,
+  getEvent,
+  validateEvent,
+} from "@/lib/calendar-db";
 
 type GoogleEvent = calendar_v3.Schema$Event;
 
@@ -165,36 +169,18 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Event ID required" }, { status: 400 });
     }
 
-    const event = await prisma.calendarEvent.findUnique({
-      where: { id: eventId },
-      include: { feed: true },
-    });
+    const event = await getEvent(eventId);
+    const validatedEvent = await validateEvent(event, "GOOGLE");
 
-    console.log("event:", event);
-
-    if (!event || !event.feed || !event.feed.url || !event.feed.accountId) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
-    }
-
-    if (event.feed.type !== "GOOGLE") {
-      return NextResponse.json(
-        { error: "Not a Google Calendar event" },
-        { status: 400 }
-      );
-    }
-
-    if (!event.externalEventId) {
-      return NextResponse.json(
-        { error: "No Google Calendar event ID found" },
-        { status: 400 }
-      );
+    if (validatedEvent instanceof NextResponse) {
+      return validatedEvent;
     }
 
     // Update in Google Calendar
     const googleEvent = await updateGoogleEvent(
-      event.feed.accountId,
-      event.feed.url,
-      event.externalEventId,
+      validatedEvent.feed.accountId,
+      validatedEvent.feed.url,
+      validatedEvent.externalEventId,
       {
         ...updates,
         mode,
@@ -208,18 +194,18 @@ export async function PUT(request: Request) {
     }
 
     // Delete existing event and any related instances from our database
-    deleteEvent(event);
+    deleteCalendarEvent(validatedEvent.id, mode);
 
     // Get the updated event and its instances
     const { event: updatedEvent, instances } = await getGoogleEvent(
-      event.feed.accountId,
-      event.feed.url,
+      validatedEvent.feed.accountId,
+      validatedEvent.feed.url,
       googleEvent.id
     );
 
     // Create new records in our database
     const records = await writeEventToDatabase(
-      event.feed.id,
+      validatedEvent.feed.id,
       updatedEvent,
       instances
     );
@@ -248,39 +234,23 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Event ID required" }, { status: 400 });
     }
 
-    const event = await prisma.calendarEvent.findUnique({
-      where: { id: eventId },
-      include: { feed: true },
-    });
+    const event = await getEvent(eventId);
+    const validatedEvent = await validateEvent(event, "GOOGLE");
 
-    if (!event || !event.feed || !event.feed.url || !event.feed.accountId) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
-    }
-
-    if (event.feed.type !== "GOOGLE") {
-      return NextResponse.json(
-        { error: "Not a Google Calendar event" },
-        { status: 400 }
-      );
-    }
-
-    if (!event.externalEventId) {
-      return NextResponse.json(
-        { error: "No Google Calendar event ID found" },
-        { status: 400 }
-      );
+    if (validatedEvent instanceof NextResponse) {
+      return validatedEvent;
     }
 
     // Delete from Google Calendar
     await deleteGoogleEvent(
-      event.feed.accountId,
-      event.feed.url,
-      event.externalEventId,
+      validatedEvent.feed.accountId,
+      validatedEvent.feed.url,
+      validatedEvent.externalEventId,
       mode
     );
 
-    // Delete the event and any related instances from our database
-    await deleteEvent(event);
+    // Delete from database using shared function
+    await deleteCalendarEvent(validatedEvent.id, mode);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -295,26 +265,5 @@ export async function DELETE(request: Request) {
       { error: "Failed to delete event" },
       { status: 500 }
     );
-  }
-}
-
-async function deleteEvent(event: CalendarEvent) {
-  if (!event.recurringEventId) {
-    console.log("deleting single event", event.externalEventId);
-    await prisma.calendarEvent.deleteMany({
-      where: {
-        externalEventId: event.externalEventId,
-      },
-    });
-  } else {
-    console.log("deleting recurring event", event.recurringEventId);
-    await prisma.calendarEvent.deleteMany({
-      where: {
-        OR: [
-          { externalEventId: event.externalEventId },
-          { recurringEventId: event.recurringEventId },
-        ],
-      },
-    });
   }
 }

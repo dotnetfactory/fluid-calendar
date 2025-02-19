@@ -8,6 +8,11 @@ import {
 import { logger } from "@/lib/logger";
 import { getOutlookCalendarClient } from "@/lib/outlook-calendar";
 import { syncOutlookCalendar } from "@/lib/outlook-sync";
+import {
+  deleteCalendarEvent,
+  getEvent,
+  validateEvent,
+} from "@/lib/calendar-db";
 
 // Helper function to write event to database
 
@@ -83,34 +88,18 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Event ID required" }, { status: 400 });
     }
 
-    const event = await prisma.calendarEvent.findUnique({
-      where: { id: eventId },
-      include: { feed: true },
-    });
+    const event = await getEvent(eventId);
+    const validatedEvent = await validateEvent(event, "OUTLOOK");
 
-    if (!event || !event.feed || !event.feed.url || !event.feed.accountId) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
-    }
-
-    if (event.feed.type !== "OUTLOOK") {
-      return NextResponse.json(
-        { error: "Not an Outlook Calendar event" },
-        { status: 400 }
-      );
-    }
-
-    if (!event.externalEventId) {
-      return NextResponse.json(
-        { error: "No Outlook Calendar event ID found" },
-        { status: 400 }
-      );
+    if (validatedEvent instanceof NextResponse) {
+      return validatedEvent;
     }
 
     // Update in Outlook Calendar
     const outlookEvent = await updateOutlookEvent(
-      event.feed.accountId,
-      event.feed.url,
-      event.externalEventId,
+      validatedEvent.feed.accountId,
+      validatedEvent.feed.url,
+      validatedEvent.externalEventId,
       {
         ...updates,
         mode,
@@ -126,16 +115,21 @@ export async function PUT(request: Request) {
     // Delete existing event and any related instances from our database
     await prisma.calendarEvent.deleteMany({
       where: {
-        OR: [{ id: event.id }, { recurringEventId: event.externalEventId }],
+        OR: [
+          { id: validatedEvent.id },
+          { recurringEventId: validatedEvent.externalEventId },
+        ],
       },
     });
 
     // Get the updated event and its instances
-    const client = await getOutlookCalendarClient(event.feed.accountId);
+    const client = await getOutlookCalendarClient(
+      validatedEvent.feed.accountId
+    );
     await syncOutlookCalendar(
       client,
-      { id: event.feed.id, url: event.feed.url },
-      event.feed.syncToken
+      { id: validatedEvent.feed.id, url: validatedEvent.feed.url },
+      validatedEvent.feed.syncToken
     );
 
     const record = await prisma.calendarEvent.findFirst({
@@ -161,43 +155,23 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Event ID required" }, { status: 400 });
     }
 
-    const event = await prisma.calendarEvent.findUnique({
-      where: { id: eventId },
-      include: { feed: true },
-    });
+    const event = await getEvent(eventId);
+    const validatedEvent = await validateEvent(event, "OUTLOOK");
 
-    if (!event || !event.feed || !event.feed.url || !event.feed.accountId) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
-    }
-
-    if (event.feed.type !== "OUTLOOK") {
-      return NextResponse.json(
-        { error: "Not an Outlook Calendar event" },
-        { status: 400 }
-      );
-    }
-
-    if (!event.externalEventId) {
-      return NextResponse.json(
-        { error: "No Outlook Calendar event ID found" },
-        { status: 400 }
-      );
+    if (validatedEvent instanceof NextResponse) {
+      return validatedEvent;
     }
 
     // Delete from Outlook Calendar
     await deleteOutlookEvent(
-      event.feed.accountId,
-      event.feed.url,
-      event.externalEventId,
+      validatedEvent.feed.accountId,
+      validatedEvent.feed.url,
+      validatedEvent.externalEventId,
       mode
     );
 
-    // Delete the event and any related instances from our database
-    await prisma.calendarEvent.deleteMany({
-      where: {
-        OR: [{ id: event.id }, { recurringEventId: event.externalEventId }],
-      },
-    });
+    // Delete from database using shared function
+    await deleteCalendarEvent(validatedEvent.id, mode);
 
     return NextResponse.json({ success: true });
   } catch (error) {

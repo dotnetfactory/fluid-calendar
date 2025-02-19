@@ -343,33 +343,39 @@ export async function createOutlookEvent(
   // Convert RRule to Outlook recurrence pattern if present
   let recurrence;
   if (event.isRecurring && event.recurrenceRule) {
-    const rrule = RRule.fromString(event.recurrenceRule);
+    console.log(
+      "Converting RRule to Outlook recurrence:",
+      event.recurrenceRule
+    );
+    const rrule = RRule.fromString("RRULE:" + event.recurrenceRule);
     recurrence = convertRRuleToOutlookRecurrence(rrule);
+    console.log("Converted recurrence pattern:", recurrence);
   }
 
-  const response = await client.api(`/me/calendars/${calendarId}/events`).post({
+  // Format dates in ISO format for Outlook
+  const eventData = {
     subject: event.title,
     body: {
       contentType: "text",
       content: event.description || "",
     },
     start: {
-      dateTime: event.allDay
-        ? event.start.toISOString().split("T")[0]
-        : formatDateToLocal(event.start),
+      dateTime: event.start.toISOString(),
       timeZone,
     },
     end: {
-      dateTime: event.allDay
-        ? event.end.toISOString().split("T")[0]
-        : formatDateToLocal(event.end),
+      dateTime: event.end.toISOString(),
       timeZone,
     },
     location: event.location ? { displayName: event.location } : undefined,
     isAllDay: event.allDay,
-    recurrence,
-  });
+    ...(recurrence && { recurrence }),
+  };
 
+  console.log("Creating Outlook event with data:", eventData);
+  const response = await client
+    .api(`/me/calendars/${calendarId}/events`)
+    .post(eventData);
   return response;
 }
 
@@ -542,18 +548,40 @@ function convertRRuleToOutlookRecurrence(rrule: RRule) {
   };
 
   if (options.byweekday) {
-    pattern.daysOfWeek = options.byweekday.map((day) => {
-      const days = [
-        "sunday",
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-      ];
-      return days[day];
-    });
+    pattern.daysOfWeek = options.byweekday.map(
+      (day: number | { toString: () => string }) => {
+        // RRule uses 0-6 for weekdays, but can also pass in MO, TU, etc.
+        if (typeof day === "number") {
+          const days = [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+          ];
+          return days[day];
+        } else {
+          // Handle string weekday codes (MO, TU, etc.)
+          const weekdayMap: { [key: string]: string } = {
+            SU: "sunday",
+            MO: "monday",
+            TU: "tuesday",
+            WE: "wednesday",
+            TH: "thursday",
+            FR: "friday",
+            SA: "saturday",
+          };
+          const dayStr = day.toString().toUpperCase();
+          console.log("Converting RRule weekday to Outlook:", {
+            rruleDay: dayStr,
+            outlookDay: weekdayMap[dayStr],
+          });
+          return weekdayMap[dayStr];
+        }
+      }
+    );
   }
 
   if (options.bymonthday) {
@@ -564,6 +592,9 @@ function convertRRuleToOutlookRecurrence(rrule: RRule) {
     pattern.month = options.bymonth[0];
   }
 
+  // Format dates in YYYY-MM-DD format for Outlook
+  const startDateStr = options.dtstart.toISOString().split("T")[0];
+
   const range: {
     type: "endDate" | "numbered" | "noEnd";
     startDate: string;
@@ -571,7 +602,7 @@ function convertRRuleToOutlookRecurrence(rrule: RRule) {
     numberOfOccurrences?: number;
   } = {
     type: options.until ? "endDate" : options.count ? "numbered" : "noEnd",
-    startDate: options.dtstart.toISOString().split("T")[0],
+    startDate: startDateStr,
   };
 
   if (options.until) {

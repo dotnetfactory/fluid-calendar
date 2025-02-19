@@ -29,14 +29,15 @@ const FREQUENCIES = {
 
 type Frequency = (typeof FREQUENCIES)[keyof typeof FREQUENCIES];
 
+// RRule weekday codes
 const WEEKDAYS = {
+  SU: "Sunday",
   MO: "Monday",
   TU: "Tuesday",
   WE: "Wednesday",
   TH: "Thursday",
   FR: "Friday",
   SA: "Saturday",
-  SU: "Sunday",
 } as const;
 
 // Helper function to parse recurrence rule
@@ -89,14 +90,14 @@ function buildRecurrenceRule(freq: string, interval: number, byDay: string[]) {
 
   // Add BYDAY for weekly recurrence
   if (freq === FREQUENCIES.WEEKLY && byDay.length > 0) {
+    // byDay should already be in RRule format (MO, TU, etc.)
+    console.log("Building RRule with weekdays:", byDay);
     parts.push(`BYDAY=${byDay.join(",")}`);
   }
 
-  // Return empty string if no valid parts
-  if (parts.length === 0) return "";
-
-  // Don't add RRULE: prefix - it will be added in createGoogleEvent
-  return parts.join(";");
+  const rule = parts.join(";");
+  console.log("Built RRule:", rule);
+  return rule;
 }
 
 export function EventModal({
@@ -543,12 +544,24 @@ export function EventModal({
                       setIsRecurring(e.target.checked);
                       if (e.target.checked && !recurrenceFreq) {
                         setRecurrenceFreq(FREQUENCIES.WEEKLY);
-                        setRecurrenceByDay([
-                          new Date()
-                            .toLocaleString("en-US", { weekday: "short" })
-                            .toUpperCase()
-                            .slice(0, 2),
-                        ]);
+                        // Get the current weekday in RRule format (MO, TU, etc.)
+                        const weekdayNum = startDate.getDay(); // Use startDate instead of current date
+                        const weekdays = [
+                          "SU",
+                          "MO",
+                          "TU",
+                          "WE",
+                          "TH",
+                          "FR",
+                          "SA",
+                        ];
+                        const weekday = weekdays[weekdayNum];
+                        console.log("Setting initial weekday from startDate:", {
+                          weekdayNum,
+                          weekday,
+                          startDate: startDate.toISOString(),
+                        });
+                        setRecurrenceByDay([weekday]);
                       }
                     }}
                     data-testid="recurring-event-checkbox"

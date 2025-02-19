@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
+import { getEvent } from "@/lib/calendar-db";
 // Get a specific event
 export async function GET(
   request: Request,
@@ -8,10 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const event = await prisma.calendarEvent.findUnique({
-      where: { id },
-    });
-
+    const event = await getEvent(id);
     if (!event) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }

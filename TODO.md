@@ -20,6 +20,7 @@
 - [ ] test
   - [x] CRUD event
   - [ ] CRUD recurring event
+  - [ ] delete recurring event not working - delets all in outlook but only one instance locally
 
 ## Tasks
 - [ ] task dependencies
