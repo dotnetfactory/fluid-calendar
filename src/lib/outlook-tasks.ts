@@ -30,6 +30,13 @@ export interface OutlookTaskList {
   parentGroupKey?: string;
 }
 
+interface OutlookTaskListResponse {
+  id: string;
+  displayName: string;
+  wellknownListName?: string;
+  parentGroupKey?: string;
+}
+
 export class OutlookTasksService {
   private client: Client;
   private accountId: string;
@@ -41,10 +48,23 @@ export class OutlookTasksService {
 
   async getTaskLists(): Promise<OutlookTaskList[]> {
     try {
+      logger.log("[DEBUG] Fetching Outlook task lists");
       const response = await this.client.api("/me/todo/lists").get();
-      return response.value;
+      logger.log("[DEBUG] Outlook task lists response", { response });
+      if (!response.value || !Array.isArray(response.value)) {
+        logger.log("[ERROR] Invalid response format from Outlook API", {
+          response,
+        });
+        throw new Error("Invalid response format from Outlook API");
+      }
+      return response.value.map((list: OutlookTaskListResponse) => ({
+        id: list.id,
+        name: list.displayName,
+        isDefaultFolder: list.wellknownListName === "defaultList",
+        parentGroupKey: list.parentGroupKey,
+      }));
     } catch (error) {
-      logger.log("Failed to get task lists", { error });
+      logger.log("[ERROR] Failed to get task lists", { error });
       throw error;
     }
   }

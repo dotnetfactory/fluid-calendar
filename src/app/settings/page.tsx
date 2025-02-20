@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { AccountManager } from "@/components/settings/AccountManager";
 import { AutoScheduleSettings } from "@/components/settings/AutoScheduleSettings";
 import { SystemSettings } from "@/components/settings/SystemSettings";
+import { OutlookTaskSettings } from "@/components/settings/OutlookTaskSettings";
 import { cn } from "@/lib/utils";
 
 type SettingsTab =
@@ -14,7 +15,8 @@ type SettingsTab =
   | "user"
   | "calendar"
   | "auto-schedule"
-  | "system";
+  | "system"
+  | "outlook-tasks";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("accounts");
@@ -24,6 +26,7 @@ export default function SettingsPage() {
     { id: "user", label: "User" },
     { id: "calendar", label: "Calendar" },
     { id: "auto-schedule", label: "Auto-Schedule" },
+    { id: "outlook-tasks", label: "Outlook Tasks" },
     { id: "system", label: "System" },
   ] as const;
 
@@ -37,7 +40,8 @@ export default function SettingsPage() {
         return <CalendarSettings />;
       case "auto-schedule":
         return <AutoScheduleSettings />;
-
+      case "outlook-tasks":
+        return <OutlookTaskSettings />;
       case "system":
         return <SystemSettings />;
       default:
