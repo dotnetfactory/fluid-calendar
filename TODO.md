@@ -3,7 +3,7 @@
 ## Next Steps
 - [ ] Integrate google calendar
   - [ ] auto sync with webhooks
-  - [ ] when deleting one event  from the series, it deletes all instances locally but google is working fine.
+  - [ ] when deleting one event from the series, it deletes all instances locally but google is working fine.
 - [ ] prevent adding events to read-only calendars
 - [ ] allow changing calendar color
 - [ ] allow calendar re-ordering in the UI
@@ -11,33 +11,26 @@
 - [ ] add ability to RSVP
 - [ ] show events not RSVPed to
 - [ ] show spinner when deleting/creating/updating in event modal
-- [ ] get rid of the master event concept.
 - [ ] Use AI to break down tasks
-- [ ] add spinner to event modal
+- [ ] recurring tasks don't indicate that it's recurring
+- [ ] Ability to add tasks in calendar view
 
 ## Outlook sync issues
 - [ ] deleting one instance doesn't sync correctly
-- [ ] test
-  - [x] CRUD event
-  - [ ] CRUD recurring event
-  - [ ] delete recurring event not working - delets all in outlook but only one instance locally
+- [ ] add real-time updates with webhooks
+- [ ] implement offline support
 
 ## Tasks
 - [ ] task dependencies
-- [ ] task recurrence
-- [ ] task auto-scheduling
 - [ ] reschedule tasks after calendars to consider are changed
+- [x] confidence scoring for auto-scheduled tasks
+- [x] improved time slot selection algorithm
 
 ## 1. Core Calendar Features
-- [x] Basic layout with sidebar and header
 - [ ] Calendar Grid Component
-  - [ ] Create weekly view layout
   - [ ] Add month view layout
   - [ ] Implement day view layout
   - [ ] Add navigation between days/weeks/months
-  - [ ] Highlight current day
-  - [ ] Show events/tasks in grid
-  - [ ] Add time indicators and current time line
 
 ## 2. Task Management
 - [ ] Task Data Structure
