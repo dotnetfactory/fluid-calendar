@@ -14,6 +14,7 @@ import { useProjectStore } from "@/store/project";
 import { RRule } from "rrule";
 import { Switch } from "@/components/ui/switch";
 import { format } from "@/lib/date-utils";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -156,6 +157,7 @@ export function TaskModal({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" />
         <Dialog.Content className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg z-[10000]">
+          {isSubmitting && <LoadingOverlay />}
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-lg font-semibold">
               {task ? "Edit Task" : "New Task"}

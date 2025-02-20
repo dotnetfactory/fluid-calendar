@@ -11,7 +11,6 @@ import {
 } from "@/types/calendar";
 import { CalendarType } from "@/lib/calendar/init";
 import { useTaskStore } from "@/store/task";
-import { useSettingsStore } from "@/store/settings";
 
 // Separate store for view preferences that will be persisted in localStorage
 interface ViewStore extends CalendarViewState {
@@ -116,8 +115,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
   ) => {
     const { events } = get();
     const expandedEvents: CalendarEvent[] = [];
-    console.log("getExpandedEvents called with:", { start, end });
-    console.log("Total events in store:", events.length);
+    // console.log("Total events in store:", events.length);
 
     events.forEach((event) => {
       // Convert event dates to Date objects if they're not already
@@ -189,7 +187,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
       }
     });
 
-    console.log("Returning expanded events:", expandedEvents.length);
+    // console.log("Returning expanded events:", expandedEvents.length);
     return expandedEvents;
   },
 
@@ -464,7 +462,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
       const feed = get().feeds.find((f) => f.id === event.feedId);
       if (!feed) return;
 
-      console.log("Updating event:", { id, updates, mode });
+      // console.log("Updating event:", { id, updates, mode });
       // For Google Calendar feeds, use the Google Calendar API
       if (feed.type === "GOOGLE") {
         const response = await fetch(`/api/calendar/google/events`, {
@@ -638,31 +636,30 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
   // Data loading
   loadFromDatabase: async () => {
     try {
-      console.log("Starting database load...");
       set({ isLoading: true, error: undefined });
 
       // Load feeds
-      console.log("Fetching feeds...");
+      // console.log("Fetching feeds...");
       const feedsResponse = await fetch("/api/feeds");
       if (!feedsResponse.ok) {
         throw new Error("Failed to load feeds from database");
       }
       const feeds = await feedsResponse.json();
-      console.log("Loaded feeds:", feeds);
+      // console.log("Loaded feeds:", feeds);
 
       // Load events
-      console.log("Fetching events...");
+      // console.log("Fetching events...");
       const eventsResponse = await fetch("/api/events");
       if (!eventsResponse.ok) {
         throw new Error("Failed to load events from database");
       }
       const events = await eventsResponse.json();
-      console.log("Loaded events:", events);
+      // console.log("Loaded events:", events);
 
-      console.log("Setting state with loaded data:", {
-        feeds: feeds.length,
-        events: events.length,
-      });
+      // console.log("Setting state with loaded data:", {
+      //   feeds: feeds.length,
+      //   events: events.length,
+      // });
       set({ feeds, events });
     } catch (error) {
       console.error("Failed to load data from database:", error);
@@ -743,18 +740,18 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
   // Convert tasks to calendar events
   getTasksAsEvents: (start: Date, end: Date) => {
     const tasks = useTaskStore.getState().tasks;
-    const userTimeZone = useSettingsStore.getState().user.timeZone;
+    // const userTimeZone = useSettingsStore.getState().user.timeZone;
 
-    console.log("Converting tasks to events:", {
-      totalTasks: tasks.length,
-      tasksWithDueDate: tasks.filter((task) => task.dueDate).length,
-      tasksAutoScheduled: tasks.filter(
-        (task) =>
-          task.isAutoScheduled && task.scheduledStart && task.scheduledEnd
-      ).length,
-      dateRange: { start: start.toISOString(), end: end.toISOString() },
-      userTimeZone,
-    });
+    // console.log("Converting tasks to events:", {
+    //   totalTasks: tasks.length,
+    //   tasksWithDueDate: tasks.filter((task) => task.dueDate).length,
+    //   tasksAutoScheduled: tasks.filter(
+    //     (task) =>
+    //       task.isAutoScheduled && task.scheduledStart && task.scheduledEnd
+    //   ).length,
+    //   dateRange: { start: start.toISOString(), end: end.toISOString() },
+    //   userTimeZone,
+    // });
 
     // Create date boundaries in user's timezone
     const startDay = new Date(start);
@@ -790,7 +787,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
             description: task.description || undefined,
             start: new Date(task.scheduledStart),
             end: new Date(task.scheduledEnd),
-            isRecurring: false,
+            isRecurring: task.isRecurring,
             isMaster: false,
             allDay: false,
             color: task.tags[0]?.color || "#4f46e5",
@@ -847,13 +844,13 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         }
       });
 
-    console.log("Converted tasks to events:", events.length);
+    // console.log("Converted tasks to events:", events.length);
     return events;
   },
 
   // Get both events and tasks for the calendar
   getAllCalendarItems: (start: Date, end: Date) => {
-    console.log("Getting all calendar items:", { start, end });
+    // console.log("Getting all calendar items:", { start, end });
     const events = get().getExpandedEvents(start, end);
     const taskEvents = get().getTasksAsEvents(start, end);
     return [...events, ...taskEvents];

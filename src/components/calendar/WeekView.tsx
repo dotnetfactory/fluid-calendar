@@ -4,8 +4,8 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import type {
   EventClickArg,
-  EventContentArg,
   DatesSetArg,
+  EventContentArg,
 } from "@fullcalendar/core";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { useCalendarStore } from "@/store/calendar";
@@ -15,8 +15,8 @@ import { EventModal } from "./EventModal";
 import { TaskModal } from "@/components/tasks/TaskModal";
 import { CalendarEvent, ExtendedEventProps } from "@/types/calendar";
 import { Task } from "@/types/task";
-import { IoRepeat, IoCheckmarkCircle, IoTimeOutline } from "react-icons/io5";
-import { cn } from "@/lib/utils";
+import { EventQuickView } from "./EventQuickView";
+import { CalendarEventContent } from "./CalendarEventContent";
 
 interface WeekViewProps {
   currentDate: Date;
@@ -24,7 +24,8 @@ interface WeekViewProps {
 }
 
 export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
-  const { feeds, getAllCalendarItems, isLoading } = useCalendarStore();
+  const { feeds, getAllCalendarItems, isLoading, removeEvent } =
+    useCalendarStore();
   const { user: userSettings, calendar: calendarSettings } = useSettingsStore();
   const { updateTask } = useTaskStore();
   const [selectedEvent, setSelectedEvent] = useState<Partial<CalendarEvent>>();
@@ -49,24 +50,14 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
   >([]);
   const calendarRef = useRef<FullCalendar>(null);
   const tasks = useTaskStore((state) => state.tasks);
-
+  const [quickViewItem, setQuickViewItem] = useState<CalendarEvent | Task>();
+  const [quickViewPosition, setQuickViewPosition] = useState({ x: 0, y: 0 });
+  const [isTask, setIsTask] = useState(false);
   // Update events when the calendar view changes
   const handleDatesSet = useCallback(
     async (arg: DatesSetArg) => {
-      console.log("Calendar dates set:", {
-        start: arg.start.toISOString(),
-        end: arg.end.toISOString(),
-        timeZone: arg.timeZone,
-      });
-
       // Get all calendar items with current task data
       const items = getAllCalendarItems(arg.start, arg.end);
-      console.log("Retrieved calendar items:", {
-        total: items.length,
-        tasks: items.filter((item) => item.feedId === "tasks").length,
-        events: items.filter((item) => item.feedId !== "tasks").length,
-      });
-
       const formattedItems = items
         .filter((item) => {
           if (item.feedId === "tasks") return true;
@@ -101,13 +92,13 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
           },
         }));
 
-      console.log("Setting formatted calendar items:", {
-        total: formattedItems.length,
-        tasks: formattedItems.filter((item) => item.extendedProps?.isTask)
-          .length,
-        events: formattedItems.filter((item) => !item.extendedProps?.isTask)
-          .length,
-      });
+      // console.log("Setting formatted calendar items:", {
+      //   total: formattedItems.length,
+      //   tasks: formattedItems.filter((item) => item.extendedProps?.isTask)
+      //     .length,
+      //   events: formattedItems.filter((item) => !item.extendedProps?.isTask)
+      //     .length,
+      // });
       setEvents(formattedItems);
     },
     [feeds, getAllCalendarItems]
@@ -154,24 +145,26 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
     const item = info.event.extendedProps;
     const itemId = info.event.id;
     const isTask = item.isTask;
-    console.log("Event clicked:", info.event);
-    console.log("info.event.id:", info.event.id);
-    if (isTask) {
-      // Handle task click
-      console.log("Task ID:", itemId);
 
+    // Calculate position for the quick view
+    const rect = info.el.getBoundingClientRect();
+    setQuickViewPosition({
+      x: rect.left,
+      y: rect.bottom + 8, // Add some padding
+    });
+
+    if (isTask) {
       const task = useTaskStore.getState().tasks.find((t) => t.id === itemId);
       if (task) {
-        setSelectedTask(task);
-        setIsTaskModalOpen(true);
+        setQuickViewItem(task);
+        setIsTask(true);
       }
     } else {
-      // Handle regular event click
-      const event = useCalendarStore.getState().events.find(
-        (e) => e.id === itemId
-      );
-      setSelectedEvent(event as CalendarEvent);
-      setIsEventModalOpen(true);
+      const event = useCalendarStore
+        .getState()
+        .events.find((e) => e.id === itemId);
+      setQuickViewItem(event as CalendarEvent);
+      setIsTask(false);
     }
   };
 
@@ -199,43 +192,47 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
     setSelectedTask(undefined);
   };
 
-  const renderEventContent = (eventInfo: EventContentArg) => {
-    const isTask = eventInfo.event.extendedProps.isTask;
-    const isRecurring = eventInfo.event.extendedProps.isRecurring;
-
-    return (
-      <div
-        data-testid={isTask ? "calendar-task" : "calendar-event"}
-        className={cn(
-          "flex items-center gap-1 p-1 text-xs overflow-hidden h-full",
-          isTask && "border-l-4",
-          isTask && {
-            "border-green-500":
-              eventInfo.event.extendedProps.status === "completed",
-            "border-yellow-500":
-              eventInfo.event.extendedProps.status === "in_progress",
-            "border-gray-500": eventInfo.event.extendedProps.status === "todo",
-          }
-        )}
-      >
-        {isTask ? (
-          <IoCheckmarkCircle className="flex-shrink-0 h-3 w-3 text-current opacity-75" />
-        ) : isRecurring ? (
-          <IoRepeat className="flex-shrink-0 h-3 w-3 text-current opacity-75" />
-        ) : (
-          <IoTimeOutline className="flex-shrink-0 h-3 w-3 text-current opacity-75" />
-        )}
-        <div className="flex-1">
-          <div className="font-medium truncate">{eventInfo.event.title}</div>
-          {eventInfo.event.extendedProps.location && (
-            <div className="truncate opacity-80 text-[10px]">
-              {eventInfo.event.extendedProps.location}
-            </div>
-          )}
-        </div>
-      </div>
-    );
+  const handleQuickViewClose = () => {
+    setQuickViewItem(undefined);
   };
+
+  const handleQuickViewEdit = () => {
+    if (!quickViewItem) return;
+
+    if (isTask) {
+      // It's a task
+      setSelectedTask(quickViewItem as Task);
+      setIsTaskModalOpen(true);
+    } else {
+      // It's an event
+      setSelectedEvent(quickViewItem as CalendarEvent);
+      setIsEventModalOpen(true);
+    }
+    handleQuickViewClose();
+  };
+
+  const handleQuickViewDelete = async () => {
+    if (!quickViewItem) return;
+
+    if (isTask) {
+      // It's a task
+      if (confirm("Are you sure you want to delete this task?")) {
+        await useTaskStore.getState().deleteTask(quickViewItem.id);
+        handleQuickViewClose();
+      }
+    } else {
+      // It's an event
+      if (confirm("Are you sure you want to delete this event?")) {
+        await removeEvent(quickViewItem.id);
+        handleQuickViewClose();
+      }
+    }
+  };
+
+  const renderEventContent = useCallback(
+    (arg: EventContentArg) => <CalendarEventContent eventInfo={arg} />,
+    []
+  );
 
   return (
     <div className="h-full [&_.fc-timegrid-slot]:!h-[25px]">
@@ -277,7 +274,9 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
         slotMaxTime="24:00:00"
         scrollTime={calendarSettings.workingHours.start}
         expandRows={true}
+        slotEventOverlap={true}
         stickyHeaderDates={true}
+        slotDuration="00:30:00"
         timeZone="local"
         displayEventEnd={true}
         eventTimeFormat={{
@@ -315,7 +314,17 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
         datesSet={handleDatesSet}
         eventContent={renderEventContent}
       />
-
+      {quickViewItem && (
+        <EventQuickView
+          isOpen={!!quickViewItem}
+          onClose={handleQuickViewClose}
+          item={quickViewItem}
+          onEdit={handleQuickViewEdit}
+          onDelete={handleQuickViewDelete}
+          position={quickViewPosition}
+          isTask={isTask}
+        />
+      )}
       <EventModal
         isOpen={isEventModalOpen}
         onClose={handleEventModalClose}

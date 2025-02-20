@@ -197,6 +197,7 @@ export class SchedulingService {
             scheduledEnd: bestSlot.end,
             isAutoScheduled: true,
             duration: task.duration || DEFAULT_TASK_DURATION,
+            scheduleScore: bestSlot.score,
           },
         });
 
