@@ -57,6 +57,7 @@ export async function GET(request: Request) {
               projectId: mapping.projectId,
               projectName: mapping.project.name,
               lastImported: mapping.lastImported,
+              isAutoScheduled: mapping.isAutoScheduled,
             }
           : undefined,
       };

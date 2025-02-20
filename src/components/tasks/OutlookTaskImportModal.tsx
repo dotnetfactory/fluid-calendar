@@ -13,6 +13,7 @@ interface OutlookTaskList {
     projectId: string;
     projectName: string;
     lastImported: string;
+    isAutoScheduled: boolean;
   };
 }
 
@@ -63,7 +64,7 @@ export function OutlookTaskImportModal({
               initialSelected.add(list.id);
               initialMappings[list.id] = {
                 projectId: list.projectMapping.projectId,
-                isAutoScheduled: true, // Default to true for existing mappings
+                isAutoScheduled: list.projectMapping.isAutoScheduled,
               };
             }
           });

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { SettingsSection, SettingRow } from "./SettingsSection";
 import { useSettingsStore } from "@/store/settings";
+import { useProjectStore } from "@/store/project";
 import { OutlookTaskImportModal } from "../tasks/OutlookTaskImportModal";
 import { format } from "@/lib/date-utils";
 
@@ -17,6 +18,7 @@ interface OutlookTaskList {
 
 export function OutlookTaskSettings() {
   const { accounts } = useSettingsStore();
+  const { fetchProjects } = useProjectStore();
   const [showImportModal, setShowImportModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [taskLists, setTaskLists] = useState<OutlookTaskList[]>([]);
@@ -24,6 +26,11 @@ export function OutlookTaskSettings() {
   const [error, setError] = useState<string | null>(null);
 
   const outlookAccounts = accounts.filter((acc) => acc.provider === "OUTLOOK");
+
+  // Load projects when component mounts
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   // Load task lists for the selected account
   useEffect(() => {
