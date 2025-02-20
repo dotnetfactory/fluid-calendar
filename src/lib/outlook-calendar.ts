@@ -286,7 +286,7 @@ export class OutlookCalendarService {
   }
 }
 
-export async function getOutlookCalendarClient(accountId: string) {
+export async function getOutlookClient(accountId: string) {
   const tokenManager = TokenManager.getInstance();
 
   // Get tokens for the account
@@ -312,7 +312,7 @@ export async function getOutlookCalendarClient(accountId: string) {
 }
 
 export async function listOutlookCalendars(accountId: string) {
-  const client = await getOutlookCalendarClient(accountId);
+  const client = await getOutlookClient(accountId);
   try {
     const response = await client.api("/me/calendars").get();
     return response.value;
@@ -336,7 +336,7 @@ export async function createOutlookEvent(
     recurrenceRule?: string;
   }
 ) {
-  const client = await getOutlookCalendarClient(accountId);
+  const client = await getOutlookClient(accountId);
   const timeZone = useSettingsStore.getState().user.timeZone;
 
   // Convert RRule to Outlook recurrence pattern if present
@@ -383,7 +383,7 @@ export async function getOutlookEvent(
   calendarId: string,
   eventId: string
 ) {
-  const client = await getOutlookCalendarClient(accountId);
+  const client = await getOutlookClient(accountId);
 
   try {
     const event = await client
@@ -448,7 +448,7 @@ export async function updateOutlookEvent(
     mode?: "single" | "series";
   }
 ) {
-  const client = await getOutlookCalendarClient(accountId);
+  const client = await getOutlookClient(accountId);
   const timeZone = useSettingsStore.getState().user.timeZone;
 
   try {
@@ -510,7 +510,7 @@ export async function deleteOutlookEvent(
   eventId: string,
   mode: "single" | "series" = "single"
 ) {
-  const client = await getOutlookCalendarClient(accountId);
+  const client = await getOutlookClient(accountId);
 
   try {
     // Get the event to check if it's part of a series

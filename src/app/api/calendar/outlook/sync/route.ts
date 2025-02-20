@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getOutlookCalendarClient } from "@/lib/outlook-calendar";
+import { getOutlookClient } from "@/lib/outlook-calendar";
 import { syncOutlookCalendar } from "@/lib/outlook-sync";
 import { logger } from "@/lib/logger";
 
@@ -12,7 +12,6 @@ export async function GET() {
 }
 
 // Shared sync function
-
 
 export async function POST(req: NextRequest) {
   try {
@@ -64,7 +63,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Sync events for this calendar
-    const client = await getOutlookCalendarClient(accountId);
+    const client = await getOutlookClient(accountId);
     // Before syncing, check and cast the URL
     if (!feed.url) {
       return NextResponse.json(
@@ -126,7 +125,7 @@ export async function PUT(req: NextRequest) {
     // );
 
     // Get events from Outlook
-    const client = await getOutlookCalendarClient(feed.account.id);
+    const client = await getOutlookClient(feed.account.id);
     if (!feed.url) {
       return NextResponse.json(
         { error: "Calendar URL is required" },

@@ -6,7 +6,7 @@ import {
   deleteOutlookEvent,
 } from "@/lib/outlook-calendar";
 import { logger } from "@/lib/logger";
-import { getOutlookCalendarClient } from "@/lib/outlook-calendar";
+import { getOutlookClient } from "@/lib/outlook-calendar";
 import { syncOutlookCalendar } from "@/lib/outlook-sync";
 import {
   deleteCalendarEvent,
@@ -51,12 +51,13 @@ export async function POST(request: Request) {
     }
 
     // Get the Outlook client and sync the calendar
-    const client = await getOutlookCalendarClient(feed.accountId);
+    const client = await getOutlookClient(feed.accountId);
     await syncOutlookCalendar(
       client,
       { id: feed.id, url: feed.url },
       feed.syncToken
     );
+    
 
     // Get the created event from database
     const createdEvent = await prisma.calendarEvent.findFirst({
@@ -123,9 +124,7 @@ export async function PUT(request: Request) {
     });
 
     // Get the updated event and its instances
-    const client = await getOutlookCalendarClient(
-      validatedEvent.feed.accountId
-    );
+    const client = await getOutlookClient(validatedEvent.feed.accountId);
     await syncOutlookCalendar(
       client,
       { id: validatedEvent.feed.id, url: validatedEvent.feed.url },
