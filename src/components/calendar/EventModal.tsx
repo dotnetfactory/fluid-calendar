@@ -9,6 +9,7 @@ import { useSettingsStore } from "@/store/settings";
 import { IoClose } from "react-icons/io5";
 import { cn } from "@/lib/utils";
 import { formatToLocalISOString } from "@/lib/date-utils";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 interface EventModalProps {
   isOpen: boolean;
@@ -140,6 +141,7 @@ export function EventModal({
   const [recurrenceFreq, setRecurrenceFreq] = useState("");
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [recurrenceByDay, setRecurrenceByDay] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -199,33 +201,33 @@ export function EventModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const feed = feeds.find((f) => f.id === selectedFeedId);
-    if (!feed) {
-      console.error("Selected calendar not found");
-      return;
-    }
-
-    const eventData: Omit<CalendarEvent, "id"> = {
-      title,
-      description,
-      location,
-      start: startDate,
-      end: endDate,
-      feedId: selectedFeedId,
-      allDay: isAllDay,
-      isRecurring,
-      recurrenceRule: isRecurring
-        ? buildRecurrenceRule(
-            recurrenceFreq,
-            recurrenceInterval,
-            recurrenceByDay
-          )
-        : undefined,
-      isMaster: false,
-    };
-
+    setIsSubmitting(true);
     try {
+      const feed = feeds.find((f) => f.id === selectedFeedId);
+      if (!feed) {
+        console.error("Selected calendar not found");
+        return;
+      }
+
+      const eventData: Omit<CalendarEvent, "id"> = {
+        title,
+        description,
+        location,
+        start: startDate,
+        end: endDate,
+        feedId: selectedFeedId,
+        allDay: isAllDay,
+        isRecurring,
+        recurrenceRule: isRecurring
+          ? buildRecurrenceRule(
+              recurrenceFreq,
+              recurrenceInterval,
+              recurrenceByDay
+            )
+          : undefined,
+        isMaster: false,
+      };
+
       if (event?.id) {
         // For existing events
         if (feed.type === "GOOGLE" && !event.externalEventId) {
@@ -242,6 +244,8 @@ export function EventModal({
     } catch (error) {
       console.error("Failed to save event:", error);
       alert(error instanceof Error ? error.message : "Failed to save event");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -249,12 +253,15 @@ export function EventModal({
     if (!event?.id) return;
 
     try {
+      setIsSubmitting(true);
       await removeEvent(event.id, editMode);
       resetState();
       onClose();
     } catch (error) {
       console.error("Failed to delete event:", error);
       alert(error instanceof Error ? error.message : "Failed to delete event");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -362,6 +369,7 @@ export function EventModal({
             className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg z-[10000]"
             data-testid="event-modal"
           >
+            {isSubmitting && <LoadingOverlay />}
             <div className="flex items-center justify-between mb-4">
               <Dialog.Title className="text-lg font-semibold">
                 {event?.id ? "Edit Event" : "New Event"}
