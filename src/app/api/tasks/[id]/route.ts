@@ -90,6 +90,7 @@ export async function PUT(
               status: TaskStatus.COMPLETED,
               dueDate: baseDate, // Use the original due date for the completed instance
               duration: task.duration,
+              priority: task.priority,
               energyLevel: task.energyLevel,
               preferredTime: task.preferredTime,
               projectId: task.projectId,

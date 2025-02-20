@@ -13,6 +13,7 @@ export interface ExtendedEventProps {
   isTask?: boolean;
   taskId?: string;
   status?: string;
+  priority?: string;
   energyLevel?: string;
   preferredTime?: string;
   tags?: Array<{ id: string; name: string; color?: string }>;

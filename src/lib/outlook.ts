@@ -8,6 +8,7 @@ export const MICROSOFT_GRAPH_SCOPES = [
   "offline_access",
   "Calendars.ReadWrite",
   "User.Read",
+  "Tasks.ReadWrite",
 ];
 
 export const MICROSOFT_GRAPH_AUTH_ENDPOINTS = {

@@ -39,5 +39,6 @@ export interface SlotScore {
     bufferAdequacy: number;
     timePreference: number;
     deadlineProximity: number;
+    priorityScore: number;
   };
 }

@@ -12,6 +12,13 @@ export enum EnergyLevel {
   LOW = "low",
 }
 
+export enum Priority {
+  HIGH = "high",
+  MEDIUM = "medium",
+  LOW = "low",
+  NONE = "none",
+}
+
 export enum TimePreference {
   MORNING = "morning",
   AFTERNOON = "afternoon",
@@ -31,6 +38,7 @@ export interface Task {
   status: TaskStatus;
   dueDate?: Date | null;
   duration?: number | null;
+  priority?: Priority | null;
   energyLevel?: EnergyLevel | null;
   preferredTime?: TimePreference | null;
   tags: Tag[];
@@ -73,6 +81,7 @@ export interface TaskFilters {
     start: Date;
     end: Date;
   };
+  priority?: Priority[];
   energyLevel?: EnergyLevel[];
   timePreference?: TimePreference[];
   search?: string;

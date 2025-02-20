@@ -1,5 +1,11 @@
 import { useMemo, useState, useRef, useEffect } from "react";
-import { Task, TaskStatus, EnergyLevel, TimePreference } from "@/types/task";
+import {
+  Task,
+  TaskStatus,
+  EnergyLevel,
+  TimePreference,
+  Priority,
+} from "@/types/task";
 import {
   format,
   isToday,
@@ -51,6 +57,13 @@ const timePreferenceColors = {
   [TimePreference.MORNING]: "bg-sky-100 text-sky-800",
   [TimePreference.AFTERNOON]: "bg-amber-100 text-amber-800",
   [TimePreference.EVENING]: "bg-indigo-100 text-indigo-800",
+};
+
+const priorityColors = {
+  [Priority.HIGH]: "bg-red-100 text-red-800",
+  [Priority.MEDIUM]: "bg-orange-100 text-orange-800",
+  [Priority.LOW]: "bg-blue-100 text-blue-800",
+  [Priority.NONE]: "bg-gray-100 text-gray-800",
 };
 
 interface TaskListProps {
@@ -232,6 +245,7 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
           // Don't handle click-outside for dropdowns
           field !== "energyLevel" &&
           field !== "preferredTime" &&
+          field !== "priority" &&
           field !== "projectId"
         ) {
           setEditValue(value);
@@ -330,6 +344,16 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
             }`}
           >
             {value ? formatEnumValue(value) : "Set time"}
+          </span>
+        ) : field === "priority" ? (
+          <span
+            className={`px-2 py-1 text-xs rounded-full ${
+              value
+                ? priorityColors[value as Priority]
+                : "text-gray-400 border border-gray-200"
+            }`}
+          >
+            {value ? formatEnumValue(value) : "Set priority"}
           </span>
         ) : field === "duration" ? (
           <span
@@ -456,6 +480,38 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
                   }}
                 >
                   {formatEnumValue(time)}
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      ) : field === "priority" ? (
+        <DropdownMenu.Root open={isEditing} onOpenChange={setIsEditing}>
+          <DropdownMenu.Trigger className="block rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm min-w-[140px] px-3 py-1.5 text-left">
+            {editValue ? formatEnumValue(editValue) : "No Priority"}
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content className="bg-white rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+              <DropdownMenu.Item
+                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  setEditValue(null);
+                  onSave({ ...task, [field]: null });
+                  setIsEditing(false);
+                }}
+              >
+                No Priority
+              </DropdownMenu.Item>
+              {Object.values(Priority).map((priority) => (
+                <DropdownMenu.Item
+                  key={priority}
+                  className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    onSave({ ...task, [field]: priority });
+                    setIsEditing(false);
+                  }}
+                >
+                  {formatEnumValue(priority)}
                 </DropdownMenu.Item>
               ))}
             </DropdownMenu.Content>
@@ -692,6 +748,14 @@ function TaskRow({
             onSave={onInlineEdit}
           />
         </div>
+      </td>
+      <td className="px-3 py-2 whitespace-nowrap">
+        <EditableCell
+          task={task}
+          field="priority"
+          value={task.priority}
+          onSave={onInlineEdit}
+        />
       </td>
       <td className="px-3 py-2 whitespace-nowrap">
         <EditableCell
@@ -1009,6 +1073,12 @@ export function TaskList({
                   direction={sortDirection}
                   onSort={handleSort}
                 />
+                <th
+                  scope="col"
+                  className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32"
+                >
+                  Priority
+                </th>
                 <th
                   scope="col"
                   className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32"

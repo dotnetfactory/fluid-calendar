@@ -3,6 +3,7 @@ import { AutoScheduleSettings, Task } from "@prisma/client";
 import { getEnergyLevelForTime } from "@/lib/autoSchedule";
 import { differenceInMinutes, differenceInHours } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
+import { Priority } from "@/types/task";
 
 interface ProjectTask {
   start: Date;
@@ -55,6 +56,7 @@ export class SlotScorer {
       bufferAdequacy: this.scoreBufferAdequacy(slot),
       timePreference: this.scoreTimePreference(slot, task),
       deadlineProximity: this.scoreDeadlineProximity(slot, task),
+      priorityScore: this.scorePriority(task),
     };
 
     // Calculate total score (weighted average)
@@ -65,6 +67,7 @@ export class SlotScorer {
       bufferAdequacy: 0.8,
       timePreference: 1.2,
       deadlineProximity: 2.0,
+      priorityScore: 1.8, // High weight for priority
     };
 
     const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
@@ -200,5 +203,21 @@ export class SlotScorer {
     // 0.5 if within 4 hours
     // Approaches 0 as distance increases
     return Math.exp(-closestDistance / 4);
+  }
+
+  private scorePriority(task: Task): number {
+    if (!task.priority || task.priority === Priority.NONE) return 0.5;
+
+    // Higher priority tasks get higher scores
+    switch (task.priority) {
+      case Priority.HIGH:
+        return 1.0;
+      case Priority.MEDIUM:
+        return 0.7;
+      case Priority.LOW:
+        return 0.4;
+      default:
+        return 0.5;
+    }
   }
 }

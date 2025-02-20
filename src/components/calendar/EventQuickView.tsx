@@ -1,6 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import { CalendarEvent, AttendeeStatus } from "@/types/calendar";
-import { Task, TaskStatus } from "@/types/task";
+import { Task, TaskStatus, Priority } from "@/types/task";
 import { format } from "@/lib/date-utils";
 import {
   IoTimeOutline,
@@ -10,6 +10,7 @@ import {
   IoCalendarOutline,
   IoLockClosedOutline,
   IoFolderOutline,
+  IoFlagOutline,
 } from "react-icons/io5";
 import { HiPencil, HiTrash } from "react-icons/hi";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,14 @@ interface EventQuickViewProps {
   position: { x: number; y: number };
   isTask: boolean;
 }
+
+//TODO: move to utils
+const priorityColors = {
+  [Priority.HIGH]: "text-red-600",
+  [Priority.MEDIUM]: "text-orange-600",
+  [Priority.LOW]: "text-blue-600",
+  [Priority.NONE]: "text-gray-600",
+};
 
 export function EventQuickView({
   isOpen,
@@ -203,6 +212,22 @@ export function EventQuickView({
                     {taskItem.status.toLowerCase().replace("_", " ")}
                   </span>
                 </div>
+
+                {taskItem.priority && (
+                  <div className="flex items-center gap-2">
+                    <IoFlagOutline className="h-4 w-4 flex-shrink-0" />
+                    <span
+                      className={cn(
+                        "text-sm",
+                        priorityColors[taskItem.priority]
+                      )}
+                    >
+                      {taskItem.priority.charAt(0).toUpperCase() +
+                        taskItem.priority.slice(1)}{" "}
+                      Priority
+                    </span>
+                  </div>
+                )}
 
                 {taskItem.isAutoScheduled &&
                   taskItem.scheduledStart &&

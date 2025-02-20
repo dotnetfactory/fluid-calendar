@@ -9,6 +9,7 @@ import {
   EnergyLevel,
   TimePreference,
   Tag,
+  Priority,
 } from "@/types/task";
 import { useProjectStore } from "@/store/project";
 import { RRule } from "rrule";
@@ -24,7 +25,14 @@ interface TaskModalProps {
   tags: Tag[];
   onCreateTag: (name: string, color?: string) => Promise<Tag>;
 }
-
+//TODO: move to utils
+const formatEnumValue = (value: string) => {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
 export function TaskModal({
   isOpen,
   onClose,
@@ -56,6 +64,9 @@ export function TaskModal({
   const [scheduleLocked, setScheduleLocked] = useState(
     task?.scheduleLocked || false
   );
+  const [priority, setPriority] = useState<Priority | null>(
+    task?.priority || null
+  );
 
   const resetForm = () => {
     setTitle("");
@@ -71,8 +82,9 @@ export function TaskModal({
     setProjectId(null);
     setIsRecurring(false);
     setRecurrenceRule(undefined);
-    setIsAutoScheduled(false);
+    setIsAutoScheduled(true);
     setScheduleLocked(false);
+    setPriority(null);
   };
 
   // Reset form when modal opens/closes
@@ -104,6 +116,7 @@ export function TaskModal({
       setRecurrenceRule(task.recurrenceRule || undefined);
       setIsAutoScheduled(task.isAutoScheduled);
       setScheduleLocked(task.scheduleLocked);
+      setPriority(task.priority || null);
     } else if (!task && isOpen) {
       resetForm();
     }
@@ -129,6 +142,7 @@ export function TaskModal({
         recurrenceRule: isRecurring ? recurrenceRule : undefined,
         isAutoScheduled,
         scheduleLocked,
+        priority,
       });
       onClose();
     } catch (error) {
@@ -254,6 +268,27 @@ export function TaskModal({
                   min="0"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="priority"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Priority
+                </label>
+                <select
+                  id="priority"
+                  value={priority || Priority.NONE}
+                  onChange={(e) => setPriority(e.target.value as Priority)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                >
+                  {Object.values(Priority).map((level) => (
+                    <option key={level} value={level}>
+                      {formatEnumValue(level)}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

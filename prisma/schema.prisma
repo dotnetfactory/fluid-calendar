@@ -132,12 +132,13 @@ model CalendarEvent {
 }
 
 model Project {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  color       String?
-  status      String  @default("active") // enum: 'active', 'archived'
-  tasks       Task[]
+  id              String                   @id @default(cuid())
+  name            String
+  description     String?
+  color           String?
+  status          String                   @default("active") // enum: 'active', 'archived'
+  tasks           Task[]
+  outlookMappings OutlookTaskListMapping[]
 
   // Metadata
   createdAt DateTime @default(now())
@@ -155,6 +156,7 @@ model Task {
   // Time Management
   dueDate       DateTime?
   duration      Int? // estimated duration in minutes
+  priority      String? // enum: 'high', 'medium', 'low', 'none'
   energyLevel   String? // enum: 'high', 'medium', 'low'
   preferredTime String? // enum: 'morning', 'afternoon', 'evening'
 
@@ -174,6 +176,11 @@ model Task {
   recurrenceRule    String?
   lastCompletedDate DateTime?
 
+  // External Integration
+  externalTaskId String?
+  source         String?
+  lastSyncedAt   DateTime?
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -183,10 +190,13 @@ model Task {
 
   @@index([status])
   @@index([dueDate])
+  @@index([priority])
   @@index([projectId])
   @@index([isRecurring])
   @@index([isAutoScheduled])
   @@index([scheduledStart, scheduledEnd])
+  @@index([externalTaskId])
+  @@index([source])
 }
 
 model Tag {
@@ -240,4 +250,16 @@ model SystemSettings {
   logLevel            String   @default("none")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+}
+
+model OutlookTaskListMapping {
+  id             String   @id @default(cuid())
+  externalListId String   @unique
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lastImported   DateTime
+  name           String
+
+  @@index([externalListId])
+  @@index([projectId])
 }

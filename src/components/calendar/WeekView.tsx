@@ -89,6 +89,7 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
             isTask: item.extendedProps?.isTask,
             isRecurring: item.isRecurring,
             status: item.extendedProps?.status,
+            priority: item.extendedProps?.priority,
           },
         }));
 
