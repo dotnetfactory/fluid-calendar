@@ -7,7 +7,7 @@ import { logger } from "@/lib/logger";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { accountId, listId, projectId, options } = body;
+    const { accountId, listId, projectId, options, isAutoScheduled } = body;
 
     if (!accountId || !listId) {
       return NextResponse.json(
@@ -61,6 +61,16 @@ export async function POST(request: Request) {
           externalListId: listId,
           projectId: targetProjectId,
           name: taskList.name,
+          lastImported: new Date(),
+          isAutoScheduled: isAutoScheduled ?? true,
+        },
+      });
+    } else {
+      // Update existing mapping's isAutoScheduled setting
+      await prisma.outlookTaskListMapping.update({
+        where: { externalListId: listId },
+        data: {
+          isAutoScheduled: isAutoScheduled ?? true,
           lastImported: new Date(),
         },
       });

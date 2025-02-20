@@ -253,12 +253,13 @@ model SystemSettings {
 }
 
 model OutlookTaskListMapping {
-  id             String   @id @default(cuid())
-  externalListId String   @unique
-  projectId      String
-  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  lastImported   DateTime
-  name           String
+  id              String   @id @default(cuid())
+  externalListId  String   @unique
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lastImported    DateTime
+  name            String
+  isAutoScheduled Boolean  @default(true)
 
   @@index([externalListId])
   @@index([projectId])

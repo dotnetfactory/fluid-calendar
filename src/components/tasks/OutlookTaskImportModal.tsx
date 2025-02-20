@@ -32,11 +32,16 @@ export function OutlookTaskImportModal({
   const [taskLists, setTaskLists] = useState<OutlookTaskList[]>([]);
   const [selectedLists, setSelectedLists] = useState<Set<string>>(new Set());
   const [projectMappings, setProjectMappings] = useState<
-    Record<string, string>
+    Record<string, { projectId: string; isAutoScheduled: boolean }>
   >({});
   const [includeCompleted, setIncludeCompleted] = useState(false);
   const [importInProgress, setImportInProgress] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importResults, setImportResults] = useState<{
+    imported: number;
+    skipped: number;
+    failed: number;
+  } | null>(null);
 
   // Fetch task lists when modal opens
   useEffect(() => {
@@ -49,11 +54,17 @@ export function OutlookTaskImportModal({
           setTaskLists(data);
           // Pre-select lists and set up initial mappings
           const initialSelected = new Set<string>();
-          const initialMappings: Record<string, string> = {};
+          const initialMappings: Record<
+            string,
+            { projectId: string; isAutoScheduled: boolean }
+          > = {};
           data.forEach((list: OutlookTaskList) => {
             if (list.projectMapping) {
               initialSelected.add(list.id);
-              initialMappings[list.id] = list.projectMapping.projectId;
+              initialMappings[list.id] = {
+                projectId: list.projectMapping.projectId,
+                isAutoScheduled: true, // Default to true for existing mappings
+              };
             }
           });
           setSelectedLists(initialSelected);
@@ -75,28 +86,44 @@ export function OutlookTaskImportModal({
 
     setImportInProgress(true);
     setError(null);
+    setImportResults(null);
 
     try {
-      const response = await fetch("/api/tasks/outlook/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accountId,
-          listId: Array.from(selectedLists)[0],
-          projectId: projectMappings[Array.from(selectedLists)[0]],
-          options: {
-            includeCompleted,
-          },
-        }),
-      });
+      let totalImported = 0;
+      let totalSkipped = 0;
+      let totalFailed = 0;
 
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to import tasks");
+      // Process all selected lists
+      for (const listId of selectedLists) {
+        const response = await fetch("/api/tasks/outlook/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accountId,
+            listId,
+            projectId: projectMappings[listId].projectId,
+            isAutoScheduled: projectMappings[listId].isAutoScheduled,
+            options: {
+              includeCompleted,
+            },
+          }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to import tasks");
+        }
+
+        totalImported += result.imported;
+        totalSkipped += result.skipped;
+        totalFailed += result.failed;
       }
 
-      // Close modal on success
-      onClose();
+      setImportResults({
+        imported: totalImported,
+        skipped: totalSkipped,
+        failed: totalFailed,
+      });
     } catch (err) {
       console.error("Failed to import tasks:", err);
       setError("Failed to import tasks. Please try again.");
@@ -104,6 +131,50 @@ export function OutlookTaskImportModal({
       setImportInProgress(false);
     }
   };
+
+  // If we have results, show the completion state
+  if (importResults) {
+    return (
+      <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg z-[10000]">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <Dialog.Title className="text-lg font-semibold">
+                  Import Complete
+                </Dialog.Title>
+              </div>
+
+              <div className="bg-green-50 text-green-700 p-4 rounded-md">
+                <h3 className="font-medium mb-2">
+                  Import completed successfully:
+                </h3>
+                <ul className="space-y-1 list-disc list-inside">
+                  <li>{importResults.imported} tasks imported</li>
+                  <li>{importResults.skipped} tasks skipped</li>
+                  {importResults.failed > 0 && (
+                    <li className="text-orange-700">
+                      {importResults.failed} tasks failed
+                    </li>
+                  )}
+                </ul>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    );
+  }
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -162,13 +233,19 @@ export function OutlookTaskImportModal({
                         )}
                       </label>
                       {selectedLists.has(list.id) && (
-                        <div className="mt-1">
+                        <div className="mt-1 space-y-2">
                           <select
-                            value={projectMappings[list.id] || ""}
+                            value={projectMappings[list.id]?.projectId || ""}
                             onChange={(e) =>
                               setProjectMappings({
                                 ...projectMappings,
-                                [list.id]: e.target.value,
+                                [list.id]: {
+                                  ...projectMappings[list.id],
+                                  projectId: e.target.value,
+                                  isAutoScheduled:
+                                    projectMappings[list.id]?.isAutoScheduled ??
+                                    true,
+                                },
                               })
                             }
                             className="block w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
@@ -182,6 +259,26 @@ export function OutlookTaskImportModal({
                                 </option>
                               ))}
                           </select>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-600">
+                              Auto-schedule tasks from this list
+                            </div>
+                            <Switch
+                              checked={
+                                projectMappings[list.id]?.isAutoScheduled ??
+                                true
+                              }
+                              onCheckedChange={(checked) =>
+                                setProjectMappings({
+                                  ...projectMappings,
+                                  [list.id]: {
+                                    ...projectMappings[list.id],
+                                    isAutoScheduled: checked,
+                                  },
+                                })
+                              }
+                            />
+                          </div>
                         </div>
                       )}
                     </div>

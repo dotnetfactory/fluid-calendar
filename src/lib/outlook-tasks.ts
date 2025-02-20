@@ -120,14 +120,36 @@ export class OutlookTasksService {
         errors: [] as Array<{ taskId: string; error: string }>,
       };
 
-      for (const task of tasks) {
-        // Skip completed tasks if not included
-        if (!options.includeCompleted && task.completedDateTime) {
-          results.skipped++;
-          continue;
-        }
+      // Get the mapping to check isAutoScheduled setting
+      const mapping = await prisma.outlookTaskListMapping.findUnique({
+        where: { externalListId: listId },
+      });
 
+      if (!mapping) {
+        throw new Error("Task list mapping not found");
+      }
+
+      for (const task of tasks) {
         try {
+          // Skip completed tasks if not included
+          if (!options.includeCompleted && task.completedDateTime) {
+            results.skipped++;
+            continue;
+          }
+
+          // Check if task already exists
+          const existingTask = await prisma.task.findFirst({
+            where: {
+              externalTaskId: task.id,
+              source: "OUTLOOK",
+            },
+          });
+
+          if (existingTask) {
+            results.skipped++;
+            continue;
+          }
+
           await prisma.task.create({
             data: {
               title: task.title,
@@ -137,6 +159,8 @@ export class OutlookTasksService {
               priority: this.mapPriority(task.importance),
               projectId,
               externalTaskId: task.id,
+              isAutoScheduled: mapping.isAutoScheduled,
+              scheduleLocked: false,
               source: "OUTLOOK",
               lastSyncedAt: new Date(),
             },
