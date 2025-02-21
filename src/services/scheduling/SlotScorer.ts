@@ -1,7 +1,11 @@
 import { TimeSlot, SlotScore, EnergyLevel } from "@/types/scheduling";
 import { AutoScheduleSettings, Task } from "@prisma/client";
 import { getEnergyLevelForTime } from "@/lib/autoSchedule";
-import { differenceInMinutes, differenceInHours } from "@/lib/date-utils";
+import {
+  differenceInMinutes,
+  differenceInHours,
+  newDate,
+} from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { Priority } from "@/types/task";
 
@@ -34,20 +38,24 @@ export class SlotScorer {
   }
 
   scoreSlot(slot: TimeSlot, task: Task): SlotScore {
-    // logger.log("[DEBUG] Scoring slot:", {
-    //   slot: {
-    //     start: slot.start.toISOString(),
-    //     end: slot.end.toISOString(),
-    //   },
-    //   task: {
-    //     id: task.id,
-    //     title: task.title,
-    //     dueDate: task.dueDate?.toISOString(),
-    //     energyLevel: task.energyLevel,
-    //     preferredTime: task.preferredTime,
-    //     projectId: task.projectId,
-    //   },
-    // });
+    logger.log("[DEBUG] scoreSlot inputs:", {
+      slot: {
+        start: slot.start.toISOString(),
+        end: slot.end.toISOString(),
+        isWithinWorkHours: slot.isWithinWorkHours,
+        hasBufferTime: slot.hasBufferTime,
+        energyLevel: slot.energyLevel,
+      },
+      task: {
+        id: task.id,
+        title: task.title,
+        dueDate: task.dueDate?.toISOString(),
+        energyLevel: task.energyLevel,
+        preferredTime: task.preferredTime,
+        priority: task.priority,
+        projectId: task.projectId,
+      },
+    });
 
     const factors = {
       workHourAlignment: this.scoreWorkHourAlignment(slot),
@@ -66,29 +74,31 @@ export class SlotScorer {
       projectProximity: 0.5,
       bufferAdequacy: 0.8,
       timePreference: 1.2,
-      deadlineProximity: 2.0,
-      priorityScore: 1.8, // High weight for priority
+      deadlineProximity: 3.0,
+      priorityScore: 1.8,
     };
 
     const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
-    const weightedSum = Object.entries(factors).reduce(
-      (sum, [key, value]) => sum + value * weights[key as keyof typeof weights],
-      0
-    );
+    const weightedSum = Object.entries(factors).reduce((sum, [key, value]) => {
+      const weight = weights[key as keyof typeof weights];
+      const contribution = value * weight;
+      logger.log(`[DEBUG] Factor contribution for ${key}:`, {
+        value,
+        weight,
+        contribution,
+        percentOfTotal: ((contribution / totalWeight) * 100).toFixed(2) + "%",
+      });
+      return sum + contribution;
+    }, 0);
 
     const total = weightedSum / totalWeight;
 
-    // logger.log("[DEBUG] Slot score details:", {
-    //   slot: {
-    //     start: slot.start.toISOString(),
-    //     end: slot.end.toISOString(),
-    //   },
-    //   factors,
-    //   weights,
-    //   totalWeight,
-    //   weightedSum,
-    //   total,
-    // });
+    logger.log("[DEBUG] Final score calculation:", {
+      totalWeight,
+      weightedSum,
+      total,
+      factors,
+    });
 
     return {
       total,
@@ -126,53 +136,85 @@ export class SlotScorer {
   }
 
   private scoreTimePreference(slot: TimeSlot, task: Task): number {
-    if (!task.preferredTime) return 0.5; // Neutral score if no preference
+    // If task has a specific time preference, use that
+    if (task.preferredTime) {
+      const hour = slot.start.getHours();
+      const preference = task.preferredTime.toLowerCase();
+      const ranges = {
+        morning: { start: 5, end: 12 },
+        afternoon: { start: 12, end: 17 },
+        evening: { start: 17, end: 22 },
+      };
+      const range = ranges[preference as keyof typeof ranges];
+      return hour >= range.start && hour < range.end ? 1 : 0;
+    }
 
-    const hour = slot.start.getHours();
-    const preference = task.preferredTime.toLowerCase();
-
-    // Define time ranges
-    const ranges = {
-      morning: { start: 5, end: 12 },
-      afternoon: { start: 12, end: 17 },
-      evening: { start: 17, end: 22 },
-    };
-
-    const range = ranges[preference as keyof typeof ranges];
-    return hour >= range.start && hour < range.end ? 1 : 0;
+    // For tasks without specific time preference, favor earlier slots
+    const minutesToSlot = differenceInMinutes(slot.start, newDate());
+    const daysToSlot = minutesToSlot / (24 * 60);
+    return Math.exp(-daysToSlot / 7); // Decay over a week, 1.0 -> 0.0
   }
 
   private scoreDeadlineProximity(slot: TimeSlot, task: Task): number {
     if (!task.dueDate) {
-      // logger.log("[DEBUG] No due date for task, using neutral deadline score", {
-      //   taskId: task.id,
-      //   score: 0.5,
-      // });
-      return 0.5;
+      return 0.5; // Neutral score for no due date
     }
 
-    const minutesToDeadline = differenceInMinutes(task.dueDate, slot.end);
-    if (minutesToDeadline < 0) {
-      // logger.log("[DEBUG] Slot is past deadline", {
-      //   taskId: task.id,
-      //   slotEnd: slot.end.toISOString(),
-      //   dueDate: task.dueDate.toISOString(),
-      //   score: 0,
-      // });
-      return 0;
+    const now = newDate();
+    // First calculate how overdue the task is relative to now (fixed reference point)
+    const minutesOverdue = -differenceInMinutes(task.dueDate, now);
+
+    logger.log("[DEBUG] scoreDeadlineProximity inputs:", {
+      slot: {
+        start: slot.start.toISOString(),
+        end: slot.end.toISOString(),
+      },
+      task: {
+        dueDate: task.dueDate.toISOString(),
+        minutesOverdue,
+        isOverdue: minutesOverdue > 0,
+      },
+    });
+
+    if (minutesOverdue > 0) {
+      // For overdue tasks:
+      // 1. Calculate base score based on how overdue from NOW (1.0 to 2.0)
+      const daysOverdue = minutesOverdue / (24 * 60);
+      const maxOverdueScore = 2.0;
+      const overdueScaleDays = 14; // Two weeks
+      const baseScore = Math.min(
+        maxOverdueScore,
+        1.0 + daysOverdue / overdueScaleDays
+      );
+
+      // 2. Apply time penalty for later slots
+      const minutesToSlot = differenceInMinutes(slot.start, now);
+      const daysToSlot = minutesToSlot / (24 * 60);
+      // Penalty increases with slot distance, max 50% reduction at 2 weeks
+      const timePenalty = Math.min(0.5, daysToSlot / 14);
+
+      logger.log("[DEBUG] Overdue task scoring details:", {
+        daysOverdue,
+        baseScore,
+        minutesToSlot,
+        daysToSlot,
+        timePenalty,
+        finalScore: baseScore * (1 - timePenalty),
+      });
+
+      // Apply penalty as a multiplier to preserve relative scoring
+      return baseScore * (1 - timePenalty);
     }
 
-    const dayInMinutes = 24 * 60;
-    const daysToDeadline = minutesToDeadline / dayInMinutes;
-    const score = Math.min(1, Math.exp(-daysToDeadline / 7));
+    // For future tasks (unchanged)
+    const minutesToDeadline = differenceInMinutes(task.dueDate, slot.start);
+    const daysToDeadline = minutesToDeadline / (24 * 60);
+    const score = Math.min(0.99, Math.exp(-daysToDeadline / 3));
 
-    // logger.log("[DEBUG] Deadline proximity score", {
-    //   taskId: task.id,
-    //   slotEnd: slot.end.toISOString(),
-    //   dueDate: task.dueDate.toISOString(),
-    //   daysToDeadline,
-    //   score,
-    // });
+    logger.log("[DEBUG] Future task scoring details:", {
+      daysToDeadline,
+      score,
+    });
 
     return score;
   }
