@@ -51,3 +51,4 @@ node_modules/
 /playwright/.cache/
 /logs/
 /blog/
+git.diff

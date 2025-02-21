@@ -12,7 +12,7 @@ import {
 import { CalendarType } from "@/lib/calendar/init";
 import { useTaskStore } from "@/store/task";
 import { newDate } from "@/lib/date-utils";
-
+import { DEFAULT_TASK_COLOR } from "@/lib/task-utils";
 // Separate store for view preferences that will be persisted in localStorage
 interface ViewStore extends CalendarViewState {
   setView: (view: CalendarView) => void;
@@ -791,7 +791,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
             isRecurring: task.isRecurring,
             isMaster: false,
             allDay: false,
-            color: task.tags[0]?.color || "#4f46e5",
+            color: task.tags[0]?.color || DEFAULT_TASK_COLOR,
             extendedProps: {
               isTask: true,
               taskId: task.id,
@@ -829,7 +829,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
             isRecurring: false,
             isMaster: false,
             allDay: true,
-            color: task.tags[0]?.color || "#4f46e5",
+            color: task.tags[0]?.color || DEFAULT_TASK_COLOR,
             extendedProps: {
               isTask: true,
               taskId: task.id,

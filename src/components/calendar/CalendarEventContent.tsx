@@ -3,6 +3,7 @@ import { IoRepeat, IoCheckmarkCircle, IoTimeOutline } from "react-icons/io5";
 import { cn } from "@/lib/utils";
 import type { EventContentArg } from "@fullcalendar/core";
 import { Priority } from "@/types/task";
+import { isTaskOverdue } from "@/lib/task-utils";
 
 interface CalendarEventContentProps {
   eventInfo: EventContentArg;
@@ -23,8 +24,10 @@ export const CalendarEventContent = memo(function CalendarEventContent({
   const status = eventInfo.event.extendedProps.status;
   const priority = eventInfo.event.extendedProps.priority;
   const location = eventInfo.event.extendedProps.location;
+  const dueDate = eventInfo.event.extendedProps?.extendedProps?.dueDate;
   const title = eventInfo.event.title;
-  // console.log("eventInfo.event.extendedProps", eventInfo.event.extendedProps);
+
+  const isOverdue = isTask && isTaskOverdue({ dueDate, status });
 
   return (
     <div
@@ -32,13 +35,15 @@ export const CalendarEventContent = memo(function CalendarEventContent({
       className={cn(
         "flex items-center gap-1 text-xs overflow-hidden h-full",
         isTask && "border-l-4",
+        isTask && "text-gray-700",
         isTask && priority && priorityColors[priority as Priority],
         isTask &&
           !priority && {
             "border-green-500": status === "completed",
             "border-yellow-500": status === "in_progress",
             "border-gray-500": status === "todo",
-          }
+          },
+        isOverdue && "text-red-600 font-medium border-red-500"
       )}
     >
       {isTask ? (

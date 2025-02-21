@@ -2,6 +2,7 @@ import * as Popover from "@radix-ui/react-popover";
 import { CalendarEvent, AttendeeStatus } from "@/types/calendar";
 import { Task, TaskStatus, Priority } from "@/types/task";
 import { format, newDate } from "@/lib/date-utils";
+import { isTaskOverdue } from "@/lib/task-utils";
 import {
   IoTimeOutline,
   IoLocationOutline,
@@ -73,6 +74,8 @@ export function EventQuickView({
   const eventItem = !isTask
     ? (item as CalendarEvent & { attendees?: Attendee[] })
     : null;
+
+  const isOverdue = taskItem && isTaskOverdue(taskItem);
 
   return (
     <Popover.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -192,8 +195,11 @@ export function EventQuickView({
                   <div className="flex items-center gap-2">
                     <IoTimeOutline className="h-4 w-4 flex-shrink-0" />
                     {taskItem.dueDate ? (
-                      <span>
+                      <span
+                        className={cn(isOverdue && "text-red-600 font-medium")}
+                      >
                         Due {format(newDate(taskItem.dueDate), "PPp")}
+                        {isOverdue && " (OVERDUE)"}
                       </span>
                     ) : (
                       <span>No due date</span>
