@@ -152,7 +152,8 @@ export class SlotScorer {
     // For tasks without specific time preference, favor earlier slots
     const minutesToSlot = differenceInMinutes(slot.start, newDate());
     const daysToSlot = minutesToSlot / (24 * 60);
-    return Math.exp(-daysToSlot / 7); // Decay over a week, 1.0 -> 0.0
+    // Use ln(2)/7 as decay rate to get exactly 0.5 after 7 days
+    return Math.exp(-(Math.log(2) / 7) * daysToSlot); // Decay to 0.5 over a week
   }
 
   private scoreDeadlineProximity(slot: TimeSlot, task: Task): number {

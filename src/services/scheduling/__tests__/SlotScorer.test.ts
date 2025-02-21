@@ -34,7 +34,7 @@ describe("SlotScorer", () => {
       userId: "test",
       workDays: "[1,2,3,4,5]",
       workHourStart: 9,
-      workHourEnd: 17,
+      workHourEnd: 20,
       selectedCalendars: "[]",
       bufferMinutes: 15,
       createdAt: now,
@@ -370,6 +370,225 @@ describe("SlotScorer", () => {
       // Priority scores should be the same for both slots
       expect(highPriorityHourScore.factors.priorityScore).toBe(1.0);
       expect(highPriorityWeekScore.factors.priorityScore).toBe(1.0);
+    });
+  });
+
+  describe("timePreference scoring", () => {
+    it("should score morning slots highest for morning preference", () => {
+      const morningTask = { ...baseTask, preferredTime: "morning" };
+
+      // Test different times of day
+      const slots = {
+        early: {
+          ...baseSlot,
+          start: new Date(now.setHours(6, 0)),
+          end: new Date(now.setHours(7, 0)),
+        },
+        morning: {
+          ...baseSlot,
+          start: new Date(now.setHours(10, 0)),
+          end: new Date(now.setHours(11, 0)),
+        },
+        afternoon: {
+          ...baseSlot,
+          start: new Date(now.setHours(14, 0)),
+          end: new Date(now.setHours(15, 0)),
+        },
+        evening: {
+          ...baseSlot,
+          start: new Date(now.setHours(19, 0)),
+          end: new Date(now.setHours(20, 0)),
+        },
+      };
+
+      const scores = {
+        early: slotScorer.scoreSlot(slots.early, morningTask).factors
+          .timePreference,
+        morning: slotScorer.scoreSlot(slots.morning, morningTask).factors
+          .timePreference,
+        afternoon: slotScorer.scoreSlot(slots.afternoon, morningTask).factors
+          .timePreference,
+        evening: slotScorer.scoreSlot(slots.evening, morningTask).factors
+          .timePreference,
+      };
+
+      // Morning slots (5-12) should score 1.0
+      expect(scores.early).toBe(1.0);
+      expect(scores.morning).toBe(1.0);
+      // Other times should score 0
+      expect(scores.afternoon).toBe(0);
+      expect(scores.evening).toBe(0);
+    });
+
+    it("should score afternoon slots highest for afternoon preference", () => {
+      const afternoonTask = { ...baseTask, preferredTime: "afternoon" };
+
+      const slots = {
+        morning: {
+          ...baseSlot,
+          start: new Date(now.setHours(10, 0)),
+          end: new Date(now.setHours(11, 0)),
+        },
+        earlyAfternoon: {
+          ...baseSlot,
+          start: new Date(now.setHours(13, 0)),
+          end: new Date(now.setHours(14, 0)),
+        },
+        lateAfternoon: {
+          ...baseSlot,
+          start: new Date(now.setHours(16, 0)),
+          end: new Date(now.setHours(17, 0)),
+        },
+        evening: {
+          ...baseSlot,
+          start: new Date(now.setHours(19, 0)),
+          end: new Date(now.setHours(20, 0)),
+        },
+      };
+
+      const scores = {
+        morning: slotScorer.scoreSlot(slots.morning, afternoonTask).factors
+          .timePreference,
+        earlyAfternoon: slotScorer.scoreSlot(
+          slots.earlyAfternoon,
+          afternoonTask
+        ).factors.timePreference,
+        lateAfternoon: slotScorer.scoreSlot(slots.lateAfternoon, afternoonTask)
+          .factors.timePreference,
+        evening: slotScorer.scoreSlot(slots.evening, afternoonTask).factors
+          .timePreference,
+      };
+
+      // Afternoon slots (12-17) should score 1.0
+      expect(scores.earlyAfternoon).toBe(1.0);
+      expect(scores.lateAfternoon).toBe(1.0);
+      // Other times should score 0
+      expect(scores.morning).toBe(0);
+      expect(scores.evening).toBe(0);
+    });
+
+    it("should score evening slots highest for evening preference", () => {
+      const eveningTask = { ...baseTask, preferredTime: "evening" };
+
+      const slots = {
+        morning: {
+          ...baseSlot,
+          start: new Date(now.setHours(10, 0)),
+          end: new Date(now.setHours(11, 0)),
+        },
+        afternoon: {
+          ...baseSlot,
+          start: new Date(now.setHours(14, 0)),
+          end: new Date(now.setHours(15, 0)),
+        },
+        earlyEvening: {
+          ...baseSlot,
+          start: new Date(now.setHours(17, 30)),
+          end: new Date(now.setHours(18, 30)),
+        },
+        lateEvening: {
+          ...baseSlot,
+          start: new Date(now.setHours(20, 0)),
+          end: new Date(now.setHours(21, 0)),
+        },
+      };
+
+      const scores = {
+        morning: slotScorer.scoreSlot(slots.morning, eveningTask).factors
+          .timePreference,
+        afternoon: slotScorer.scoreSlot(slots.afternoon, eveningTask).factors
+          .timePreference,
+        earlyEvening: slotScorer.scoreSlot(slots.earlyEvening, eveningTask)
+          .factors.timePreference,
+        lateEvening: slotScorer.scoreSlot(slots.lateEvening, eveningTask)
+          .factors.timePreference,
+      };
+
+      // Evening slots (17-22) should score 1.0
+      expect(scores.earlyEvening).toBe(1.0);
+      expect(scores.lateEvening).toBe(1.0);
+      // Other times should score 0
+      expect(scores.morning).toBe(0);
+      expect(scores.afternoon).toBe(0);
+    });
+
+    it("should favor earlier slots when no time preference is set", () => {
+      const task = { ...baseTask, preferredTime: null };
+
+      // Create slots at different times in the future
+      const slots = {
+        hour: {
+          ...baseSlot,
+          start: addMinutes(now, 60),
+          end: addMinutes(now, 120),
+        },
+        day: {
+          ...baseSlot,
+          start: addDays(now, 1),
+          end: addDays(addMinutes(now, 60), 1),
+        },
+        week: {
+          ...baseSlot,
+          start: addDays(now, 7),
+          end: addDays(addMinutes(now, 60), 7),
+        },
+        twoWeeks: {
+          ...baseSlot,
+          start: addDays(now, 14),
+          end: addDays(addMinutes(now, 60), 14),
+        },
+      };
+
+      const scores = {
+        hour: slotScorer.scoreSlot(slots.hour, task).factors.timePreference,
+        day: slotScorer.scoreSlot(slots.day, task).factors.timePreference,
+        week: slotScorer.scoreSlot(slots.week, task).factors.timePreference,
+        twoWeeks: slotScorer.scoreSlot(slots.twoWeeks, task).factors
+          .timePreference,
+      };
+
+      // Verify exponential decay over time
+      expect(scores.hour).toBeGreaterThan(0.9); // Almost 1.0 for immediate slots
+      expect(scores.day).toBeGreaterThan(scores.week); // Earlier slots score higher
+      expect(scores.week).toBeGreaterThan(scores.twoWeeks);
+      expect(scores.twoWeeks).toBeGreaterThan(0); // Still positive but low
+
+      // Verify the decay rate (7-day half-life)
+      expect(scores.week).toBeCloseTo(0.5, 1); // Should be about 0.5 after a week
+    });
+
+    it("should combine time preference with other factors correctly", () => {
+      const task = { ...baseTask, preferredTime: "morning", priority: "high" };
+
+      // Create two morning slots
+      const slots = {
+        goodMorning: {
+          ...baseSlot,
+          start: new Date(now.setHours(9, 0)),
+          end: new Date(now.setHours(10, 0)),
+          isWithinWorkHours: true,
+          hasBufferTime: true,
+        },
+        badMorning: {
+          ...baseSlot,
+          start: new Date(now.setHours(9, 0)),
+          end: new Date(now.setHours(10, 0)),
+          isWithinWorkHours: false, // Outside work hours
+          hasBufferTime: false, // No buffer
+        },
+      };
+
+      const scores = {
+        good: slotScorer.scoreSlot(slots.goodMorning, task),
+        bad: slotScorer.scoreSlot(slots.badMorning, task),
+      };
+
+      // Both should have perfect time preference scores
+      expect(scores.good.factors.timePreference).toBe(1.0);
+      expect(scores.bad.factors.timePreference).toBe(1.0);
+
+      // But total scores should differ due to other factors
+      expect(scores.good.total).toBeGreaterThan(scores.bad.total);
     });
   });
 });
