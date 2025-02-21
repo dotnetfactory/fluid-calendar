@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
-import { isSameDay } from "@/lib/date-utils";
+import { isSameDay, newDate } from "@/lib/date-utils";
 
 interface CurrentTimeIndicatorProps {
   date: Date;
 }
 
 export function CurrentTimeIndicator({ date }: CurrentTimeIndicatorProps) {
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState(newDate());
 
   useEffect(() => {
     // Update every minute
     const interval = setInterval(() => {
-      setNow(new Date());
+      setNow(newDate());
     }, 60000);
 
     return () => clearInterval(interval);

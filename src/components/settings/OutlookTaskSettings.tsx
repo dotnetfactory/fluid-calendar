@@ -3,7 +3,7 @@ import { SettingsSection, SettingRow } from "./SettingsSection";
 import { useSettingsStore } from "@/store/settings";
 import { useProjectStore } from "@/store/project";
 import { OutlookTaskImportModal } from "../tasks/OutlookTaskImportModal";
-import { format } from "@/lib/date-utils";
+import { format, newDate } from "@/lib/date-utils";
 
 interface OutlookTaskList {
   id: string;
@@ -160,7 +160,7 @@ export function OutlookTaskSettings() {
                                 <div className="text-xs text-gray-500">
                                   Last imported:{" "}
                                   {format(
-                                    new Date(list.projectMapping.lastImported),
+                                    newDate(list.projectMapping.lastImported),
                                     "PPp"
                                   )}
                                 </div>

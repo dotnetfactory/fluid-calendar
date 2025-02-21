@@ -206,18 +206,18 @@ export class SlotScorer {
   }
 
   private scorePriority(task: Task): number {
-    if (!task.priority || task.priority === Priority.NONE) return 0.5;
+    if (!task.priority || task.priority === Priority.NONE) return 0.25;
 
     // Higher priority tasks get higher scores
     switch (task.priority) {
       case Priority.HIGH:
         return 1.0;
       case Priority.MEDIUM:
-        return 0.7;
+        return 0.75;
       case Priority.LOW:
-        return 0.4;
-      default:
         return 0.5;
+      default:
+        return 0.25;
     }
   }
 }

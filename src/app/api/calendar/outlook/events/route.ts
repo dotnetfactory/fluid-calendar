@@ -13,6 +13,7 @@ import {
   getEvent,
   validateEvent,
 } from "@/lib/calendar-db";
+import { newDate } from "@/lib/date-utils";
 
 // Helper function to write event to database
 
@@ -39,8 +40,8 @@ export async function POST(request: Request) {
       title: eventData.title,
       description: eventData.description,
       location: eventData.location,
-      start: new Date(eventData.start),
-      end: new Date(eventData.end),
+      start: newDate(eventData.start),
+      end: newDate(eventData.end),
       allDay: eventData.allDay,
       isRecurring: eventData.isRecurring,
       recurrenceRule: eventData.recurrenceRule,
@@ -57,7 +58,6 @@ export async function POST(request: Request) {
       { id: feed.id, url: feed.url },
       feed.syncToken
     );
-    
 
     // Get the created event from database
     const createdEvent = await prisma.calendarEvent.findFirst({
@@ -104,8 +104,8 @@ export async function PUT(request: Request) {
       {
         ...updates,
         mode,
-        start: updates.start ? new Date(updates.start) : undefined,
-        end: updates.end ? new Date(updates.end) : undefined,
+        start: updates.start ? newDate(updates.start) : undefined,
+        end: updates.end ? newDate(updates.end) : undefined,
       }
     );
 

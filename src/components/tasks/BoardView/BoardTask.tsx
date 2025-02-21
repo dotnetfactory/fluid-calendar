@@ -9,6 +9,8 @@ import {
   isTomorrow,
   isThisWeek,
   isThisYear,
+  newDateFromYMD,
+  newDate,
 } from "@/lib/date-utils";
 
 interface BoardTaskProps {
@@ -39,12 +41,12 @@ const formatEnumValue = (value: string) => {
 };
 
 const formatContextualDate = (date: Date) => {
-  const localDate = new Date(
+  const localDate = newDateFromYMD(
     date.getUTCFullYear(),
     date.getUTCMonth(),
     date.getUTCDate()
   );
-  const now = new Date();
+  const now = newDate();
   now.setHours(0, 0, 0, 0);
 
   const isOverdue = localDate < now;
@@ -183,12 +185,12 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
           {task.dueDate && (
             <span
               className={`${
-                formatContextualDate(new Date(task.dueDate)).isOverdue
+                formatContextualDate(newDate(task.dueDate)).isOverdue
                   ? "text-red-600"
                   : "text-gray-500"
               }`}
             >
-              {formatContextualDate(new Date(task.dueDate)).text}
+              {formatContextualDate(newDate(task.dueDate)).text}
             </span>
           )}
 
@@ -204,8 +206,8 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
 
           {task.isAutoScheduled && task.scheduledStart && task.scheduledEnd && (
             <span className="text-blue-600">
-              {format(new Date(task.scheduledStart), "p")} -{" "}
-              {format(new Date(task.scheduledEnd), "p")}
+              {format(newDate(task.scheduledStart), "p")} -{" "}
+              {format(newDate(task.scheduledEnd), "p")}
               {task.scheduleScore && (
                 <span className="ml-1 text-blue-500">
                   ({Math.round(task.scheduleScore * 100)}%)

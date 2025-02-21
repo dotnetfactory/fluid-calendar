@@ -5,6 +5,7 @@ import { TokenManager } from "@/lib/token-manager";
 import { OutlookCalendarService } from "@/lib/outlook-calendar";
 import { prisma } from "@/lib/prisma";
 import { GraphError } from "@microsoft/microsoft-graph-client";
+import { newDate } from "@/lib/date-utils";
 
 export async function GET(req: NextRequest) {
   try {
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
     }
 
     const tokens = await tokenResponse.json();
-    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+    const expiresAt = newDate(Date.now() + tokens.expires_in * 1000);
 
     // Create a temporary account to get user info
     const tempAccount = {
@@ -66,8 +67,8 @@ export async function GET(req: NextRequest) {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       expiresAt,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: newDate(),
+      updatedAt: newDate(),
     };
 
     // Get user info

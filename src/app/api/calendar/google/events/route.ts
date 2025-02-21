@@ -13,6 +13,7 @@ import {
   getEvent,
   validateEvent,
 } from "@/lib/calendar-db";
+import { newDate } from "@/lib/date-utils";
 
 type GoogleEvent = calendar_v3.Schema$Event;
 
@@ -31,16 +32,16 @@ async function writeEventToDatabase(
         externalEventId: event.id,
         title: event.summary || "Untitled Event",
         description: event.description || "",
-        start: new Date(event.start?.dateTime || event.start?.date || ""),
-        end: new Date(event.end?.dateTime || event.end?.date || ""),
+        start: newDate(event.start?.dateTime || event.start?.date || ""),
+        end: newDate(event.end?.dateTime || event.end?.date || ""),
         location: event.location,
         isRecurring: isRecurring,
         recurrenceRule: event.recurrence?.[0],
         allDay: !event.start?.dateTime,
         status: event.status,
         sequence: event.sequence,
-        created: event.created ? new Date(event.created) : undefined,
-        lastModified: event.updated ? new Date(event.updated) : undefined,
+        created: event.created ? newDate(event.created) : undefined,
+        lastModified: event.updated ? newDate(event.updated) : undefined,
         organizer: event.organizer
           ? {
               name: event.organizer.displayName,
@@ -67,19 +68,19 @@ async function writeEventToDatabase(
           externalEventId: instance.id,
           title: instance.summary || "Untitled Event",
           description: instance.description || "",
-          start: new Date(
+          start: newDate(
             instance.start?.dateTime || instance.start?.date || ""
           ),
-          end: new Date(instance.end?.dateTime || instance.end?.date || ""),
+          end: newDate(instance.end?.dateTime || instance.end?.date || ""),
           location: instance.location,
           isRecurring: true,
           recurrenceRule: event.recurrence?.[0],
           recurringEventId: instance.recurringEventId,
           status: instance.status,
           sequence: instance.sequence,
-          created: instance.created ? new Date(instance.created) : undefined,
+          created: instance.created ? newDate(instance.created) : undefined,
           lastModified: instance.updated
-            ? new Date(instance.updated)
+            ? newDate(instance.updated)
             : undefined,
           organizer: instance.organizer
             ? {
@@ -124,8 +125,8 @@ export async function POST(request: Request) {
       title: eventData.title,
       description: eventData.description,
       location: eventData.location,
-      start: new Date(eventData.start),
-      end: new Date(eventData.end),
+      start: newDate(eventData.start),
+      end: newDate(eventData.end),
       allDay: eventData.allDay,
       isRecurring: eventData.isRecurring,
       recurrenceRule: eventData.recurrenceRule,
@@ -184,8 +185,8 @@ export async function PUT(request: Request) {
       {
         ...updates,
         mode,
-        start: updates.start ? new Date(updates.start) : undefined,
-        end: updates.end ? new Date(updates.end) : undefined,
+        start: updates.start ? newDate(updates.start) : undefined,
+        end: updates.end ? newDate(updates.end) : undefined,
       }
     );
 

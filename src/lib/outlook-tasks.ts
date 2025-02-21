@@ -2,6 +2,7 @@ import { Client } from "@microsoft/microsoft-graph-client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { TaskStatus } from "@/types/task";
+import { newDate } from "./date-utils";
 
 export interface OutlookTask {
   id: string;
@@ -155,14 +156,14 @@ export class OutlookTasksService {
               title: task.title,
               description: task.body?.content,
               status: this.mapStatus(task.status),
-              dueDate: task.dueDateTime ? new Date(task.dueDateTime) : null,
+              dueDate: task.dueDateTime ? newDate(task.dueDateTime) : null,
               priority: this.mapPriority(task.importance),
               projectId,
               externalTaskId: task.id,
               isAutoScheduled: mapping.isAutoScheduled,
               scheduleLocked: false,
               source: "OUTLOOK",
-              lastSyncedAt: new Date(),
+              lastSyncedAt: newDate(),
             },
           });
           results.imported++;
@@ -178,7 +179,7 @@ export class OutlookTasksService {
       // Update the mapping's last import time
       await prisma.outlookTaskListMapping.update({
         where: { externalListId: listId },
-        data: { lastImported: new Date() },
+        data: { lastImported: newDate() },
       });
 
       return results;

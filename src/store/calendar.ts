@@ -11,6 +11,7 @@ import {
 } from "@/types/calendar";
 import { CalendarType } from "@/lib/calendar/init";
 import { useTaskStore } from "@/store/task";
+import { newDate } from "@/lib/date-utils";
 
 // Separate store for view preferences that will be persisted in localStorage
 interface ViewStore extends CalendarViewState {
@@ -23,10 +24,10 @@ export const useViewStore = create<ViewStore>()(
   persist(
     (set) => ({
       view: "week",
-      date: new Date(),
+      date: newDate(),
       selectedEventId: undefined,
       setView: (view) => set({ view }),
-      setDate: (date) => set({ date: new Date(date) }), // Ensure we always store a Date object
+      setDate: (date) => set({ date: newDate(date) }), // Ensure we always store a Date object
       setSelectedEventId: (id) => set({ selectedEventId: id }),
     }),
     {
@@ -40,7 +41,7 @@ export const useViewStore = create<ViewStore>()(
       // Convert ISO string back to Date on hydration
       onRehydrateStorage: () => (state) => {
         if (state) {
-          state.date = new Date(state.date);
+          state.date = newDate(state.date);
         }
       },
     }
@@ -104,7 +105,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
   events: [],
   isLoading: false,
   error: undefined,
-  selectedDate: new Date(),
+  selectedDate: newDate(),
   selectedView: "week",
 
   // Helper function to expand recurring events
@@ -120,9 +121,9 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
     events.forEach((event) => {
       // Convert event dates to Date objects if they're not already
       const eventStart =
-        event.start instanceof Date ? event.start : new Date(event.start);
+        event.start instanceof Date ? event.start : newDate(event.start);
       const eventEnd =
-        event.end instanceof Date ? event.end : new Date(event.end);
+        event.end instanceof Date ? event.end : newDate(event.end);
 
       // If it's a non-recurring event or an instance, add it directly
       if (!event.isRecurring || !event.isMaster) {
@@ -152,12 +153,12 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
           // Create an event instance for each occurrence
           occurrences.forEach((date) => {
             // Check if there's a modified instance for this date
-            const instanceDate = new Date(date);
+            const instanceDate = newDate(date);
             const hasModifiedInstance = events.some(
               (e) =>
                 !e.isMaster &&
                 e.masterEventId === event.id &&
-                new Date(e.start).toDateString() === instanceDate.toDateString()
+                newDate(e.start).toDateString() === instanceDate.toDateString()
             );
 
             // Only add the occurrence if there's no modified instance
@@ -166,7 +167,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
                 ...event,
                 id: `${event.id}_${instanceDate.toISOString()}`, // Unique ID for the instance
                 start: instanceDate,
-                end: new Date(instanceDate.getTime() + duration),
+                end: newDate(instanceDate.getTime() + duration),
                 isMaster: false,
                 masterEventId: event.id,
               });
@@ -754,21 +755,21 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
     // });
 
     // Create date boundaries in user's timezone
-    const startDay = new Date(start);
+    const startDay = newDate(start);
     startDay.setHours(0, 0, 0, 0);
-    const endDay = new Date(end);
+    const endDay = newDate(end);
     endDay.setHours(23, 59, 59, 999);
 
     const events = tasks
       .filter((task) => {
         if (task.isAutoScheduled && task.scheduledStart && task.scheduledEnd) {
           // For auto-scheduled tasks, check if scheduled time is within range
-          const scheduledStart = new Date(task.scheduledStart);
+          const scheduledStart = newDate(task.scheduledStart);
           return scheduledStart >= startDay && scheduledStart <= endDay;
         } else if (task.dueDate) {
           // For non-auto-scheduled tasks, use due date logic
-          const taskDueDate = new Date(task.dueDate);
-          const localDate = new Date(taskDueDate);
+          const taskDueDate = newDate(task.dueDate);
+          const localDate = newDate(taskDueDate);
           localDate.setMinutes(
             localDate.getMinutes() + localDate.getTimezoneOffset()
           );
@@ -785,8 +786,8 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
             feedId: "tasks",
             title: task.title,
             description: task.description || undefined,
-            start: new Date(task.scheduledStart),
-            end: new Date(task.scheduledEnd),
+            start: newDate(task.scheduledStart),
+            end: newDate(task.scheduledEnd),
             isRecurring: task.isRecurring,
             isMaster: false,
             allDay: false,
@@ -802,18 +803,18 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
               isAutoScheduled: true,
               scheduleScore: task.scheduleScore,
               dueDate: task.dueDate
-                ? new Date(task.dueDate).toISOString()
+                ? newDate(task.dueDate).toISOString()
                 : null,
             },
           };
         } else {
           // For non-auto-scheduled tasks, use the existing due date logic
-          const taskDueDate = new Date(task.dueDate!);
-          const localDate = new Date(taskDueDate);
+          const taskDueDate = newDate(task.dueDate!);
+          const localDate = newDate(taskDueDate);
           localDate.setMinutes(
             localDate.getMinutes() + localDate.getTimezoneOffset()
           );
-          const eventDate = new Date(localDate);
+          const eventDate = newDate(localDate);
           eventDate.setHours(9, 0, 0, 0);
 
           return {
@@ -823,8 +824,8 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
             description: task.description || undefined,
             start: eventDate,
             end: task.duration
-              ? new Date(eventDate.getTime() + task.duration * 60000)
-              : new Date(eventDate.getTime() + 3600000),
+              ? newDate(eventDate.getTime() + task.duration * 60000)
+              : newDate(eventDate.getTime() + 3600000),
             isRecurring: false,
             isMaster: false,
             allDay: true,
@@ -839,7 +840,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
               tags: task.tags,
               isAutoScheduled: false,
               dueDate: task.dueDate
-                ? new Date(task.dueDate).toISOString()
+                ? newDate(task.dueDate).toISOString()
                 : null,
             },
           };

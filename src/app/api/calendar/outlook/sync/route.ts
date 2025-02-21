@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getOutlookClient } from "@/lib/outlook-calendar";
 import { syncOutlookCalendar } from "@/lib/outlook-sync";
 import { logger } from "@/lib/logger";
+import { newDate } from "@/lib/date-utils";
 
 export async function GET() {
   return NextResponse.json(
@@ -171,7 +172,7 @@ export async function PUT(req: NextRequest) {
     await prisma.calendarFeed.update({
       where: { id: feed.id },
       data: {
-        lastSync: new Date(),
+        lastSync: newDate(),
       },
     });
 

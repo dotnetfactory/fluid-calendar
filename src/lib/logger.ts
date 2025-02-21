@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { prisma } from "@/lib/prisma";
+import { newDate } from "./date-utils";
 
 class Logger {
   private logFile: string;
@@ -14,7 +15,7 @@ class Logger {
     }
     this.logFile = path.join(
       this.logsDir,
-      `scheduling-${new Date().toISOString().split("T")[0]}.log`
+      `scheduling-${newDate().toISOString().split("T")[0]}.log`
     );
     this.cleanupOldLogs();
   }
@@ -22,7 +23,7 @@ class Logger {
   private cleanupOldLogs() {
     try {
       const files = fs.readdirSync(this.logsDir);
-      const now = new Date();
+      const now = newDate();
 
       files.forEach((file) => {
         const filePath = path.join(this.logsDir, file);
@@ -52,7 +53,7 @@ class Logger {
 
   async log(message: string, data?: Record<string, unknown>) {
     const logLevel = await this.getLogLevel();
-    const timestamp = new Date().toISOString();
+    const timestamp = newDate().toISOString();
     const logMessage = `[${timestamp}] ${message}${
       data ? "\n" + JSON.stringify(data, null, 2) : ""
     }\n`;

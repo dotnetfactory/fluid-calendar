@@ -8,7 +8,7 @@ import { useCalendarStore } from "@/store/calendar";
 import { useSettingsStore } from "@/store/settings";
 import { IoClose } from "react-icons/io5";
 import { cn } from "@/lib/utils";
-import { formatToLocalISOString } from "@/lib/date-utils";
+import { formatToLocalISOString, newDate } from "@/lib/date-utils";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 interface EventModalProps {
@@ -118,17 +118,17 @@ export function EventModal({
   const [location, setLocation] = useState(event?.location || "");
   const [startDate, setStartDate] = useState<Date>(
     event?.start
-      ? new Date(event.start)
+      ? newDate(event.start)
       : defaultDate
-      ? new Date(defaultDate)
-      : new Date()
+      ? newDate(defaultDate)
+      : newDate()
   );
   const [endDate, setEndDate] = useState<Date>(
     event?.end
-      ? new Date(event.end)
+      ? newDate(event.end)
       : defaultEndDate
-      ? new Date(defaultEndDate)
-      : new Date(Date.now() + 3600000)
+      ? newDate(defaultEndDate)
+      : newDate(Date.now() + 3600000)
   );
   const [selectedFeedId, setSelectedFeedId] = useState<string>(
     event?.feedId ||
@@ -151,17 +151,17 @@ export function EventModal({
       setLocation(event?.location || "");
       setStartDate(
         event?.start
-          ? new Date(event.start)
+          ? newDate(event.start)
           : defaultDate
-          ? new Date(defaultDate)
-          : new Date()
+          ? newDate(defaultDate)
+          : newDate()
       );
       setEndDate(
         event?.end
-          ? new Date(event.end)
+          ? newDate(event.end)
           : defaultEndDate
-          ? new Date(defaultEndDate)
-          : new Date(Date.now() + 3600000)
+          ? newDate(defaultEndDate)
+          : newDate(Date.now() + 3600000)
       );
       setSelectedFeedId(
         event?.feedId ||
@@ -447,7 +447,7 @@ export function EventModal({
                     id="start"
                     data-testid="event-start-date"
                     value={formatToLocalISOString(startDate)}
-                    onChange={(e) => setStartDate(new Date(e.target.value))}
+                    onChange={(e) => setStartDate(newDate(e.target.value))}
                     className={cn(
                       "mt-1 block w-full rounded-md border-gray-300",
                       "shadow-sm focus:border-blue-500 focus:ring-blue-500",
@@ -472,7 +472,7 @@ export function EventModal({
                     id="end"
                     data-testid="event-end-date"
                     value={formatToLocalISOString(endDate)}
-                    onChange={(e) => setEndDate(new Date(e.target.value))}
+                    onChange={(e) => setEndDate(newDate(e.target.value))}
                     className={cn(
                       "mt-1 block w-full rounded-md border-gray-300",
                       "shadow-sm focus:border-blue-500 focus:ring-blue-500",
@@ -701,8 +701,8 @@ export function EventModal({
     setTitle("");
     setDescription("");
     setLocation("");
-    setStartDate(new Date());
-    setEndDate(new Date(Date.now() + 3600000));
+    setStartDate(newDate());
+    setEndDate(newDate(Date.now() + 3600000));
     setIsAllDay(false);
     setIsRecurring(false);
     setRecurrenceFreq("");

@@ -2,7 +2,7 @@ import { PrismaClient, Task, AutoScheduleSettings } from "@prisma/client";
 import { TimeSlotManagerImpl, TimeSlotManager } from "./TimeSlotManager";
 import { CalendarServiceImpl } from "./CalendarServiceImpl";
 import { useSettingsStore } from "@/store/settings";
-import { addDays } from "@/lib/date-utils";
+import { addDays, newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 
 const DEFAULT_TASK_DURATION = 30; // Default duration in minutes
@@ -30,8 +30,8 @@ export class SchedulingService {
         ...storeSettings,
         id: "store",
         userId: "store",
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: newDate(),
+        updatedAt: newDate(),
       };
     }
 
@@ -79,23 +79,55 @@ export class SchedulingService {
     });
     // logger.log("[DEBUG] Cleared existing schedules for non-locked tasks");
 
-    // Sort tasks by due date
-    const sortedTasks = [...tasksToSchedule].sort((a, b) => {
-      if (!a.dueDate && !b.dueDate) return 0;
-      if (!a.dueDate) return 1;
-      if (!b.dueDate) return -1;
-      return a.dueDate.getTime() - b.dueDate.getTime();
-    });
-    // logger.log("[DEBUG] Sorted tasks by due date", {
-    //   tasks: sortedTasks.map((t) => ({
-    //     id: t.id,
-    //     title: t.title,
-    //     dueDate: t.dueDate,
-    //     duration: t.duration || DEFAULT_TASK_DURATION,
-    //   })),
-    // });
-
+    // Get initial scores for all tasks
     const timeSlotManager = this.getTimeSlotManager();
+    const now = newDate();
+    const initialScores = new Map<string, number>();
+
+    //TODO: move to utils
+    // Use the same windows as scheduling
+    const windows = [
+      { days: 7, label: "1 week" },
+      { days: 14, label: "2 weeks" },
+      { days: 30, label: "1 month" },
+    ];
+
+    for (const task of tasksToSchedule) {
+      let bestScore = 0;
+      // Try each window to find the best possible score
+      for (const window of windows) {
+        const slots = await timeSlotManager.findAvailableSlots(
+          task,
+          now,
+          addDays(now, window.days)
+        );
+        if (slots.length > 0) {
+          bestScore = Math.max(bestScore, slots[0].score);
+          break; // Found a slot, no need to look further
+        }
+      }
+      initialScores.set(task.id, bestScore);
+    }
+
+    // Sort tasks by their best possible score
+    const sortedTasks = [...tasksToSchedule].sort((a, b) => {
+      const aScore = initialScores.get(a.id) || 0;
+      const bScore = initialScores.get(b.id) || 0;
+      return bScore - aScore; // Higher scores first
+    });
+
+    logger.log("[DEBUG] Sorted tasks by score", {
+      tasks: sortedTasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        priority: t.priority,
+        score: initialScores.get(t.id),
+        window:
+          windows.find((w) => w.days <= (initialScores.get(t.id) || 0) * 7)
+            ?.label || "none",
+      })),
+    });
+
     const updatedTasks: Task[] = [];
 
     // Schedule each task
@@ -156,7 +188,7 @@ export class SchedulingService {
     task: Task,
     timeSlotManager: TimeSlotManager
   ): Promise<Task | null> {
-    const now = new Date();
+    const now = newDate();
     const windows = [
       { days: 7, label: "1 week" },
       { days: 14, label: "2 weeks" },

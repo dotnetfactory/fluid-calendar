@@ -24,6 +24,7 @@ export const CalendarEventContent = memo(function CalendarEventContent({
   const priority = eventInfo.event.extendedProps.priority;
   const location = eventInfo.event.extendedProps.location;
   const title = eventInfo.event.title;
+  // console.log("eventInfo.event.extendedProps", eventInfo.event.extendedProps);
 
   return (
     <div

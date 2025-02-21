@@ -221,7 +221,7 @@ async function createProjectFromList(
         externalListId: listId,
         projectId: project.id,
         name: listName,
-        lastImported: new Date()
+        lastImported: newDate()
       }
     });
 
@@ -267,7 +267,7 @@ async function processTaskImport(
           projectId,
           externalTaskId: task.id,
           source: 'OUTLOOK',
-          lastSyncedAt: new Date()
+          lastSyncedAt: newDate()
         }
       });
       results.imported++;
@@ -292,13 +292,13 @@ function mapOutlookTask(outlookTask: OutlookTask): Partial<Task> {
   return {
     title: outlookTask.title,
     description: outlookTask.body?.content,
-    dueDate: outlookTask.dueDateTime ? new Date(outlookTask.dueDateTime) : null,
+    dueDate: outlookTask.dueDateTime ? newDate(outlookTask.dueDateTime) : null,
     completed: !!outlookTask.completedDateTime,
     priority: mapPriority(outlookTask.importance),
     status: mapStatus(outlookTask.status),
     externalTaskId: outlookTask.id,
     source: 'OUTLOOK',
-    lastSyncedAt: new Date()
+    lastSyncedAt: newDate()
   };
 }
 

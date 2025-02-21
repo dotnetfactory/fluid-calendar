@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getOutlookClient } from "@/lib/outlook-calendar";
 import { OutlookTasksService } from "@/lib/outlook-tasks";
 import { logger } from "@/lib/logger";
+import { newDate } from "@/lib/date-utils";
 
 export async function POST(request: Request) {
   try {
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
           externalListId: listId,
           projectId: targetProjectId,
           name: taskList.name,
-          lastImported: new Date(),
+          lastImported: newDate(),
           isAutoScheduled: isAutoScheduled ?? true,
         },
       });
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
         where: { externalListId: listId },
         data: {
           isAutoScheduled: isAutoScheduled ?? true,
-          lastImported: new Date(),
+          lastImported: newDate(),
         },
       });
     }

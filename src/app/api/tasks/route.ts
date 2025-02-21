@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { TaskStatus, EnergyLevel, TimePreference } from "@/types/task";
 import { RRule } from "rrule";
+import { newDate } from "@/lib/date-utils";
 
 export async function GET(request: Request) {
   try {
@@ -33,8 +34,8 @@ export async function GET(request: Request) {
         ...(startDate &&
           endDate && {
             dueDate: {
-              gte: new Date(startDate),
-              lte: new Date(endDate),
+              gte: newDate(startDate),
+              lte: newDate(endDate),
             },
           }),
       },

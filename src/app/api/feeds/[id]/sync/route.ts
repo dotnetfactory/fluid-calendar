@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { newDate } from "@/lib/date-utils";
 
 interface CalendarEventInput {
   start: string | Date;
@@ -31,13 +32,13 @@ export async function POST(
             ...event,
             feedId,
             // Convert Date objects to strings for database storage
-            start: new Date(event.start).toISOString(),
-            end: new Date(event.end).toISOString(),
+            start: newDate(event.start).toISOString(),
+            end: newDate(event.end).toISOString(),
             created: event.created
-              ? new Date(event.created).toISOString()
+              ? newDate(event.created).toISOString()
               : undefined,
             lastModified: event.lastModified
-              ? new Date(event.lastModified).toISOString()
+              ? newDate(event.lastModified).toISOString()
               : undefined,
           })),
         });
@@ -46,7 +47,7 @@ export async function POST(
       // Update feed's lastSync timestamp
       await tx.calendarFeed.update({
         where: { id: feedId },
-        data: { lastSync: new Date() },
+        data: { lastSync: newDate() },
       });
     });
 

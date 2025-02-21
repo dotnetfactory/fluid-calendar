@@ -2,6 +2,7 @@ import { google, calendar_v3 } from "googleapis";
 import { useSettingsStore } from "@/store/settings";
 import { TokenManager } from "./token-manager";
 import { createGoogleOAuthClient } from "./google";
+import { newDate, newDateFromYMD } from "./date-utils";
 
 type GoogleEvent = calendar_v3.Schema$Event;
 
@@ -163,7 +164,7 @@ export async function updateGoogleEvent(
       const instances = await calendar.events.instances({
         calendarId,
         eventId: existingEvent.data.recurringEventId || eventId,
-        timeMin: event.start?.toISOString() || new Date().toISOString(),
+        timeMin: event.start?.toISOString() || newDate().toISOString(),
         maxResults: 1,
       });
 
@@ -273,7 +274,7 @@ export async function deleteGoogleEvent(
       const instances = await calendar.events.instances({
         calendarId,
         eventId: event.data.recurringEventId || eventId,
-        timeMin: new Date().toISOString(),
+        timeMin: newDate().toISOString(),
         maxResults: 1,
       });
 
@@ -352,8 +353,8 @@ export async function getGoogleEvent(
       const instancesResponse = await googleCalendarClient.events.instances({
         calendarId,
         eventId: masterEvent.id || "", // Ensure non-null string
-        timeMin: new Date(new Date().getFullYear(), 0, 1).toISOString(),
-        timeMax: new Date(new Date().getFullYear() + 1, 0, 1).toISOString(),
+        timeMin: newDateFromYMD(newDate().getFullYear(), 0, 1).toISOString(),
+        timeMax: newDateFromYMD(newDate().getFullYear() + 1, 0, 1).toISOString(),
       });
       if (instancesResponse && instancesResponse.data) {
         console.log("Found instances:", instancesResponse.data.items?.length);

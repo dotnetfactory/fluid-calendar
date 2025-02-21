@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { createGoogleOAuthClient } from "@/lib/google";
 import { MICROSOFT_GRAPH_AUTH_ENDPOINTS } from "./outlook";
 import { getOutlookCredentials } from "@/lib/auth";
+import { newDate } from "./date-utils";
 
 export type Provider = "GOOGLE" | "OUTLOOK";
 
@@ -57,7 +58,7 @@ export class TokenManager {
 
     try {
       const response = await oauth2Client.refreshAccessToken();
-      const expiresAt = new Date(
+      const expiresAt = newDate(
         Date.now() + (response.credentials.expiry_date || 3600 * 1000)
       );
 
@@ -188,7 +189,7 @@ export class TokenManager {
       }
 
       const data = await response.json();
-      const expiresAt = new Date(Date.now() + data.expires_in * 1000);
+      const expiresAt = newDate(Date.now() + data.expires_in * 1000);
 
       // Update tokens in database
       const updatedAccount = await prisma.connectedAccount.update({

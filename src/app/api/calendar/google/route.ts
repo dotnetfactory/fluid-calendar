@@ -6,6 +6,7 @@ import { TokenManager } from "@/lib/token-manager";
 import { getGoogleCalendarClient } from "@/lib/google-calendar";
 import { createGoogleOAuthClient } from "@/lib/google";
 import { GaxiosError } from "gaxios";
+import { newDate, newDateFromYMD } from "@/lib/date-utils";
 
 // Helper function to process recurrence rules
 function processRecurrenceRule(
@@ -84,7 +85,7 @@ export async function GET(request: Request) {
         {
           accessToken: tokens.access_token!,
           refreshToken: tokens.refresh_token!,
-          expiresAt: new Date(Date.now() + (tokens.expiry_date || 3600 * 1000)),
+          expiresAt: newDate(Date.now() + (tokens.expiry_date || 3600 * 1000)),
         }
       );
 
@@ -197,8 +198,8 @@ export async function POST(request: Request) {
     // Initial sync of calendar events
     const eventsResponse = await calendar.events.list({
       calendarId,
-      timeMin: new Date(new Date().getFullYear(), 0, 1).toISOString(),
-      timeMax: new Date(new Date().getFullYear() + 1, 0, 1).toISOString(),
+      timeMin: newDateFromYMD(newDate().getFullYear(), 0, 1).toISOString(),
+      timeMax: newDateFromYMD(newDate().getFullYear() + 1, 0, 1).toISOString(),
       singleEvents: true,
       orderBy: "startTime",
     });
@@ -241,12 +242,12 @@ export async function POST(request: Request) {
             externalEventId: eventId,
             title: masterEventData.summary || "Untitled Event",
             description: masterEventData.description || "",
-            start: new Date(
+            start: newDate(
               masterEventData.start?.dateTime ||
                 masterEventData.start?.date ||
                 ""
             ),
-            end: new Date(
+            end: newDate(
               masterEventData.end?.dateTime || masterEventData.end?.date || ""
             ),
             location: masterEventData.location,
@@ -254,7 +255,7 @@ export async function POST(request: Request) {
             isMaster: true,
             recurrenceRule: processRecurrenceRule(
               masterEventData.recurrence,
-              new Date(
+              newDate(
                 masterEventData.start?.dateTime ||
                   masterEventData.start?.date ||
                   ""
@@ -265,10 +266,10 @@ export async function POST(request: Request) {
             status: masterEventData.status,
             sequence: masterEventData.sequence,
             created: masterEventData.created
-              ? new Date(masterEventData.created)
+              ? newDate(masterEventData.created)
               : undefined,
             lastModified: masterEventData.updated
-              ? new Date(masterEventData.updated)
+              ? newDate(masterEventData.updated)
               : undefined,
             organizer: masterEventData.organizer
               ? {
@@ -314,8 +315,8 @@ export async function POST(request: Request) {
             externalEventId: event.id,
             title: event.summary || "Untitled Event",
             description: event.description || "",
-            start: new Date(event.start?.dateTime || event.start?.date || ""),
-            end: new Date(event.end?.dateTime || event.end?.date || ""),
+            start: newDate(event.start?.dateTime || event.start?.date || ""),
+            end: newDate(event.end?.dateTime || event.end?.date || ""),
             location: event.location,
             isRecurring: !!event.recurringEventId,
             isMaster: false,
@@ -326,14 +327,14 @@ export async function POST(request: Request) {
               : processRecurrenceRule(
                   event.recurrence,
                   event.start
-                    ? new Date(event.start?.dateTime || event.start?.date || "")
+                    ? newDate(event.start?.dateTime || event.start?.date || "")
                     : undefined
                 ),
             allDay: event.start ? !event.start.dateTime : false,
             status: event.status,
             sequence: event.sequence,
-            created: event.created ? new Date(event.created) : undefined,
-            lastModified: event.updated ? new Date(event.updated) : undefined,
+            created: event.created ? newDate(event.created) : undefined,
+            lastModified: event.updated ? newDate(event.updated) : undefined,
             organizer: event.organizer
               ? {
                   name: event.organizer.displayName,
@@ -404,8 +405,8 @@ export async function PUT(request: Request) {
     // Fetch events from Google Calendar
     const eventsResponse = await googleCalendarClient.events.list({
       calendarId: feed.url,
-      timeMin: new Date(new Date().getFullYear(), 0, 1).toISOString(),
-      timeMax: new Date(new Date().getFullYear() + 1, 0, 1).toISOString(),
+      timeMin: newDateFromYMD(newDate().getFullYear(), 0, 1).toISOString(),
+      timeMax: newDateFromYMD(newDate().getFullYear() + 1, 0, 1).toISOString(),
       singleEvents: true,
       orderBy: "startTime",
     });
@@ -470,22 +471,22 @@ export async function PUT(request: Request) {
             externalEventId: event.id,
             title: event.summary || "Untitled Event",
             description: event.description || "",
-            start: new Date(event.start.dateTime || event.start.date || ""),
-            end: new Date(event.end?.dateTime || event.end?.date || ""),
+            start: newDate(event.start.dateTime || event.start.date || ""),
+            end: newDate(event.end?.dateTime || event.end?.date || ""),
             location: event.location,
             isRecurring: !!event.recurringEventId || !!event.recurrence,
             recurringEventId: event.recurringEventId,
             recurrenceRule: processRecurrenceRule(
               event.recurrence,
               event.start
-                ? new Date(event.start?.dateTime || event.start?.date || "")
+                ? newDate(event.start?.dateTime || event.start?.date || "")
                 : undefined
             ),
             allDay: event.start ? !event.start.dateTime : false,
             status: event.status,
             sequence: event.sequence,
-            created: event.created ? new Date(event.created) : undefined,
-            lastModified: event.updated ? new Date(event.updated) : undefined,
+            created: event.created ? newDate(event.created) : undefined,
+            lastModified: event.updated ? newDate(event.updated) : undefined,
             organizer: event.organizer
               ? {
                   name: event.organizer.displayName,
@@ -507,7 +508,7 @@ export async function PUT(request: Request) {
       await tx.calendarFeed.update({
         where: { id: feedId },
         data: {
-          lastSync: new Date(),
+          lastSync: newDate(),
           error: null,
         },
       });

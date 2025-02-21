@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { convertOutlookRecurrenceToRRule } from "@/lib/outlook-calendar";
 import type { Prisma } from "@prisma/client";
-import { convertToUTC } from "@/lib/date-utils";
+import { convertToUTC, newDate, newDateFromYMD } from "@/lib/date-utils";
 
 interface OutlookAttendee {
   emailAddress: {
@@ -57,9 +57,9 @@ interface OutlookEvent {
   attendees?: OutlookAttendee[];
   seriesMasterId?: string;
 }
-const now = new Date();
-const timeMin = new Date(now.getFullYear() - 1, 0, 1); // 2 years ago, January 1st
-const timeMax = new Date(now.getFullYear() + 1, 11, 31); // End of next year
+const now = newDate();
+const timeMin = newDateFromYMD(now.getFullYear() - 1, 0, 1); // 2 years ago, January 1st
+const timeMax = newDateFromYMD(now.getFullYear() + 1, 11, 31); // End of next year
 const PAGE_SIZE = 200;
 
 // Helper to create base event data shared between master and instance events
@@ -82,11 +82,11 @@ export function createBaseEventData(
     allDay: event.isAllDay || false,
     status: event.showAs || "busy",
     created: event.createdDateTime
-      ? new Date(event.createdDateTime)
-      : new Date(),
+      ? newDate(event.createdDateTime)
+      : newDate(),
     lastModified: event.lastModifiedDateTime
-      ? new Date(event.lastModifiedDateTime)
-      : new Date(),
+      ? newDate(event.lastModifiedDateTime)
+      : newDate(),
     sequence: 0,
     organizer: event.isOrganizer ? { set: { email: "" } } : { set: null },
     attendees: {

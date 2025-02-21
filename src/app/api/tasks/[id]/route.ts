@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { RRule } from "rrule";
 import { TaskStatus } from "@/types/task";
+import { newDate } from "@/lib/date-utils";
 
 export async function GET(
   request: Request,
@@ -63,12 +64,12 @@ export async function PUT(
         const rrule = RRule.fromString(task.recurrenceRule);
 
         // For tasks, we only care about the date part
-        const baseDate = new Date(task.dueDate || new Date());
+        const baseDate = newDate(task.dueDate || newDate());
         // Set to start of day in UTC
         baseDate.setUTCHours(0, 0, 0, 0);
 
         // Add one day to the base date to ensure we get the next occurrence
-        const searchDate = new Date(baseDate);
+        const searchDate = newDate(baseDate);
         searchDate.setDate(searchDate.getDate() + 1);
 
         // Get next occurrence and ensure it's just a date
@@ -104,7 +105,7 @@ export async function PUT(
           // Update the recurring task with new due date and reset status
           updates.dueDate = nextOccurrence;
           updates.status = TaskStatus.TODO;
-          updates.lastCompletedDate = new Date();
+          updates.lastCompletedDate = newDate();
         }
       } catch (error) {
         console.error("Error handling task completion:", error);

@@ -17,6 +17,7 @@ import { CalendarEvent, ExtendedEventProps } from "@/types/calendar";
 import { Task } from "@/types/task";
 import { EventQuickView } from "./EventQuickView";
 import { CalendarEventContent } from "./CalendarEventContent";
+import { newDate } from "@/lib/date-utils";
 
 interface WeekViewProps {
   currentDate: Date;
@@ -67,8 +68,8 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
         .map((item) => ({
           id: item.id,
           title: item.title,
-          start: new Date(item.start),
-          end: new Date(item.end),
+          start: newDate(item.start),
+          end: newDate(item.end),
           location: item.location,
           backgroundColor:
             item.feedId === "tasks"
@@ -239,8 +240,8 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
     <div className="h-full [&_.fc-timegrid-slot]:!h-[25px]">
       <button
         onClick={() => {
-          setSelectedDate(new Date());
-          setSelectedEndDate(new Date(Date.now() + 3600000));
+          setSelectedDate(newDate());
+          setSelectedEndDate(newDate(Date.now() + 3600000));
           setIsEventModalOpen(true);
         }}
         data-testid="create-event-button"

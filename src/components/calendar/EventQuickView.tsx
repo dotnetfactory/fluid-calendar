@@ -1,7 +1,7 @@
 import * as Popover from "@radix-ui/react-popover";
 import { CalendarEvent, AttendeeStatus } from "@/types/calendar";
 import { Task, TaskStatus, Priority } from "@/types/task";
-import { format } from "@/lib/date-utils";
+import { format, newDate } from "@/lib/date-utils";
 import {
   IoTimeOutline,
   IoLocationOutline,
@@ -140,9 +140,9 @@ export function EventQuickView({
                 <div className="flex items-center gap-2">
                   <IoTimeOutline className="h-4 w-4 flex-shrink-0" />
                   <span>
-                    {format(new Date(eventItem.start), "PPp")} -{" "}
+                    {format(newDate(eventItem.start), "PPp")} -{" "}
                     {format(
-                      new Date(eventItem.end),
+                      newDate(eventItem.end),
                       eventItem.allDay ? "PP" : "p"
                     )}
                   </span>
@@ -193,7 +193,7 @@ export function EventQuickView({
                     <IoTimeOutline className="h-4 w-4 flex-shrink-0" />
                     {taskItem.dueDate ? (
                       <span>
-                        Due {format(new Date(taskItem.dueDate), "PPp")}
+                        Due {format(newDate(taskItem.dueDate), "PPp")}
                       </span>
                     ) : (
                       <span>No due date</span>
@@ -237,8 +237,8 @@ export function EventQuickView({
                       <div className="flex-1">
                         <div>
                           Scheduled:{" "}
-                          {format(new Date(taskItem.scheduledStart), "PPp")} -{" "}
-                          {format(new Date(taskItem.scheduledEnd), "p")}
+                          {format(newDate(taskItem.scheduledStart), "PPp")} -{" "}
+                          {format(newDate(taskItem.scheduledEnd), "p")}
                         </div>
                         {taskItem.scheduleScore !== undefined && (
                           <div className="text-xs text-gray-500">

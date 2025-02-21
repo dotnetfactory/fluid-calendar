@@ -12,6 +12,8 @@ import {
   isTomorrow,
   isThisWeek,
   isThisYear,
+  newDate,
+  newDateFromYMD,
 } from "@/lib/date-utils";
 import {
   HiChevronUp,
@@ -236,7 +238,6 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
   }, [value]);
 
   useEffect(() => {
-    console.log("EditableCell mounted:", { field, value });
     if (isEditing) {
       const handleClickOutside = (event: MouseEvent) => {
         if (
@@ -365,7 +366,7 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
           <span
             className={`text-sm group flex items-center gap-1 ${
               value
-                ? formatContextualDate(new Date(value)).isOverdue
+                ? formatContextualDate(newDate(value)).isOverdue
                   ? "text-red-600"
                   : "text-gray-500"
                 : "text-gray-400"
@@ -373,8 +374,8 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
           >
             {value ? (
               <>
-                {formatContextualDate(new Date(value)).text}
-                {formatContextualDate(new Date(value)).isOverdue && (
+                {formatContextualDate(newDate(value)).text}
+                {formatContextualDate(newDate(value)).isOverdue && (
                   <HiExclamation className="h-4 w-4 text-red-600" />
                 )}
               </>
@@ -538,17 +539,17 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
           <DatePicker
             selected={
               editValue
-                ? new Date(
-                    new Date(editValue).getUTCFullYear(),
-                    new Date(editValue).getUTCMonth(),
-                    new Date(editValue).getUTCDate()
+                ? newDateFromYMD(
+                  newDate(editValue).getUTCFullYear(),
+                  newDate(editValue).getUTCMonth(),
+                  newDate(editValue).getUTCDate()
                   )
                 : null
             }
             onChange={(date) => {
               if (date) {
                 // Create a UTC date at midnight
-                const utcDate = new Date(
+                const utcDate = newDate(
                   Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
                 );
                 onSave({ ...task, [field]: utcDate });
@@ -641,12 +642,12 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
 const formatContextualDate = (date: Date) => {
   // For UTC midnight dates (e.g. 2025-03-10T00:00:00.000Z),
   // just use the date components to create a local date
-  const localDate = new Date(
+  const localDate = newDateFromYMD(
     date.getUTCFullYear(),
     date.getUTCMonth(),
     date.getUTCDate()
   );
-  const now = new Date();
+  const now = newDate();
   now.setHours(0, 0, 0, 0);
 
   const isOverdue = localDate < now;
@@ -813,8 +814,8 @@ function TaskRow({
               )}
               {task.scheduledStart && task.scheduledEnd && (
                 <span className="text-sm text-blue-600">
-                  {format(new Date(task.scheduledStart), "p")} -{" "}
-                  {format(new Date(task.scheduledEnd), "p")}
+                  {format(newDate(task.scheduledStart), "p")} -{" "}
+                  {format(newDate(task.scheduledEnd), "p")}
                   {task.scheduleScore && (
                     <span className="ml-1 text-blue-500">
                       ({Math.round(task.scheduleScore * 100)}%)
@@ -957,7 +958,7 @@ export function TaskList({
           if (!b.dueDate) return -1;
           return (
             direction *
-            (new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+            (newDate(a.dueDate).getTime() - newDate(b.dueDate).getTime())
           );
         case "status":
           return direction * a.status.localeCompare(b.status);
@@ -968,7 +969,7 @@ export function TaskList({
         default:
           return (
             direction *
-            (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            (newDate(b.createdAt).getTime() - newDate(a.createdAt).getTime())
           );
       }
     });

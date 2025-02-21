@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { HiMenu } from "react-icons/hi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
-import { formatDate } from "@/lib/utils";
 import { WeekView } from "@/components/calendar/WeekView";
 import { FeedManager } from "@/components/calendar/FeedManager";
-import { addDays, subDays } from "@/lib/date-utils";
+import { addDays, newDate, subDays, formatDate } from "@/lib/date-utils";
 import { useViewStore } from "@/store/calendar";
 import { useTaskStore } from "@/store/task";
 import { cn } from "@/lib/utils";
@@ -66,7 +65,7 @@ export function Calendar() {
 
           <div className="ml-4 flex items-center gap-4">
             <button
-              onClick={() => setDate(new Date())}
+              onClick={() => setDate(newDate())}
               className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
             >
               Today

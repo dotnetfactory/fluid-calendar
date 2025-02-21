@@ -14,7 +14,7 @@ import {
 import { useProjectStore } from "@/store/project";
 import { RRule } from "rrule";
 import { Switch } from "@/components/ui/switch";
-import { format } from "@/lib/date-utils";
+import { format, newDate } from "@/lib/date-utils";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 interface TaskModalProps {
@@ -102,7 +102,7 @@ export function TaskModal({
       setStatus(task.status);
       // Handle date string from API
       if (task.dueDate) {
-        const date = new Date(task.dueDate);
+        const date = newDate(task.dueDate);
         setDueDate(date.toISOString().split("T")[0]);
       } else {
         setDueDate("");
@@ -132,7 +132,7 @@ export function TaskModal({
         title: title.trim(),
         description: description.trim() || undefined,
         status,
-        dueDate: dueDate ? new Date(dueDate) : undefined,
+        dueDate: dueDate ? newDate(dueDate) : undefined,
         duration: duration ? parseInt(duration, 10) : undefined,
         energyLevel: energyLevel || undefined,
         preferredTime: preferredTime || undefined,
@@ -377,8 +377,8 @@ export function TaskModal({
                     <div className="rounded-md bg-blue-50 p-3">
                       <div className="text-sm text-blue-700">
                         Scheduled for{" "}
-                        {format(new Date(task.scheduledStart), "PPp")} to{" "}
-                        {format(new Date(task.scheduledEnd), "p")}
+                        {format(newDate(task.scheduledStart), "PPp")} to{" "}
+                        {format(newDate(task.scheduledEnd), "p")}
                       </div>
                       {task.scheduleScore && (
                         <div className="text-sm text-blue-600 mt-1">
@@ -493,7 +493,7 @@ export function TaskModal({
                     if (e.target.checked) {
                       if (!dueDate) {
                         // If no due date, set to today
-                        const today = new Date();
+                        const today = newDate();
                         setDueDate(today.toISOString().split("T")[0]);
                       }
                       if (!recurrenceRule) {

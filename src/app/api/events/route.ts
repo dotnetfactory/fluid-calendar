@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { newDate } from "@/lib/date-utils";
 
 // List all calendar events
 export async function GET() {
@@ -58,8 +59,8 @@ export async function POST(request: Request) {
         feedId,
         title,
         description,
-        start: new Date(start),
-        end: new Date(end),
+        start: newDate(start),
+        end: newDate(end),
         location,
         isRecurring: isRecurring || false,
         recurrenceRule,
@@ -104,8 +105,8 @@ export async function PATCH(request: Request) {
       data: {
         title,
         description,
-        start: start ? new Date(start) : undefined,
-        end: end ? new Date(end) : undefined,
+        start: start ? newDate(start) : undefined,
+        end: end ? newDate(end) : undefined,
         location,
         isRecurring,
         recurrenceRule,
