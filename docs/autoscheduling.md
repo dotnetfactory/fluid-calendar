@@ -185,7 +185,7 @@ class TimeSlotManagerImpl implements TimeSlotManager {
   - [x] Added project grouping option
 - [x] Basic Settings Integration
   - [x] Added settings store integration
-  - [x] Added JSON handling for arrays in SQLite
+  - [x] Added JSON handling for arrays in postgres
   - [x] Added utility functions for settings management
   - [x] Added proper type definitions
 

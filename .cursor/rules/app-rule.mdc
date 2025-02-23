@@ -112,7 +112,7 @@ npm run build
 For `npm install` make sure to include the --legacy-peer-deps flag
 
 ## Database Strategy
-- Use SQLite with Prisma for data persistence
+- Use postgres with Prisma for data persistence
 - Keep database file in `/prisma` directory
 - Follow schema-first development approach
 - Use migrations for database changes
@@ -121,7 +121,7 @@ For `npm install` make sure to include the --legacy-peer-deps flag
 ```prisma
 // Example schema structure
 datasource db {
-  provider = "sqlite"
+  provider = "postgres"
   url      = "file:./dev.db"
 }
 
@@ -241,9 +241,7 @@ generator client {
 - [React Documentation](mdc:https:/react.dev)
 - [Zustand Documentation](mdc:https:/github.com/pmndrs/zustand)
 - [Prisma Documentation](mdc:https:/www.prisma.io/docs)
-- [SQLite Documentation](mdc:https:/www.sqlite.org/docs.html)
 - [Prisma + Next.js Guide](mdc:https:/www.prisma.io/nextjs)
-- [SQLite Best Practices](mdc:https:/www.sqlite.org/bestpractices.html)
 - [iCal RFC 5545](mdc:https:/datatracker.ietf.org/doc/html/rfc5545)
 - [ical.js Library](mdc:https:/github.com/kewisch/ical.js)
 - @CalDAV RFC 4791 

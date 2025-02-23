@@ -4,7 +4,10 @@ An open-source alternative to Motion, designed for intelligent task scheduling a
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-⚠️ **WARNING: ACTIVE DEVELOPMENT** ⚠️
+# BREAKING CHANGE
+**I am moving away from SQLite and towards Postgres. This means that the database will be reset when the container is restarted.  You can migrate your data to the new database using the migrate.js script see details [here](./docs/sqlite-migration.md)**
+
+⚠️ **WARNING: ACTIVE DEVELOPMENT VERY BUGGY - REPORT BUGS AND BE PATIENT ✌️** ⚠️
 
 This project is in active development and currently contains many bugs and incomplete features. It is not yet recommended for production use. If you encounter issues:
 
@@ -173,159 +176,66 @@ Note: For production deployment:
 
 ## Installation
 
-### Option 1: Docker Image (Recommended)
+### Quick Start (Recommended)
 
-The easiest way to run FluidCalendar is using our official Docker image:
+1. Install Docker on your machine
+2. Run the following commands:
+   ```bash
+   # Clone the repository
+   git clone https://github.com/yourusername/fluid-calendar.git
+   cd fluid-calendar
 
-```bash
-# Pull the latest image
-docker pull eibrahim/fluid-calendar:latest
+   # Start the application
+   docker compose up
 
-# Create data directory for persistent storage
-mkdir -p data
+   # View logs (optional)
+   docker compose logs -f
+   ```
+3. Visit http://localhost:3000
 
-# Create a .env file
-cat > .env << EOL
-DATABASE_URL=file:/app/data/dev.db
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-key
-EOL
+That's it! The application will be running with a PostgreSQL database automatically configured.
 
-# Stop and remove existing container if it exists
-docker stop fluid-calendar || true
-docker rm fluid-calendar || true
+### For Developers
 
-# Run database migrations
-docker run --rm \
-  -v $(pwd)/data:/app/data \
-  --env-file .env \
-  eibrahim/fluid-calendar:latest \
-  npx prisma migrate deploy
-
-# Run the application
-docker run -d \
-  --name fluid-calendar \
-  -p 3000:3000 \
-  -v $(pwd)/data:/app/data \
-  --env-file .env \
-  eibrahim/fluid-calendar:latest
-
-# View logs (optional)
-docker logs -f fluid-calendar
-```
-
-After starting the container, visit http://localhost:3000/settings and configure your Google credentials and logging preferences in the System Settings tab.
-
-#### Useful Docker Commands:
-```bash
-# Stop the container
-docker stop fluid-calendar
-
-# Start an existing container
-docker start fluid-calendar
-
-# Remove the container
-docker rm fluid-calendar
-
-# View logs
-docker logs -f fluid-calendar
-
-# Check container status
-docker ps -a | grep fluid-calendar
-
-# Reset database (if needed)
-rm -rf data/* && docker run --rm \
-  -v $(pwd)/data:/app/data \
-  --env-file .env \
-  eibrahim/fluid-calendar:latest \
-  npx prisma migrate deploy
-```
-
-Available tags:
-- `latest` - Latest stable release
-- `dev` - Development version
-- `v*.*.*` - Specific versions (e.g., v1.0.0)
-
-For production deployments, we recommend using specific version tags.
-
-### Option 2: Local Development
+If you want to develop FluidCalendar:
 
 1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/fluid-calendar.git
+   cd fluid-calendar
+   ```
+
+2. Start the development environment:
+   ```bash
+   docker compose -f docker-compose.dev.yml up -d
+   ```
+
+3. Visit http://localhost:3000
+
+The development environment includes:
+- Hot reloading
+- PostgreSQL database
+- Development tools
+- Exposed database port (5432) for direct access
+
+### Useful Docker Commands
+
 ```bash
-git clone https://github.com/yourusername/fluid-calendar.git
-cd fluid-calendar
-```
-
-2. Setup the project (installs dependencies and sets up database):
-```bash
-npm run setup
-```
-
-3. Start the development server:
-```bash
-npm run dev
-```
-
-#### Useful Local Development Commands:
-```bash
-# Start Prisma Studio (database GUI)
-npm run prisma:studio
-
-# Generate Prisma client
-npm run prisma:generate
-
-# Run database migrations
-npm run prisma:migrate
-
-# Clean the project (remove node_modules and .next)
-npm run clean
-```
-
-### Option 3: Docker Development
-
-We provide a Docker setup for easy development. This is the recommended way to get started.
-
-1. Prerequisites:
-   - Docker and Docker Compose installed on your machine
-   - Git for cloning the repository
-
-2. Clone and start the application:
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/fluid-calendar.git
-cd fluid-calendar
-
-# Copy environment file
-cp .env.example .env
-
-# Start the application with hot reloading
-npm run docker:dev
-```
-
-The application will be available at http://localhost:3000
-
-#### Docker Development Features:
-- 🔄 Hot reloading enabled
-- 💾 Persistent database storage
-- 🛠️ Automatic Prisma migrations
-- 🔒 Secure default configuration
-
-#### Useful Docker Commands:
-```bash
-# Start the application
-npm run docker:dev
-
-# Rebuild and start
-npm run docker:dev:build
+# View logs
+docker compose logs -f
 
 # Stop the application
-npm run docker:dev:down
+docker compose down
 
-# View logs
-npm run docker:logs
+# Rebuild and restart
+docker compose up -d --build
 
-# Clean up volumes and containers
-npm run docker:clean
+# Reset database (caution: deletes all data)
+docker compose down -v
+docker compose up -d
+
+# Access database CLI
+docker compose exec db psql -U fluid -d fluid_calendar
 ```
 
 ## Environment Setup

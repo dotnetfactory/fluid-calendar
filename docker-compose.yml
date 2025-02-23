@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: .
+      target: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - next_cache:/app/.next
+      - turbo_cache:/app/.turbo
+      - build_cache:/app/.cache
+    environment:
+      - DATABASE_URL=postgresql://fluid:fluid@db:5432/fluid_calendar
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=dev-secret-key
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=fluid
+      - POSTGRES_PASSWORD=fluid
+      - POSTGRES_DB=fluid_calendar
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fluid -d fluid_calendar"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+  next_cache:
+  turbo_cache:
+  build_cache:

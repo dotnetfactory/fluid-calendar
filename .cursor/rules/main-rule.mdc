@@ -10,7 +10,7 @@ globs:
 - user can add a google calendar, by clicking add calendar, get the google auth screen, authorizes the app full access to the calendar
 - then i should get redirected to the app with my google calendars showing in the sidebar and created in the database.
 - we will be adding support for outlook calendars in the future
-- since this is a local app, we will be using sqlite
+- since this is a local app, we will be using postgres
 - this app is built with nextjs, tailwind, prisma, sqltie, shadcn
 - it uses fullcalendar package
 - when adding an external calendar like google or outlook, we still need to sync the data in our database so we are always working with our local data
