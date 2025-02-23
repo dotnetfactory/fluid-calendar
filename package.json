@@ -10,16 +10,12 @@
     "lint": "next lint",
     "test:unit": "jest",
     "test:e2e": "playwright test",
-    "docker:dev": "docker compose -f docker/development/docker-compose.yml up",
-    "docker:dev:build": "docker compose -f docker/development/docker-compose.yml up --build",
-    "docker:dev:down": "docker compose -f docker/development/docker-compose.yml down",
-    "docker:logs": "docker compose -f docker/development/docker-compose.yml logs -f",
-    "docker:clean": "docker compose -f docker/development/docker-compose.yml down -v",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "setup": "npm install && npm run prisma:generate && npm run prisma:migrate",
-    "clean": "rm -rf .next node_modules"
+    "clean": "rm -rf .next node_modules",
+    "db:up": "docker compose up db -d"
   },
   "dependencies": {
     "@auth/core": "^0.34.2",
@@ -50,6 +46,7 @@
     "better-sqlite3": "^11.8.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.0.4",
     "date-fns": "^3.6.0",
     "date-fns-tz": "^3.2.0",
     "googleapis": "^144.0.0",
