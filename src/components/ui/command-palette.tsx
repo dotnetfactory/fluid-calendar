@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Command } from "cmdk";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ import {
   HiOutlineSearch,
   HiX,
 } from "react-icons/hi";
+import { useCommands } from "@/hooks/useCommands";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -21,6 +22,12 @@ interface CommandPaletteProps {
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const { searchCommands, executeCommand } = useCommands();
+
+  // Get filtered commands based on search
+  const commands = useMemo(() => {
+    return search ? searchCommands(search) : [];
+  }, [search, searchCommands]);
 
   // Reset search when opening/closing
   useEffect(() => {
@@ -33,7 +40,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
-        <Dialog.Content className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-2xl z-50">
+        <Dialog.Content className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-[640px] z-50">
           <Dialog.Title className="sr-only">Command Menu</Dialog.Title>
           <Dialog.Description className="sr-only">
             Search commands and navigate the application
@@ -78,38 +85,31 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 No results found.
               </Command.Empty>
 
-              <Command.Group heading="Navigation">
-                <Command.Item
-                  className="px-2 py-2 rounded-md text-sm cursor-pointer flex items-center gap-2 aria-selected:bg-blue-50 aria-selected:text-blue-700"
-                  onSelect={() => {
-                    router.push("/");
-                    onOpenChange(false);
-                  }}
-                >
-                  <HiOutlineCalendar className="w-4 h-4" />
-                  <span>Go to Calendar</span>
-                </Command.Item>
-                <Command.Item
-                  className="px-2 py-2 rounded-md text-sm cursor-pointer flex items-center gap-2 aria-selected:bg-blue-50 aria-selected:text-blue-700"
-                  onSelect={() => {
-                    router.push("/tasks");
-                    onOpenChange(false);
-                  }}
-                >
-                  <HiOutlineClipboardList className="w-4 h-4" />
-                  <span>Go to Tasks</span>
-                </Command.Item>
-                <Command.Item
-                  className="px-2 py-2 rounded-md text-sm cursor-pointer flex items-center gap-2 aria-selected:bg-blue-50 aria-selected:text-blue-700"
-                  onSelect={() => {
-                    router.push("/settings");
-                    onOpenChange(false);
-                  }}
-                >
-                  <HiOutlineCog className="w-4 h-4" />
-                  <span>Go to Settings</span>
-                </Command.Item>
-              </Command.Group>
+              {commands.length > 0 && (
+                <Command.Group heading="Commands">
+                  {commands.map((command) => {
+                    const Icon = command.icon;
+                    return (
+                      <Command.Item
+                        key={command.id}
+                        className="px-2 py-2 rounded-md text-sm cursor-pointer flex items-center gap-2 aria-selected:bg-blue-50 aria-selected:text-blue-700"
+                        onSelect={() => {
+                          executeCommand(command.id);
+                          onOpenChange(false);
+                        }}
+                      >
+                        {Icon && <Icon className="w-4 h-4" />}
+                        <span>{command.title}</span>
+                        {command.shortcut && (
+                          <kbd className="ml-auto text-xs text-gray-400">
+                            {command.shortcut}
+                          </kbd>
+                        )}
+                      </Command.Item>
+                    );
+                  })}
+                </Command.Group>
+              )}
             </Command.List>
           </Command>
         </Dialog.Content>
