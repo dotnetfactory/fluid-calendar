@@ -1,20 +1,21 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import {
-  DEFAULT_FOCUS_MODE,
-  FocusMode,
-  FocusStatus,
-  FocusTask,
-} from "@/types/focus";
-import { newDate, differenceInMinutes } from "@/lib/date-utils";
+import { FocusMode, FocusTask } from "@/types/focus";
+import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { useTaskStore } from "@/store/task";
 import { TaskStatus } from "@/types/task";
 
 const LOG_SOURCE = "focusMode";
+
+// Initial state that maintains the same interface but removes session stats
+const initialState: FocusMode = {
+  currentTaskId: null,
+  queuedTaskIds: [],
+};
+
 interface FocusModeStore extends FocusMode {
   // State getters
-  getStatus: () => FocusStatus;
   getCurrentTask: () => FocusTask | null;
   getQueuedTasks: () => FocusTask[];
 
@@ -25,22 +26,13 @@ interface FocusModeStore extends FocusMode {
   resumeFocusMode: () => void;
   completeCurrentTask: () => void;
   switchToTask: (taskId: string) => void;
-  updateSessionStats: () => void;
+  refreshTasks: () => void; // New function to ensure we have 3 tasks
 }
 
 export const useFocusModeStore = create<FocusModeStore>()(
   persist(
     (set, get) => ({
-      ...DEFAULT_FOCUS_MODE,
-
-      // State getters
-      getStatus: () => {
-        const state = get();
-        if (!state.isActive) return FocusStatus.INACTIVE;
-        if (!state.sessionStartTime) return FocusStatus.PAUSED;
-        if (state.sessionStats.sessionEnd) return FocusStatus.COMPLETED;
-        return FocusStatus.ACTIVE;
-      },
+      ...initialState,
 
       getCurrentTask: () => {
         const state = get();
@@ -58,9 +50,6 @@ export const useFocusModeStore = create<FocusModeStore>()(
           focusScore: task.scheduleScore || 0,
           lastFocusedAt: null,
           focusTimeSpent: 0,
-          externalTaskId: task.id,
-          source: "local",
-          lastSyncedAt: newDate(),
         } as unknown as FocusTask;
       },
 
@@ -79,9 +68,6 @@ export const useFocusModeStore = create<FocusModeStore>()(
             focusScore: task.scheduleScore || 0,
             lastFocusedAt: null,
             focusTimeSpent: 0,
-            externalTaskId: task.id,
-            source: "local",
-            lastSyncedAt: newDate(),
           })) as unknown as FocusTask[];
       },
 
@@ -94,44 +80,34 @@ export const useFocusModeStore = create<FocusModeStore>()(
           },
           LOG_SOURCE
         );
-        const now = newDate();
+
         set({
-          isActive: true,
-          sessionStartTime: now,
           currentTaskId: tasks[0]?.id || null,
           queuedTaskIds: tasks.slice(1).map((t) => t.id),
-          sessionStats: {
-            tasksCompleted: 0,
-            timeSpent: 0,
-            sessionStart: now,
-            sessionEnd: null,
-          },
         });
       },
 
       endFocusMode: () => {
         logger.debug("[FocusMode] Ending focus mode", {}, LOG_SOURCE);
-        const state = get();
-        state.updateSessionStats();
-        set({
-          ...DEFAULT_FOCUS_MODE,
-          sessionStats: {
-            ...state.sessionStats,
-            sessionEnd: newDate(),
-          },
-        });
+        set(initialState);
       },
 
       pauseFocusMode: () => {
-        logger.debug("[FocusMode] Pausing focus mode", {}, LOG_SOURCE);
-        const state = get();
-        state.updateSessionStats();
-        set({ sessionStartTime: null });
+        logger.debug(
+          "[FocusMode] Pause function called (no-op)",
+          {},
+          LOG_SOURCE
+        );
+        // Do nothing - we're removing session management
       },
 
       resumeFocusMode: () => {
-        logger.debug("[FocusMode] Resuming focus mode", {}, LOG_SOURCE);
-        set({ sessionStartTime: newDate() });
+        logger.debug(
+          "[FocusMode] Resume function called (no-op)",
+          {},
+          LOG_SOURCE
+        );
+        // Do nothing - we're removing session management
       },
 
       completeCurrentTask: () => {
@@ -163,10 +139,12 @@ export const useFocusModeStore = create<FocusModeStore>()(
               LOG_SOURCE
             );
 
-            await taskStore.updateTask(currentTaskId, {
+            // Handle case where task is recurring but missing recurrence rule
+            const updates = {
               status: TaskStatus.COMPLETED,
-              lastCompletedDate: newDate(),
-            });
+            };
+
+            await taskStore.updateTask(currentTaskId, updates);
 
             logger.debug(
               "[FocusMode] Task successfully marked as completed in database",
@@ -178,42 +156,31 @@ export const useFocusModeStore = create<FocusModeStore>()(
 
             // Refresh tasks to make sure our tasks list is up-to-date
             await taskStore.fetchTasks();
+
+            // Ensure we always have 3 tasks in focus mode
+            state.refreshTasks();
           } catch (error) {
-            logger.error(
-              "[FocusMode] Failed to mark task as completed in database",
-              {
-                taskId: currentTaskId,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              LOG_SOURCE
+            console.error(
+              "Error handling task completion:",
+              error instanceof Error ? error.message : String(error)
             );
           }
         })();
-
-        // Update stats for the focus session
-        state.updateSessionStats();
 
         // Move to next task if available
         const nextTaskId = state.queuedTaskIds[0];
         set((state) => ({
           currentTaskId: nextTaskId || null,
           queuedTaskIds: state.queuedTaskIds.slice(1),
-          sessionStats: {
-            ...state.sessionStats,
-            tasksCompleted: state.sessionStats.tasksCompleted + 1,
-          },
         }));
 
-        // End session if no more tasks
-        if (!nextTaskId) {
-          state.endFocusMode();
-        }
+        // If no more tasks and we're still active, ensure we get more tasks
+          get().refreshTasks();
       },
 
       switchToTask: (taskId: string) => {
         logger.debug("[FocusMode] Switching to task", { taskId }, LOG_SOURCE);
         const state = get();
-        state.updateSessionStats();
 
         // Update queue by moving current task to queue and removing switched task from queue
         const currentTaskId = state.currentTaskId;
@@ -230,30 +197,89 @@ export const useFocusModeStore = create<FocusModeStore>()(
         });
       },
 
-      updateSessionStats: () => {
+      // New function to ensure we always have 3 tasks in focus mode
+      refreshTasks: () => {
         const state = get();
-        if (!state.sessionStartTime) return;
+        const taskStore = useTaskStore.getState();
 
-        const timeSpent = differenceInMinutes(
-          newDate(),
-          state.sessionStartTime
+        // Get current number of tasks in focus mode
+        const currentCount =
+          (state.currentTaskId ? 1 : 0) + state.queuedTaskIds.length;
+
+        // If we already have 3 or more tasks, no need to refresh
+        if (currentCount >= 3) {
+          return;
+        }
+
+        // Get additional tasks needed
+        const tasksNeeded = 3 - currentCount;
+
+        logger.debug(
+          "[FocusMode] Refreshing tasks, need to add more tasks",
+          { tasksNeeded },
+          LOG_SOURCE
         );
-        set((state) => ({
-          sessionStats: {
-            ...state.sessionStats,
-            timeSpent: state.sessionStats.timeSpent + timeSpent,
-          },
-        }));
+
+        // Get existing task IDs to avoid duplicates
+        const existingTaskIds = new Set([
+          ...(state.currentTaskId ? [state.currentTaskId] : []),
+          ...state.queuedTaskIds,
+        ]);
+
+        // Get top tasks by scheduled start time
+        const additionalTasks = taskStore.tasks
+          .filter(
+            (task) =>
+              task.status !== TaskStatus.COMPLETED &&
+              task.scheduledStart !== null &&
+              !existingTaskIds.has(task.id)
+          )
+          .sort((a, b) => {
+            if (!a.scheduledStart) return 1;
+            if (!b.scheduledStart) return -1;
+            return (
+              newDate(a.scheduledStart).getTime() -
+              newDate(b.scheduledStart).getTime()
+            );
+          })
+          .slice(0, tasksNeeded);
+
+        if (additionalTasks.length > 0) {
+          logger.info(
+            "[FocusMode] Adding new tasks to focus queue",
+            {
+              count: additionalTasks.length,
+              taskIds: additionalTasks.map((t) => t.id),
+            },
+            LOG_SOURCE
+          );
+
+          // Add to queued tasks
+          set((state) => ({
+            queuedTaskIds: [
+              ...state.queuedTaskIds,
+              ...additionalTasks.map((t) => t.id),
+            ],
+          }));
+
+          // If we don't have a current task but have added tasks, make the first one current
+          if (!state.currentTaskId && additionalTasks.length > 0) {
+            set({ currentTaskId: additionalTasks[0].id });
+            // Remove it from the queue since it's now the current task
+            set((state) => ({
+              queuedTaskIds: state.queuedTaskIds.filter(
+                (id) => id !== additionalTasks[0].id
+              ),
+            }));
+          }
+        }
       },
     }),
     {
       name: "focus-mode-storage",
       partialize: (state) => ({
-        isActive: state.isActive,
         currentTaskId: state.currentTaskId,
         queuedTaskIds: state.queuedTaskIds,
-        sessionStartTime: state.sessionStartTime,
-        sessionStats: state.sessionStats,
       }),
     }
   )

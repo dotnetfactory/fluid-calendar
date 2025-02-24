@@ -6,6 +6,7 @@
 - [ ] add helper methods like skip, postpone
 - [ ] add a way to edit the task in focus mode
 - [ ] fix keyboard shortcuts
+- [ ] fix padding in quick actions sidebar
 
 # BUG
 - [ ] if i have a bunch of tasks that have isautoscheduled false and i click autoschedule the UI updates with a blank list because no tasks are returned. i have to refresh the page to get the tasks.

@@ -2,12 +2,12 @@ import {
   HiOutlineCalendar,
   HiOutlineClipboardList,
   HiOutlineCog,
+  HiOutlineLightningBolt,
 } from "react-icons/hi";
 import { Command } from "../types";
-import { useRouter } from "next/navigation";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 export function useNavigationCommands(): Command[] {
-  const router = useRouter();
 
   return [
     {
@@ -17,8 +17,8 @@ export function useNavigationCommands(): Command[] {
       icon: HiOutlineCalendar,
       section: "navigation",
       shortcut: "gc",
-      perform: () => {
-        router.push("/");
+      perform: (router?: AppRouterInstance) => {
+        if (router) router.push("/");
       },
     },
     {
@@ -28,8 +28,19 @@ export function useNavigationCommands(): Command[] {
       icon: HiOutlineClipboardList,
       section: "navigation",
       shortcut: "gt",
-      perform: () => {
-        router.push("/tasks");
+      perform: (router?: AppRouterInstance) => {
+        if (router) router.push("/tasks");
+      },
+    },
+    {
+      id: "navigation.focus",
+      title: "Go to Focus",
+      keywords: ["navigation"],
+      icon: HiOutlineLightningBolt,
+      section: "navigation",
+      shortcut: "gf",
+      perform: (router?: AppRouterInstance) => {
+        if (router) router.push("/focus");
       },
     },
     {
@@ -39,8 +50,8 @@ export function useNavigationCommands(): Command[] {
       icon: HiOutlineCog,
       section: "navigation",
       shortcut: "gs",
-      perform: () => {
-        router.push("/settings");
+      perform: (router?: AppRouterInstance) => {
+        if (router) router.push("/settings");
       },
     },
   ];

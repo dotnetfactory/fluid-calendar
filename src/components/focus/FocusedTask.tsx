@@ -58,12 +58,10 @@ export function FocusedTask({ task }: FocusedTaskProps) {
             </p>
           </div>
         )}
-        {task.focusTimeSpent && (
+        {task.isRecurring && (
           <div>
-            <h3 className="text-sm font-medium mb-1">Time Spent Focusing</h3>
-            <p className="text-muted-foreground">
-              {task.focusTimeSpent} minutes
-            </p>
+            <h3 className="text-sm font-medium mb-1">Recurring Task</h3>
+            <p className="text-muted-foreground">This task repeats</p>
           </div>
         )}
       </div>

@@ -12,7 +12,7 @@ import { newDate } from "@/lib/date-utils";
 
 export default function FocusModePage() {
   const router = useRouter();
-  const { isActive, startFocusMode } = useFocusModeStore();
+  const { startFocusMode, refreshTasks } = useFocusModeStore();
   const { tasks, loading, fetchTasks } = useTaskStore();
   const [isHydrated, setIsHydrated] = useState(false);
   const [tasksLoaded, setTasksLoaded] = useState(false);
@@ -42,12 +42,6 @@ export default function FocusModePage() {
       return;
     }
 
-    // If focus mode is already active, don't do anything
-    if (isActive) {
-      logger.debug("[FocusMode] Focus mode already active, not initializing");
-      return;
-    }
-
     const initializeFocusMode = () => {
       logger.info("[FocusMode] Initializing focus mode with", {
         taskCount: tasks.length,
@@ -74,9 +68,6 @@ export default function FocusModePage() {
           focusScore: task.scheduleScore || 0,
           lastFocusedAt: null,
           focusTimeSpent: 0,
-          externalTaskId: task.id,
-          source: "local",
-          lastSyncedAt: newDate(),
         })) as unknown as FocusTask[];
 
       if (focusTasks.length > 0) {
@@ -96,10 +87,10 @@ export default function FocusModePage() {
     tasks,
     router,
     startFocusMode,
-    isActive,
     isHydrated,
     tasksLoaded,
     loading,
+    refreshTasks,
   ]);
 
   return (

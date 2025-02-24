@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useFocusModeStore } from "@/store/focusMode";
-import { FocusHeader } from "./FocusHeader";
 import { TaskQueue } from "./TaskQueue";
 import { FocusedTask } from "./FocusedTask";
 import { QuickActions } from "./QuickActions";
-import { FocusStatus } from "@/types/focus";
 import { logger } from "@/lib/logger";
 import { useTaskStore } from "@/store/task";
 import { useRouter } from "next/navigation";
@@ -16,13 +14,12 @@ export function FocusMode() {
   // Add hydration safety
   const [isClient, setIsClient] = useState(false);
   const {
-    getStatus,
     getCurrentTask,
     getQueuedTasks,
-    isActive,
     currentTaskId,
     queuedTaskIds,
     endFocusMode,
+    refreshTasks,
   } = useFocusModeStore();
   const { tasks } = useTaskStore();
 
@@ -31,10 +28,8 @@ export function FocusMode() {
     setIsClient(true);
 
     // Check if we have a valid focus session after hydration
-    const status = getStatus();
     const currentTask = getCurrentTask();
     logger.debug("[FocusMode] Component mounted, focus status:", {
-      status,
       hasCurrentTask: !!currentTask,
       currentTaskId,
       queuedTaskIds,
@@ -43,22 +38,27 @@ export function FocusMode() {
 
     // If we have an active focus mode but no current task and no queued tasks,
     // it means we lost our task references. End the focus mode.
-    if (isActive && !currentTask && queuedTaskIds.length === 0) {
+    if (!currentTask && queuedTaskIds.length === 0) {
       logger.warn(
         "[FocusMode] Focus mode is active but no tasks available, ending focus mode"
       );
       endFocusMode();
       router.push("/");
     }
+
+    // Ensure we always have 3 tasks in focus mode
+    if ((currentTaskId ? 1 : 0) + queuedTaskIds.length < 3) {
+      logger.info("[FocusMode] Ensuring we have 3 tasks in focus mode");
+      refreshTasks();
+    }
   }, [
-    getStatus,
     getCurrentTask,
-    isActive,
     currentTaskId,
     queuedTaskIds,
     tasks.length,
     endFocusMode,
     router,
+    refreshTasks,
   ]);
 
   // Handle keyboard shortcuts
@@ -85,18 +85,11 @@ export function FocusMode() {
     return <div className="h-full"></div>;
   }
 
-  const status = getStatus();
   const currentTask = getCurrentTask();
   const queuedTasks = getQueuedTasks();
 
-  if (status === FocusStatus.INACTIVE) {
-    return null;
-  }
-
   return (
     <div className="flex flex-col h-full">
-      <FocusHeader />
-
       <div className="flex flex-1">
         {/* Left sidebar with queued tasks */}
         <aside className="w-64 border-r border-border h-full">

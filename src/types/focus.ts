@@ -1,15 +1,11 @@
 import { Task } from "@prisma/client";
-import { newDate } from "@/lib/date-utils";
 
 /**
  * Represents the state of a focus mode session
  */
 export interface FocusMode {
-  isActive: boolean;
   currentTaskId: string | null;
   queuedTaskIds: string[];
-  sessionStartTime: Date | null;
-  sessionStats: FocusSessionStats;
 }
 
 /**
@@ -35,16 +31,8 @@ export interface FocusTask extends Task {
  * Default values for a new focus mode session
  */
 export const DEFAULT_FOCUS_MODE: FocusMode = {
-  isActive: false,
   currentTaskId: null,
   queuedTaskIds: [],
-  sessionStartTime: null,
-  sessionStats: {
-    tasksCompleted: 0,
-    timeSpent: 0,
-    sessionStart: newDate(),
-    sessionEnd: null,
-  },
 };
 
 /**
