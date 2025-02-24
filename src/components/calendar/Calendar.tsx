@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useLayoutEffect } from "react";
 import { HiMenu } from "react-icons/hi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import { WeekView } from "@/components/calendar/WeekView";

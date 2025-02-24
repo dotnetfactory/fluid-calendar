@@ -1,6 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { IoClose } from "react-icons/io5";
-import { cn } from "@/lib/utils";
 import { commandRegistry } from "@/lib/commands/registry";
 import { Command } from "@/lib/commands/types";
 

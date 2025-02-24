@@ -1,11 +1,11 @@
 import { newDate } from "@/lib/date-utils";
 import {
   LogLevel,
-  LogEntry,
   BufferedLogEntry,
   LogStorageConfig,
   DEFAULT_STORAGE_CONFIG,
   LogBatchResponse,
+  LogMetadata,
 } from "./types";
 
 /**
@@ -144,7 +144,7 @@ export class ClientLogger {
   async log(
     level: LogLevel,
     message: string,
-    metadata?: Record<string, any>,
+    metadata?: LogMetadata,
     source?: string
   ): Promise<void> {
     const entry: BufferedLogEntry = {
@@ -173,27 +173,19 @@ export class ClientLogger {
   }
 
   // Convenience methods
-  async debug(
-    message: string,
-    metadata?: Record<string, any>,
-    source?: string
-  ) {
+  async debug(message: string, metadata?: LogMetadata, source?: string) {
     return this.log("debug", message, metadata, source);
   }
 
-  async info(message: string, metadata?: Record<string, any>, source?: string) {
+  async info(message: string, metadata?: LogMetadata, source?: string) {
     return this.log("info", message, metadata, source);
   }
 
-  async warn(message: string, metadata?: Record<string, any>, source?: string) {
+  async warn(message: string, metadata?: LogMetadata, source?: string) {
     return this.log("warn", message, metadata, source);
   }
 
-  async error(
-    message: string,
-    metadata?: Record<string, any>,
-    source?: string
-  ) {
+  async error(message: string, metadata?: LogMetadata, source?: string) {
     return this.log("error", message, metadata, source);
   }
 }

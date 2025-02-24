@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useLayoutEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { UserSettings } from "@/components/settings/UserSettings";
 import { CalendarSettings } from "@/components/settings/CalendarSettings";
 import { Separator } from "@/components/ui/separator";
