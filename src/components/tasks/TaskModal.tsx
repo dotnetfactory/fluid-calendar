@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { IoClose } from "react-icons/io5";
 import { cn } from "@/lib/utils";
@@ -67,6 +67,7 @@ export function TaskModal({
   const [priority, setPriority] = useState<Priority | null>(
     task?.priority || null
   );
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
     setTitle("");
@@ -121,6 +122,13 @@ export function TaskModal({
       resetForm();
     }
   }, [task, isOpen]);
+
+  // Focus title input when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => titleInputRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,6 +200,7 @@ export function TaskModal({
               <input
                 type="text"
                 id="title"
+                ref={titleInputRef}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"

@@ -11,6 +11,7 @@ import { Task, TaskStatus, NewTask } from "@/types/task";
 import { ProjectSidebar } from "@/components/projects/ProjectSidebar";
 import { BsListTask, BsKanban } from "react-icons/bs";
 import { cn } from "@/lib/utils";
+import { useTaskModalStore } from "@/store/taskModal";
 
 export default function TasksPage() {
   const {
@@ -28,8 +29,8 @@ export default function TasksPage() {
   } = useTaskStore();
   const { fetchProjects } = useProjectStore();
   const { viewMode, setViewMode } = useTaskPageSettings();
+  const { isOpen, setOpen } = useTaskModalStore();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>();
 
   // Fetch tasks and tags on mount
@@ -93,7 +94,7 @@ export default function TasksPage() {
   return (
     <div className="flex h-full">
       <ProjectSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0" data-task-page>
         <div className="px-6 py-4 border-b">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -141,9 +142,10 @@ export default function TasksPage() {
                 Auto Schedule
               </button>
               <button
+                data-create-task-button
                 onClick={() => {
                   setSelectedTask(undefined);
-                  setIsModalOpen(true);
+                  setOpen(true);
                 }}
                 className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
@@ -165,7 +167,7 @@ export default function TasksPage() {
               tasks={tasks}
               onEdit={(task) => {
                 setSelectedTask(task);
-                setIsModalOpen(true);
+                setOpen(true);
               }}
               onDelete={handleDeleteTask}
               onStatusChange={handleStatusChange}
@@ -176,7 +178,7 @@ export default function TasksPage() {
               tasks={tasks}
               onEdit={(task) => {
                 setSelectedTask(task);
-                setIsModalOpen(true);
+                setOpen(true);
               }}
               onDelete={handleDeleteTask}
               onStatusChange={handleStatusChange}
@@ -185,9 +187,9 @@ export default function TasksPage() {
         </div>
 
         <TaskModal
-          isOpen={isModalOpen}
+          isOpen={isOpen}
           onClose={() => {
-            setIsModalOpen(false);
+            setOpen(false);
             setSelectedTask(undefined);
           }}
           onSave={selectedTask ? handleUpdateTask : handleCreateTask}

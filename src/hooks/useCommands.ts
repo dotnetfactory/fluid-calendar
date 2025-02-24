@@ -3,11 +3,13 @@ import { Command } from "@/lib/commands/types";
 import { commandRegistry } from "@/lib/commands/registry";
 import { useCalendarCommands } from "@/lib/commands/groups/calendar";
 import { useNavigationCommands } from "@/lib/commands/groups/navigation";
+import { useTaskCommands } from "@/lib/commands/groups/tasks";
 import { usePathname, useRouter } from "next/navigation";
 
 export function useCommands() {
   const calendarCommands = useCalendarCommands();
   const navigationCommands = useNavigationCommands();
+  const taskCommands = useTaskCommands();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -16,6 +18,7 @@ export function useCommands() {
     const commands = [
       ...calendarCommands,
       ...navigationCommands,
+      ...taskCommands,
       // Add other command groups here as we create them
     ];
 
@@ -30,7 +33,7 @@ export function useCommands() {
         commandRegistry.unregister(command.id);
       });
     };
-  }, [calendarCommands, navigationCommands]);
+  }, [calendarCommands, navigationCommands, taskCommands]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
