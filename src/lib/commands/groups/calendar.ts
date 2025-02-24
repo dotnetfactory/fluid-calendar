@@ -8,12 +8,30 @@ import {
 import { Command } from "../types";
 import { useViewStore, useCalendarUIStore } from "@/store/calendar";
 import { addDays, newDate, subDays } from "@/lib/date-utils";
-import { useRouter } from "next/navigation";
+import { create } from "zustand";
+
+// Create a store for managing event modal state
+interface EventModalStore {
+  isOpen: boolean;
+  setOpen: (open: boolean) => void;
+  defaultDate?: Date;
+  setDefaultDate: (date?: Date) => void;
+  defaultEndDate?: Date;
+  setDefaultEndDate: (date?: Date) => void;
+}
+
+export const useEventModalStore = create<EventModalStore>((set) => ({
+  isOpen: false,
+  setOpen: (open) => set({ isOpen: open }),
+  defaultDate: undefined,
+  setDefaultDate: (date) => set({ defaultDate: date }),
+  defaultEndDate: undefined,
+  setDefaultEndDate: (date) => set({ defaultEndDate: date }),
+}));
 
 export function useCalendarCommands(): Command[] {
   const { date: currentDate, setDate } = useViewStore();
   const { isSidebarOpen, setSidebarOpen } = useCalendarUIStore();
-  const router = useRouter();
 
   const calendarContext = {
     requiredPath: "/",
@@ -68,8 +86,12 @@ export function useCalendarCommands(): Command[] {
       icon: HiOutlinePlus,
       section: "calendar",
       perform: () => {
-        // TODO: Implement event creation
-        console.log("Create new event");
+        const now = newDate();
+        useEventModalStore.getState().setDefaultDate(now);
+        useEventModalStore
+          .getState()
+          .setDefaultEndDate(newDate(now.getTime() + 3600000)); // 1 hour later
+        useEventModalStore.getState().setOpen(true);
       },
       shortcut: "e",
       context: calendarContext,

@@ -18,6 +18,7 @@ import { Task } from "@/types/task";
 import { EventQuickView } from "./EventQuickView";
 import { CalendarEventContent } from "./CalendarEventContent";
 import { newDate } from "@/lib/date-utils";
+import { useEventModalStore } from "@/lib/commands/groups/calendar";
 
 interface WeekViewProps {
   currentDate: Date;
@@ -54,6 +55,8 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
   const [quickViewItem, setQuickViewItem] = useState<CalendarEvent | Task>();
   const [quickViewPosition, setQuickViewPosition] = useState({ x: 0, y: 0 });
   const [isTask, setIsTask] = useState(false);
+  const eventModalStore = useEventModalStore();
+
   // Update events when the calendar view changes
   const handleDatesSet = useCallback(
     async (arg: DatesSetArg) => {
@@ -184,9 +187,12 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
 
   const handleEventModalClose = () => {
     setIsEventModalOpen(false);
+    eventModalStore.setOpen(false);
     setSelectedEvent(undefined);
     setSelectedDate(undefined);
     setSelectedEndDate(undefined);
+    eventModalStore.setDefaultDate(undefined);
+    eventModalStore.setDefaultEndDate(undefined);
   };
 
   const handleTaskModalClose = () => {
@@ -240,9 +246,10 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
     <div className="h-full [&_.fc-timegrid-slot]:!h-[25px]">
       <button
         onClick={() => {
-          setSelectedDate(newDate());
-          setSelectedEndDate(newDate(Date.now() + 3600000));
-          setIsEventModalOpen(true);
+          const now = newDate();
+          eventModalStore.setDefaultDate(now);
+          eventModalStore.setDefaultEndDate(newDate(now.getTime() + 3600000));
+          eventModalStore.setOpen(true);
         }}
         data-testid="create-event-button"
         className="fixed bottom-4 right-4 z-10 rounded-full bg-blue-600 p-3 text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -328,11 +335,11 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
         />
       )}
       <EventModal
-        isOpen={isEventModalOpen}
+        isOpen={isEventModalOpen || eventModalStore.isOpen}
         onClose={handleEventModalClose}
         event={selectedEvent}
-        defaultDate={selectedDate}
-        defaultEndDate={selectedEndDate}
+        defaultDate={selectedDate || eventModalStore.defaultDate}
+        defaultEndDate={selectedEndDate || eventModalStore.defaultEndDate}
       />
 
       {selectedTask && (
