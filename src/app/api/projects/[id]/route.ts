@@ -65,18 +65,37 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // First, remove project reference from all tasks
-    await prisma.task.updateMany({
-      where: { projectId: id },
-      data: { projectId: null },
-    });
-
-    // Then delete the project
-    await prisma.project.delete({
+    // Check if project exists and get task count
+    const project = await prisma.project.findUnique({
       where: { id },
+      include: {
+        _count: {
+          select: { tasks: true },
+        },
+      },
     });
 
-    return new NextResponse(null, { status: 204 });
+    if (!project) {
+      return new NextResponse("Project not found", { status: 404 });
+    }
+
+    // Use transaction to ensure atomic deletion
+    await prisma.$transaction(async (tx) => {
+      // Delete all tasks associated with the project
+      await tx.task.deleteMany({
+        where: { projectId: id },
+      });
+
+      // Delete the project (this will cascade delete OutlookTaskListMappings due to onDelete: CASCADE)
+      await tx.project.delete({
+        where: { id },
+      });
+    });
+
+    return NextResponse.json({
+      success: true,
+      deletedTasks: project._count.tasks,
+    });
   } catch (error) {
     console.error("Error deleting project:", error);
     return new NextResponse("Internal Server Error", { status: 500 });

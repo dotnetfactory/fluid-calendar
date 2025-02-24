@@ -1,3 +1,18 @@
+# Project Deletion Implementation
+- [x] Backend: Add DELETE endpoint for projects
+  - [x] Implement transaction for atomic deletion
+  - [x] Handle associated tasks deletion
+  - [x] Handle Outlook task list mappings
+- [x] Frontend: Add deletion UI
+  - [x] Create confirmation dialog component
+  - [x] Add delete button to project UI
+  - [x] Show task count in confirmation
+  - [x] Add loading state during deletion
+- [x] Update project store
+  - [x] Add delete project action
+  - [x] Handle optimistic updates
+  - [x] Add error handling
+
 # FluidCalendar Implementation Plan
 
 # BUG

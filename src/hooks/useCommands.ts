@@ -34,6 +34,8 @@ export function useCommands() {
 
   // Handle keyboard shortcuts
   useEffect(() => {
+    let pressedKeys: string[] = [];
+
     const handleKeyDown = async (e: KeyboardEvent) => {
       // Don't handle shortcuts when typing in input fields
       if (
@@ -44,15 +46,17 @@ export function useCommands() {
         return;
       }
 
-      // Normalize key names
-      const keyMap: Record<string, string> = {
-        ArrowLeft: "left",
-        ArrowRight: "right",
-      };
+      // Add the pressed key to the array if not already present
+      const key = e.key.toLowerCase();
+      if (!pressedKeys.includes(key)) {
+        pressedKeys.push(key);
+      }
 
-      const pressedKey = keyMap[e.key] || e.key.toLowerCase();
+      // Get the current combination of pressed keys
+      const currentShortcut = pressedKeys.join("");
+
       const commands = commandRegistry.getAll();
-      const command = commands.find((cmd) => cmd.shortcut === pressedKey);
+      const command = commands.find((cmd) => cmd.shortcut === currentShortcut);
 
       if (command) {
         e.preventDefault();
@@ -60,9 +64,20 @@ export function useCommands() {
       }
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      // Remove the released key from the array
+      const key = e.key.toLowerCase();
+      pressedKeys = pressedKeys.filter((k) => k !== key);
+    };
+
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [pathname, router]); // Add router to dependencies
+    document.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [pathname, router]);
 
   const api = useMemo(
     () => ({

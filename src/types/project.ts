@@ -11,6 +11,10 @@ export interface Project {
   status: ProjectStatus;
   createdAt: Date;
   updatedAt: Date;
+  _count?: {
+    tasks: number;
+  };
+  onClose?: () => void;
 }
 
 export interface NewProject {

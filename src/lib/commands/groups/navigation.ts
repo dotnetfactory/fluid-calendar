@@ -16,6 +16,7 @@ export function useNavigationCommands(): Command[] {
       keywords: ["navigation"],
       icon: HiOutlineCalendar,
       section: "navigation",
+      shortcut: "gc",
       perform: () => {
         router.push("/");
       },
@@ -26,6 +27,7 @@ export function useNavigationCommands(): Command[] {
       keywords: ["navigation"],
       icon: HiOutlineClipboardList,
       section: "navigation",
+      shortcut: "gt",
       perform: () => {
         router.push("/tasks");
       },
@@ -36,6 +38,7 @@ export function useNavigationCommands(): Command[] {
       keywords: ["navigation"],
       icon: HiOutlineCog,
       section: "navigation",
+      shortcut: "gs",
       perform: () => {
         router.push("/settings");
       },

@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { IoClose } from "react-icons/io5";
 import { Project, ProjectStatus } from "@/types/project";
 import { useProjectStore } from "@/store/project";
+import { DeleteProjectDialog } from "./DeleteProjectDialog";
 
 interface ProjectModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#E5E7EB");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     if (project && isOpen) {
@@ -60,97 +62,110 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg z-[10000]">
-          <div className="flex items-center justify-between mb-4">
-            <Dialog.Title className="text-lg font-semibold">
-              {project ? "Edit Project" : "New Project"}
+    <>
+      <Dialog.Root open={isOpen} onOpenChange={onClose}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 data-[state=open]:animate-overlayShow" />
+          <Dialog.Content className="fixed left-[50%] top-[50%] max-h-[85vh] w-[90vw] max-w-[450px] translate-x-[-50%] translate-y-[-50%] rounded-[6px] bg-white p-[25px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] focus:outline-none data-[state=open]:animate-contentShow">
+            <Dialog.Title className="m-0 text-[17px] font-medium">
+              {project ? "Edit Project" : "Create Project"}
             </Dialog.Title>
-            <Dialog.Close className="rounded-full p-1.5 hover:bg-gray-100">
-              <IoClose className="h-5 w-5" />
-            </Dialog.Close>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="description"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Description
-              </label>
-              <textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="color"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Color
-              </label>
-              <div className="mt-1 flex items-center gap-2">
+            <form onSubmit={handleSubmit}>
+              <fieldset className="mb-4 mt-4">
+                <label
+                  className="block text-[15px] leading-normal mb-2.5"
+                  htmlFor="name"
+                >
+                  Name
+                </label>
+                <input
+                  className="inline-flex h-[35px] w-full flex-1 items-center justify-center rounded-[4px] px-[10px] text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] border-gray-400"
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </fieldset>
+              <fieldset className="mb-4">
+                <label
+                  className="block text-[15px] leading-normal mb-2.5"
+                  htmlFor="description"
+                >
+                  Description
+                </label>
+                <textarea
+                  className="inline-flex min-h-[100px] w-full flex-1 items-center justify-center rounded-[4px] px-[10px] py-[10px] text-[15px] leading-normal shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] border-gray-400"
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </fieldset>
+              <fieldset className="mb-4">
+                <label
+                  className="block text-[15px] leading-normal mb-2.5"
+                  htmlFor="color"
+                >
+                  Color
+                </label>
                 <input
                   type="color"
+                  className="h-[35px] w-full rounded-[4px]"
                   id="color"
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
-                  className="h-8 w-8 rounded-md border border-gray-300"
                 />
-                <span className="text-sm text-gray-500">
-                  Choose a color for your project
-                </span>
+              </fieldset>
+              <div className="mt-6 flex justify-between">
+                {project && (
+                  <button
+                    type="button"
+                    className="inline-flex h-[35px] items-center justify-center rounded-[4px] px-[15px] text-[15px] leading-none text-white outline-none focus:shadow-[0_0_0_2px] focus:shadow-red-700 bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                    onClick={() => setShowDeleteDialog(true)}
+                    disabled={isSubmitting}
+                  >
+                    Delete Project
+                  </button>
+                )}
+                <div className="flex gap-4 ml-auto">
+                  <button
+                    type="button"
+                    className="inline-flex h-[35px] items-center justify-center rounded-[4px] px-[15px] text-[15px] leading-none outline-none focus:shadow-[0_0_0_2px] focus:shadow-black bg-gray-200 hover:bg-gray-300"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="inline-flex h-[35px] items-center justify-center rounded-[4px] px-[15px] text-[15px] leading-none text-white outline-none focus:shadow-[0_0_0_2px] focus:shadow-blue-700 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Saving..." : "Save Project"}
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
+            </form>
+            <Dialog.Close asChild>
               <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
+                className="absolute right-[10px] top-[10px] inline-flex h-[25px] w-[25px] appearance-none items-center justify-center rounded-full focus:shadow-[0_0_0_2px] focus:shadow-black hover:bg-gray-100"
+                aria-label="Close"
                 disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting
-                  ? "Saving..."
-                  : project
-                  ? "Save Changes"
-                  : "Create Project"}
+                <IoClose />
               </button>
-            </div>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+            </Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {project && (
+        <DeleteProjectDialog
+          isOpen={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          project={{ ...project, onClose }}
+          taskCount={project._count?.tasks || 0}
+        />
+      )}
+    </>
   );
 }

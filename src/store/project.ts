@@ -99,12 +99,21 @@ export const useProjectStore = create<ProjectState>()(
           const response = await fetch(`/api/projects/${id}`, {
             method: "DELETE",
           });
-          if (!response.ok) throw new Error("Failed to delete project");
+          if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error || "Failed to delete project");
+          }
+
+          const result = await response.json();
+
+          // Optimistically update the UI
           set((state) => ({
             projects: state.projects.filter((p) => p.id !== id),
             activeProject:
               state.activeProject?.id === id ? null : state.activeProject,
           }));
+
+          return result;
         } catch (error) {
           set({ error: error as Error });
           throw error;
