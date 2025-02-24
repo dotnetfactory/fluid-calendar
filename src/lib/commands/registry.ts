@@ -52,7 +52,7 @@ class CommandRegistryImpl {
       }
     }
 
-    return command.perform();
+    return command.perform(router);
   }
 }
 

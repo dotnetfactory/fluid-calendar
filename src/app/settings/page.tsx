@@ -8,6 +8,7 @@ import { AccountManager } from "@/components/settings/AccountManager";
 import { AutoScheduleSettings } from "@/components/settings/AutoScheduleSettings";
 import { SystemSettings } from "@/components/settings/SystemSettings";
 import { OutlookTaskSettings } from "@/components/settings/OutlookTaskSettings";
+import { LogViewer } from "@/components/settings/LogViewer";
 import { cn } from "@/lib/utils";
 
 type SettingsTab =
@@ -16,7 +17,8 @@ type SettingsTab =
   | "calendar"
   | "auto-schedule"
   | "system"
-  | "outlook-tasks";
+  | "outlook-tasks"
+  | "logs";
 
 export default function SettingsPage() {
   const [isHydrated, setIsHydrated] = useState(false);
@@ -29,28 +31,15 @@ export default function SettingsPage() {
         { id: "auto-schedule", label: "Auto-Schedule" },
         { id: "outlook-tasks", label: "Outlook Tasks" },
         { id: "system", label: "System" },
+        { id: "logs", label: "Logs" },
       ] as const,
     []
   );
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("accounts");
 
-  // Check initial hash on mount using useLayoutEffect
-  useLayoutEffect(() => {
-    const hash = window.location.hash.slice(1) as SettingsTab;
-    if (tabs.some((tab) => tab.id === hash)) {
-      setActiveTab(hash);
-    }
-    setIsHydrated(true);
-  }, [tabs]);
-
+  // Check initial hash and handle changes
   useEffect(() => {
-    // Update hash when tab changes
-    window.location.hash = activeTab;
-  }, [activeTab]);
-
-  useEffect(() => {
-    // Listen for hash changes
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1) as SettingsTab;
       if (tabs.some((tab) => tab.id === hash)) {
@@ -58,9 +47,25 @@ export default function SettingsPage() {
       }
     };
 
+    // Handle initial hash
+    handleHashChange();
+
+    // Listen for hash changes
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, [tabs]);
+
+  // Set hydrated state after mount
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  // Update hash when tab changes
+  useEffect(() => {
+    if (isHydrated) {
+      window.location.hash = activeTab;
+    }
+  }, [activeTab, isHydrated]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -76,6 +81,8 @@ export default function SettingsPage() {
         return <OutlookTaskSettings />;
       case "system":
         return <SystemSettings />;
+      case "logs":
+        return <LogViewer />;
       default:
         return null;
     }
