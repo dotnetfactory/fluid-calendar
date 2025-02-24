@@ -1,4 +1,5 @@
 import { Log } from "@/types/logging";
+import { LogMetadataView } from "./LogMetadata";
 
 interface Pagination {
   total: number;
@@ -88,13 +89,7 @@ export function LogTable({
                   {log.message}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
-                  {log.metadata && Object.keys(log.metadata).length > 0 ? (
-                    <pre className="whitespace-pre-wrap">
-                      {JSON.stringify(log.metadata, null, 2)}
-                    </pre>
-                  ) : (
-                    "-"
-                  )}
+                  <LogMetadataView metadata={log.metadata} />
                 </td>
               </tr>
             ))}
