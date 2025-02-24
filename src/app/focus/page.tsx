@@ -61,8 +61,8 @@ export default function FocusModePage() {
   }, [tasks, router, startFocusMode, isActive]);
 
   return (
-    <main className="flex min-h-screen flex-col">
+    <div className="h-full">
       <FocusMode />
-    </main>
+    </div>
   );
 }

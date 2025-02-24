@@ -13,23 +13,23 @@ export function TaskQueue({ tasks }: TaskQueueProps) {
   const { switchToTask, currentTaskId } = useFocusModeStore();
 
   return (
-    <div className="flex flex-col space-y-4">
-      <h2 className="text-lg font-semibold">Queue</h2>
+    <div className="flex flex-col p-4 h-full">
+      <h2 className="text-lg font-semibold mb-4">Queue</h2>
 
-      <div className="flex flex-col space-y-2">
+      <div className="flex flex-col space-y-2 overflow-y-auto">
         {tasks.map((task) => (
           <Button
             key={task.id}
             variant="ghost"
             className={cn(
-              "justify-start h-auto py-3 px-4",
+              "justify-start h-auto py-3 px-4 w-full",
               "hover:bg-accent hover:text-accent-foreground",
               task.id === currentTaskId && "bg-accent text-accent-foreground"
             )}
             onClick={() => switchToTask(task.id)}
           >
-            <div className="flex flex-col items-start text-left">
-              <span className="font-medium">{task.title}</span>
+            <div className="flex flex-col items-start text-left w-full">
+              <span className="font-medium truncate w-full">{task.title}</span>
               {task.description && (
                 <span className="text-sm text-muted-foreground line-clamp-2">
                   {task.description}

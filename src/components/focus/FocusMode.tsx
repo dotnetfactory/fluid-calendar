@@ -38,22 +38,22 @@ export function FocusMode() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-full">
       <FocusHeader />
 
-      <div className="flex-1 flex">
+      <div className="flex flex-1">
         {/* Left sidebar with queued tasks */}
-        <aside className="w-64 border-r border-border p-4">
+        <aside className="w-64 border-r border-border h-full">
           <TaskQueue tasks={queuedTasks} />
         </aside>
 
         {/* Main content area */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-8 overflow-y-auto">
           <FocusedTask task={currentTask} />
         </main>
 
         {/* Right sidebar with quick actions */}
-        <aside className="w-64 border-l border-border p-4">
+        <aside className="w-64 border-l border-border h-full">
           <QuickActions />
         </aside>
       </div>
