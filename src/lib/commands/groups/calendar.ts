@@ -8,10 +8,17 @@ import {
 import { Command } from "../types";
 import { useViewStore, useCalendarUIStore } from "@/store/calendar";
 import { addDays, newDate, subDays } from "@/lib/date-utils";
+import { useRouter } from "next/navigation";
 
 export function useCalendarCommands(): Command[] {
   const { date: currentDate, setDate } = useViewStore();
   const { isSidebarOpen, setSidebarOpen } = useCalendarUIStore();
+  const router = useRouter();
+
+  const calendarContext = {
+    requiredPath: "/",
+    navigateIfNeeded: true,
+  };
 
   return [
     {
@@ -22,6 +29,7 @@ export function useCalendarCommands(): Command[] {
       section: "calendar",
       perform: () => setDate(newDate()),
       shortcut: "t",
+      context: calendarContext,
     },
     {
       id: "calendar.prev-week",
@@ -31,6 +39,7 @@ export function useCalendarCommands(): Command[] {
       section: "calendar",
       perform: () => setDate(subDays(currentDate, 7)),
       shortcut: "left",
+      context: calendarContext,
     },
     {
       id: "calendar.next-week",
@@ -40,6 +49,7 @@ export function useCalendarCommands(): Command[] {
       section: "calendar",
       perform: () => setDate(addDays(currentDate, 7)),
       shortcut: "right",
+      context: calendarContext,
     },
     {
       id: "calendar.toggle-sidebar",
@@ -49,6 +59,7 @@ export function useCalendarCommands(): Command[] {
       section: "calendar",
       perform: () => setSidebarOpen(!isSidebarOpen),
       shortcut: "b",
+      context: calendarContext,
     },
     {
       id: "calendar.new-event",
@@ -61,6 +72,7 @@ export function useCalendarCommands(): Command[] {
         console.log("Create new event");
       },
       shortcut: "e",
+      context: calendarContext,
     },
   ];
 }

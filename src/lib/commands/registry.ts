@@ -1,4 +1,5 @@
 import { Command, CommandRegistry } from "./types";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 class CommandRegistryImpl {
   private commands: CommandRegistry = new Map();
@@ -27,26 +28,31 @@ class CommandRegistryImpl {
         ...command.keywords.map((k) => k.toLowerCase()),
       ].join(" ");
 
-      const matches = searchTerms.every((term) =>
-        searchableText.includes(term)
-      );
-      console.log(
-        matches,
-        command.id,
-        command.title,
-        searchableText,
-        searchTerms
-      );
-      return matches;
+      return searchTerms.every((term) => searchableText.includes(term));
     });
   }
 
-  execute(commandId: string) {
+  async execute(commandId: string, router?: AppRouterInstance) {
     const command = this.commands.get(commandId);
-    if (command) {
-      return command.perform();
+    if (!command) {
+      throw new Error(`Command ${commandId} not found`);
     }
-    throw new Error(`Command ${commandId} not found`);
+
+    if (
+      command.context?.navigateIfNeeded &&
+      typeof window !== "undefined" &&
+      router
+    ) {
+      const currentPath = window.location.pathname;
+      if (currentPath !== command.context.requiredPath) {
+        // If we're not on the required path, navigate first
+        await router.push(command.context.requiredPath);
+        // Wait for navigation
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+
+    return command.perform();
   }
 }
 

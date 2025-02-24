@@ -3,12 +3,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { Command } from "cmdk";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  HiOutlineCalendar,
-  HiOutlineClipboardList,
-  HiOutlineCog,
   HiOutlineSearch,
   HiX,
 } from "react-icons/hi";
@@ -20,7 +16,6 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
-  const router = useRouter();
   const [search, setSearch] = useState("");
   const { searchCommands, executeCommand } = useCommands();
 
