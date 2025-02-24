@@ -5,6 +5,8 @@ import { LogSettings } from "./LogSettings";
 import { Log } from "@/types/logging";
 import { logger } from "@/lib/logger";
 
+const LOG_SOURCE = "LogViewer";
+
 interface Pagination {
   total: number;
   pages: number;
@@ -51,22 +53,30 @@ export function LogViewer() {
       const data = await response.json();
       setLogs(data.logs);
       setPagination(data.pagination);
-      logger.debug("Logs fetched successfully", {
-        metadata: {
-          filterData: JSON.stringify(filters),
-          paginationData: JSON.stringify(data.pagination),
+      logger.debug(
+        "Logs fetched successfully",
+        {
+          metadata: {
+            filterData: JSON.stringify(filters),
+            paginationData: JSON.stringify(data.pagination),
+          },
         },
-      });
+        LOG_SOURCE
+      );
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "An error occurred";
-      logger.error("Failed to fetch logs", {
-        error: errorMessage,
-        metadata: {
-          filterData: JSON.stringify(filters),
-          paginationData: JSON.stringify(pagination),
+      logger.error(
+        "Failed to fetch logs",
+        {
+          error: errorMessage,
+          metadata: {
+            filterData: JSON.stringify(filters),
+            paginationData: JSON.stringify(pagination),
+          },
         },
-      });
+        LOG_SOURCE
+      );
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -74,54 +84,74 @@ export function LogViewer() {
   };
 
   const handleFilterChange = (newFilters: typeof filters) => {
-    logger.debug("Log filters changed", {
-      metadata: {
-        oldFilters: JSON.stringify(filters),
-        newFilters: JSON.stringify(newFilters),
+    logger.debug(
+      "Log filters changed",
+      {
+        metadata: {
+          oldFilters: JSON.stringify(filters),
+          newFilters: JSON.stringify(newFilters),
+        },
       },
-    });
+      LOG_SOURCE
+    );
     setFilters(newFilters);
     setPagination((prev) => ({ ...prev, current: 1 })); // Reset to first page
   };
 
   const handlePageChange = (page: number) => {
-    logger.debug("Log page changed", {
-      metadata: {
-        oldPage: String(pagination.current),
-        newPage: String(page),
+    logger.debug(
+      "Log page changed",
+      {
+        metadata: {
+          oldPage: String(pagination.current),
+          newPage: String(page),
+        },
       },
-    });
+      LOG_SOURCE
+    );
     setPagination((prev) => ({ ...prev, current: page }));
   };
 
   const handleCleanup = async () => {
     try {
       setLoading(true);
-      logger.info("Starting log cleanup", {
-        metadata: { timestamp: new Date().toISOString() },
-      });
+      logger.info(
+        "Starting log cleanup",
+        {
+          metadata: { timestamp: new Date().toISOString() },
+        },
+        LOG_SOURCE
+      );
       const response = await fetch("/api/logs/cleanup", {
         method: "POST",
       });
       if (!response.ok) throw new Error("Failed to cleanup logs");
 
       const data = await response.json();
-      logger.info("Log cleanup completed", {
-        metadata: {
-          deletedCount: String(data.count),
-          timestamp: new Date().toISOString(),
+      logger.info(
+        "Log cleanup completed",
+        {
+          metadata: {
+            deletedCount: String(data.count),
+            timestamp: new Date().toISOString(),
+          },
         },
-      });
+        LOG_SOURCE
+      );
 
       // Refresh logs after cleanup
       await fetchLogs();
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to cleanup logs";
-      logger.error("Failed to cleanup logs", {
-        error: errorMessage,
-        metadata: { timestamp: new Date().toISOString() },
-      });
+      logger.error(
+        "Failed to cleanup logs",
+        {
+          error: errorMessage,
+          metadata: { timestamp: new Date().toISOString() },
+        },
+        LOG_SOURCE
+      );
       setError(errorMessage);
     } finally {
       setLoading(false);

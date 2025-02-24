@@ -5,6 +5,8 @@ import { syncOutlookCalendar } from "@/lib/outlook-sync";
 import { logger } from "@/lib/logger";
 import { newDate } from "@/lib/date-utils";
 
+const LOG_SOURCE = "OutlookCalendarSyncAPI";
+
 export async function GET() {
   return NextResponse.json(
     { error: "Method not allowed. Use POST to sync calendars." },
@@ -80,7 +82,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(feed);
   } catch (error) {
-    logger.log("Failed to add Outlook calendar", { error });
+    logger.error(
+      "Failed to add Outlook calendar",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to add calendar" },
       { status: 500 }
@@ -93,7 +101,16 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { feedId } = body;
 
-    logger.log("Starting Outlook calendar sync", { feedId });
+    logger.error(
+      "Starting Outlook calendar sync",
+      {
+        metadata: {
+          feedId,
+          timestamp: new Date().toISOString(),
+        },
+      },
+      LOG_SOURCE
+    );
 
     if (!feedId) {
       return NextResponse.json(
@@ -109,7 +126,16 @@ export async function PUT(req: NextRequest) {
     });
 
     if (!feed || !feed.account || feed.type !== "OUTLOOK") {
-      logger.log("Invalid Outlook calendar", { feed });
+      logger.error(
+        "Invalid Outlook calendar",
+        {
+          metadata: {
+            feed: JSON.stringify(feed),
+            timestamp: new Date().toISOString(),
+          },
+        },
+        LOG_SOURCE
+      );
       return NextResponse.json(
         { error: "Invalid Outlook calendar" },
         { status: 400 }
@@ -160,7 +186,7 @@ export async function PUT(req: NextRequest) {
     //       });
     //       deletedCount++;
     //     } catch (deleteError) {
-    //       logger.log("Failed to delete event", {
+    //       logger.debug("Failed to delete event", {
     //         eventId: externalEventId,
     //         error: deleteError,
     //       });
@@ -176,18 +202,26 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    logger.log("Completed Outlook calendar sync", {
-      feedId,
-      processedEvents: processedEventIds.size,
-    });
+    logger.debug(
+      "Completed Outlook calendar sync",
+      {
+        metadata: {
+          feedId,
+          processedEvents: processedEventIds.size,
+        },
+      },
+      LOG_SOURCE
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.log("Failed to sync Outlook calendar", {
-      error,
-      stack: error instanceof Error ? error.stack : undefined,
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
+    logger.error(
+      "Failed to sync Outlook calendar",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to sync calendar" },
       { status: 500 }

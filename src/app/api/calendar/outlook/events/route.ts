@@ -15,6 +15,8 @@ import {
 } from "@/lib/calendar-db";
 import { newDate } from "@/lib/date-utils";
 
+const LOG_SOURCE = "OutlookCalendarEventsAPI";
+
 // Helper function to write event to database
 
 // Create a new event
@@ -74,7 +76,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json(createdEvent);
   } catch (error) {
-    logger.log("Failed to create Outlook calendar event:", { error });
+    logger.error(
+      "Failed to create Outlook calendar event:",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to create event" },
       { status: 500 }
@@ -139,7 +147,13 @@ export async function PUT(request: Request) {
     });
     return NextResponse.json(record);
   } catch (error) {
-    logger.log("Failed to update Outlook calendar event:", { error });
+    logger.error(
+      "Failed to update Outlook calendar event:",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to update event" },
       { status: 500 }
@@ -175,7 +189,13 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.log("Failed to delete Outlook calendar event:", { error });
+    logger.error(
+      "Failed to delete Outlook calendar event:",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to delete event" },
       { status: 500 }

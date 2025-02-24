@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { LogSettings as LogSettingsType } from "@/lib/logger/types";
 
+const LOG_SOURCE = "LogSettings";
+
 export function LogSettings() {
   const [settings, setSettings] = useState<LogSettingsType>({
     logLevel: "none",
@@ -17,7 +19,13 @@ export function LogSettings() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  logger.info("LogSettings component mounted");
+  logger.info(
+    "LogSettings component mounted",
+    {
+      metadata: { timestamp: new Date().toISOString() },
+    },
+    LOG_SOURCE
+  );
 
   useEffect(() => {
     fetchSettings();
@@ -31,14 +39,25 @@ export function LogSettings() {
       if (!response.ok) throw new Error("Failed to fetch settings");
       const data = await response.json();
       setSettings(data);
-      logger.debug("Log settings fetched successfully", { metadata: data });
+      logger.debug(
+        "Log settings fetched successfully",
+        {
+          metadata: {
+            settings: JSON.stringify(data),
+          },
+        },
+        LOG_SOURCE
+      );
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to fetch settings";
-      logger.error("Failed to fetch log settings", {
-        error: errorMessage,
-        metadata: { timestamp: new Date() },
-      });
+      logger.error(
+        "Failed to fetch log settings",
+        {
+          error: errorMessage,
+        },
+        LOG_SOURCE
+      );
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -61,16 +80,32 @@ export function LogSettings() {
 
       if (!response.ok) throw new Error("Failed to update settings");
 
-      logger.info("Log settings updated successfully", { metadata: settings });
+      logger.info(
+        "Log settings updated successfully",
+        {
+          metadata: {
+            settings: JSON.stringify(settings),
+            timestamp: new Date().toISOString(),
+          },
+        },
+        LOG_SOURCE
+      );
       setSaved(true);
       setTimeout(() => setSaved(false), 3000); // Clear saved message after 3 seconds
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to update settings";
-      logger.error("Failed to update log settings", {
-        error: errorMessage,
-        metadata: { settings },
-      });
+      logger.error(
+        "Failed to update log settings",
+        {
+          error: errorMessage,
+          metadata: {
+            settings: JSON.stringify(settings),
+            timestamp: new Date().toISOString(),
+          },
+        },
+        LOG_SOURCE
+      );
       setError(errorMessage);
     } finally {
       setLoading(false);

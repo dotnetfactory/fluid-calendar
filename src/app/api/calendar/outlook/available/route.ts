@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { OutlookCalendarService } from "@/lib/outlook-calendar";
 import { logger } from "@/lib/logger";
 
+const LOG_SOURCE = "OutlookAvailableCalendarsAPI";
+
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
@@ -41,7 +43,13 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(availableCalendars);
   } catch (error) {
-    logger.log("Failed to list available calendars", { error });
+    logger.error(
+      "Failed to list available calendars",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to list calendars" },
       { status: 500 }

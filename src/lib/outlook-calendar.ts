@@ -3,10 +3,12 @@ import { PrismaClient } from "@prisma/client";
 import { ConnectedAccount } from "@prisma/client";
 import { MSGraphCalendar, MSGraphUser } from "./outlook";
 import { TokenManager } from "./token-manager";
-import { logger } from "./logger";
+import { logger } from "@/lib/logger";
 import { RRule, Frequency } from "rrule";
 import { useSettingsStore } from "@/store/settings";
 import { newDate, newDateFromYMD } from "./date-utils";
+
+const LOG_SOURCE = "OutlookCalendar";
 
 export interface MSGraphEvent {
   id: string;
@@ -112,7 +114,13 @@ export class OutlookCalendarService {
         expiresAt: tokens.expiresAt,
       };
     } catch (error) {
-      logger.log("Failed to refresh token", { error });
+      logger.error(
+        "Failed to refresh token",
+        {
+          error,
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
@@ -121,7 +129,13 @@ export class OutlookCalendarService {
     try {
       return await this.client.api("/me").get();
     } catch (error) {
-      logger.log("Failed to get user profile", { error });
+      logger.error(
+        "Failed to get user profile",
+        {
+          error,
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
@@ -131,7 +145,13 @@ export class OutlookCalendarService {
       const response = await this.client.api("/me/calendars").get();
       return response.value;
     } catch (error) {
-      logger.log("Failed to list calendars", { error });
+      logger.error(
+        "Failed to list calendars",
+        {
+          error,
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
@@ -140,7 +160,13 @@ export class OutlookCalendarService {
     try {
       return await this.client.api(`/me/calendars/${calendarId}`).get();
     } catch (error) {
-      logger.log("Failed to get calendar", { error });
+      logger.error(
+        "Failed to get calendar",
+        {
+          error,
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
@@ -167,8 +193,16 @@ export class OutlookCalendarService {
         queryParams.push(`$deltatoken=${options.syncToken}`);
       } else {
         // For initial sync, use a much wider time range to get all events
-        const defaultStartTime = newDateFromYMD(newDate().getFullYear() - 5, 0, 1); // 5 years ago
-        const defaultEndTime = newDateFromYMD(newDate().getFullYear() + 3, 11, 31); // 3 years ahead
+        const defaultStartTime = newDateFromYMD(
+          newDate().getFullYear() - 5,
+          0,
+          1
+        ); // 5 years ago
+        const defaultEndTime = newDateFromYMD(
+          newDate().getFullYear() + 3,
+          11,
+          31
+        ); // 3 years ahead
 
         const filterParts: string[] = [
           `start/dateTime ge '${defaultStartTime.toISOString()}'`,
@@ -241,7 +275,13 @@ export class OutlookCalendarService {
         nextSyncToken: response["@odata.deltaLink"]?.split("deltatoken=")[1],
       };
     } catch (error) {
-      logger.log("Failed to list events", { error });
+      logger.error(
+        "Failed to list events",
+        {
+          error,
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
@@ -255,7 +295,13 @@ export class OutlookCalendarService {
         .api(`/me/calendars/${calendarId}/events`)
         .post(event);
     } catch (error) {
-      logger.log("Failed to create event", { error });
+      logger.error(
+        "Failed to create event",
+        {
+          error,
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
@@ -270,7 +316,13 @@ export class OutlookCalendarService {
         .api(`/me/calendars/${calendarId}/events/${eventId}`)
         .patch(event);
     } catch (error) {
-      logger.log("Failed to update event", { error });
+      logger.error(
+        "Failed to update event",
+        {
+          error,
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
@@ -281,7 +333,13 @@ export class OutlookCalendarService {
         .api(`/me/calendars/${calendarId}/events/${eventId}`)
         .delete();
     } catch (error) {
-      logger.log("Failed to delete event", { error });
+      logger.error(
+        "Failed to delete event",
+        {
+          error,
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
@@ -318,7 +376,13 @@ export async function listOutlookCalendars(accountId: string) {
     const response = await client.api("/me/calendars").get();
     return response.value;
   } catch (error) {
-    logger.log("Failed to list calendars", { error });
+    logger.error(
+      "Failed to list calendars",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     throw error;
   }
 }
@@ -401,7 +465,13 @@ export async function getOutlookEvent(
           .api(`/me/calendars/${calendarId}/events/${event.seriesMasterId}`)
           .get();
       } catch (error) {
-        logger.log("Failed to get master event", { error });
+        logger.error(
+          "Failed to get master event",
+          {
+            error,
+          },
+          LOG_SOURCE
+        );
         masterEvent = event;
       }
     }
@@ -411,7 +481,11 @@ export async function getOutlookEvent(
       const response = await client
         .api(`/me/calendars/${calendarId}/events/${masterEvent.id}/instances`)
         .query({
-          startDateTime: newDateFromYMD(newDate().getFullYear(), 0, 1).toISOString(),
+          startDateTime: newDateFromYMD(
+            newDate().getFullYear(),
+            0,
+            1
+          ).toISOString(),
           endDateTime: newDateFromYMD(
             newDate().getFullYear() + 1,
             0,
@@ -428,7 +502,13 @@ export async function getOutlookEvent(
       instances,
     };
   } catch (error) {
-    logger.log("Failed to get event", { error });
+    logger.error(
+      "Failed to get event",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     throw error;
   }
 }
@@ -500,7 +580,13 @@ export async function updateOutlookEvent(
 
     return response;
   } catch (error) {
-    logger.log("Failed to update event", { error });
+    logger.error(
+      "Failed to update event",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     throw error;
   }
 }
@@ -529,7 +615,13 @@ export async function deleteOutlookEvent(
       .api(`/me/calendars/${calendarId}/events/${targetEventId}`)
       .delete();
   } catch (error) {
-    logger.log("Failed to delete event", { error });
+    logger.error(
+      "Failed to delete event",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     throw error;
   }
 }

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { newDate, subDays } from "@/lib/date-utils";
+import { logger } from "@/lib/logger";
+
+const LOG_SOURCE = "LogsAPI";
 
 export async function GET(request: Request) {
   try {
@@ -12,6 +15,22 @@ export async function GET(request: Request) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
     const search = searchParams.get("search");
+
+    logger.debug(
+      "Fetching logs with params",
+      {
+        metadata: {
+          page: String(page),
+          limit: String(limit),
+          level: level || "none",
+          source: source || "none",
+          from: from || "none",
+          to: to || "none",
+          search: search || "none",
+        },
+      },
+      LOG_SOURCE
+    );
 
     // Build where clause
     const where: any = {};
@@ -40,6 +59,17 @@ export async function GET(request: Request) {
       take: limit,
     });
 
+    logger.debug(
+      "Successfully fetched logs",
+      {
+        metadata: {
+          totalLogs: String(total),
+          returnedLogs: String(logs.length),
+        },
+      },
+      LOG_SOURCE
+    );
+
     return NextResponse.json({
       logs,
       pagination: {
@@ -50,7 +80,16 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error("Failed to fetch logs:", error);
+    logger.error(
+      "Failed to fetch logs",
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+        metadata: {
+          timestamp: new Date().toISOString(),
+        },
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to fetch logs" },
       { status: 500 }
@@ -63,6 +102,17 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);
     const olderThan = searchParams.get("olderThan"); // days
     const level = searchParams.get("level");
+
+    logger.info(
+      "Deleting logs",
+      {
+        metadata: {
+          olderThan: olderThan || "none",
+          level: level || "none",
+        },
+      },
+      LOG_SOURCE
+    );
 
     const where: any = {};
 
@@ -87,12 +137,31 @@ export async function DELETE(request: Request) {
 
     const { count } = await prisma.log.deleteMany({ where });
 
+    logger.info(
+      "Successfully deleted logs",
+      {
+        metadata: {
+          deletedCount: String(count),
+        },
+      },
+      LOG_SOURCE
+    );
+
     return NextResponse.json({
       message: `Deleted ${count} logs`,
       count,
     });
   } catch (error) {
-    console.error("Failed to delete logs:", error);
+    logger.error(
+      "Failed to delete logs",
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+        metadata: {
+          timestamp: new Date().toISOString(),
+        },
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to delete logs" },
       { status: 500 }

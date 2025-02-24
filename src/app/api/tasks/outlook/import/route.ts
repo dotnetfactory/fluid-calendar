@@ -5,6 +5,8 @@ import { OutlookTasksService } from "@/lib/outlook-tasks";
 import { logger } from "@/lib/logger";
 import { newDate } from "@/lib/date-utils";
 
+const LOG_SOURCE = "OutlookTasksImportAPI";
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -102,7 +104,13 @@ export async function POST(request: Request) {
       projectId: targetProjectId,
     });
   } catch (error) {
-    logger.log("Failed to import Outlook tasks", { error });
+    logger.error(
+      "Failed to import Outlook tasks",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to import tasks" },
       { status: 500 }

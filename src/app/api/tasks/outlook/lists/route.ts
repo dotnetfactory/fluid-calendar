@@ -4,6 +4,8 @@ import { getOutlookClient } from "@/lib/outlook-calendar";
 import { OutlookTasksService } from "@/lib/outlook-tasks";
 import { logger } from "@/lib/logger";
 
+const LOG_SOURCE = "OutlookTaskListsAPI";
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -65,7 +67,13 @@ export async function GET(request: Request) {
 
     return NextResponse.json(availableLists);
   } catch (error) {
-    logger.log("Failed to list available task lists", { error });
+    logger.error(
+      "Failed to list available task lists",
+      {
+        error,
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to list task lists" },
       { status: 500 }

@@ -68,6 +68,8 @@ interface OutlookTaskListResponse {
   parentGroupKey?: string;
 }
 
+const LOG_SOURCE = "OutlookTasks";
+
 export class OutlookTasksService {
   private client: Client;
   private accountId: string;
@@ -81,9 +83,15 @@ export class OutlookTasksService {
     try {
       const response = await this.client.api("/me/todo/lists").get();
       if (!response.value || !Array.isArray(response.value)) {
-        logger.log("[ERROR] Invalid response format from Outlook API", {
-          response,
-        });
+        logger.error(
+          "[ERROR] Invalid response format from Outlook API",
+          {
+            metadata: {
+              response: JSON.stringify(response),
+            },
+          },
+          LOG_SOURCE
+        );
         throw new Error("Invalid response format from Outlook API");
       }
       return response.value.map((list: OutlookTaskListResponse) => ({
@@ -93,7 +101,13 @@ export class OutlookTasksService {
         parentGroupKey: list.parentGroupKey,
       }));
     } catch (error) {
-      logger.log("[ERROR] Failed to get task lists", { error });
+      logger.error(
+        "[ERROR] Failed to get task lists",
+        {
+          error,
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
@@ -124,7 +138,13 @@ export class OutlookTasksService {
 
       return allTasks;
     } catch (error) {
-      logger.log("Failed to get tasks", { error });
+      logger.error(
+        "Failed to get tasks",
+        {
+          error,
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
@@ -253,7 +273,17 @@ export class OutlookTasksService {
 
       return results;
     } catch (error) {
-      logger.log("Failed to import tasks", { error, listId, projectId });
+      logger.error(
+        "Failed to import tasks",
+        {
+          error,
+          metadata: {
+            listId,
+            projectId,
+          },
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
