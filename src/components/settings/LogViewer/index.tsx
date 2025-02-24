@@ -1,82 +1,28 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { LogTable } from "./LogTable";
 import { LogFilters } from "./LogFilters";
 import { LogSettings } from "./LogSettings";
-import { Log } from "@/types/logging";
 import { logger } from "@/lib/logger";
 import { useLogViewStore } from "@/store/logview";
 
 const LOG_SOURCE = "LogViewer";
 
 export function LogViewer() {
-  const [logs, setLogs] = useState<Log[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [totalLogs, setTotalLogs] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-
-  const { filters, pagination, setFilters, setPagination, addSource } =
-    useLogViewStore();
-
-  const fetchLogs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const params = new URLSearchParams({
-        page: pagination.current.toString(),
-        limit: pagination.limit.toString(),
-        ...(filters.level && { level: filters.level }),
-        ...(filters.source && { source: filters.source }),
-        ...(filters.from && { from: filters.from }),
-        ...(filters.to && { to: filters.to }),
-        ...(filters.search && { search: filters.search }),
-      });
-
-      const response = await fetch(`/api/logs?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch logs");
-
-      const data = await response.json();
-      setLogs(data.logs);
-      setTotalLogs(data.pagination.total);
-      setTotalPages(data.pagination.pages);
-      setPagination({
-        current: data.pagination.current,
-        limit: data.pagination.limit,
-      });
-
-      // Add any new sources to the store
-      data.logs.forEach((log: Log) => {
-        if (log.source) {
-          addSource(log.source);
-        }
-      });
-
-      logger.debug(
-        "Logs fetched successfully",
-        {
-          filterData: JSON.stringify(filters),
-          paginationData: JSON.stringify(data.pagination),
-        },
-        LOG_SOURCE
-      );
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An error occurred";
-      logger.error(
-        "Failed to fetch logs",
-        {
-          error: errorMessage,
-          filterData: JSON.stringify(filters),
-          paginationData: JSON.stringify(pagination),
-        },
-        LOG_SOURCE
-      );
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    logs,
+    loading,
+    error,
+    totalLogs,
+    totalPages,
+    filters,
+    pagination,
+    setFilters,
+    setPagination,
+    fetchSources,
+    fetchLogs,
+    setLoading,
+    setError,
+  } = useLogViewStore();
 
   const handleFilterChange = (newFilters: typeof filters) => {
     logger.debug(
@@ -105,6 +51,7 @@ export function LogViewer() {
   const handleCleanup = async () => {
     try {
       setLoading(true);
+      setError(null);
       logger.info("Starting log cleanup", undefined, LOG_SOURCE);
       const response = await fetch("/api/logs/cleanup", {
         method: "POST",
@@ -139,10 +86,11 @@ export function LogViewer() {
     }
   };
 
-  // Fetch logs when filters or pagination changes
+  // Fetch sources and initial logs when component mounts
   useEffect(() => {
+    fetchSources();
     fetchLogs();
-  }, [filters, pagination.current, pagination.limit]);
+  }, [fetchSources, fetchLogs]);
 
   return (
     <div className="space-y-4">
