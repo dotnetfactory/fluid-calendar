@@ -8,6 +8,8 @@ import { SessionProvider } from "@/components/providers/SessionProvider";
 import { AppNav } from "@/components/navigation/AppNav";
 import { DndProvider } from "@/components/dnd/DndProvider";
 import { CommandPalette } from "@/components/ui/command-palette";
+import { ShortcutsModal } from "@/components/ui/shortcuts-modal";
+import { useShortcutsStore } from "@/store/shortcuts";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,18 +19,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const { isOpen: shortcutsOpen, setOpen: setShortcutsOpen } =
+    useShortcutsStore();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setCommandPaletteOpen((open) => !open);
+      } else if (e.key === "?" && !(e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setShortcutsOpen(true);
       }
     };
 
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, []);
+  }, [setShortcutsOpen]);
 
   return (
     <html lang="en" className="h-full">
@@ -44,6 +51,10 @@ export default function RootLayout({
             <CommandPalette
               open={commandPaletteOpen}
               onOpenChange={setCommandPaletteOpen}
+            />
+            <ShortcutsModal
+              isOpen={shortcutsOpen}
+              onClose={() => setShortcutsOpen(false)}
             />
             <AppNav />
             <main className="flex-1 relative">{children}</main>
