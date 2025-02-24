@@ -10,7 +10,7 @@ export interface Command {
   title: string;
   keywords: string[];
   icon?: IconType;
-  section: "navigation" | "calendar" | "tasks" | "settings" | "system";
+  section: "navigation" | "calendar" | "tasks" | "settings" | "system" | "focus";
   perform: (router?: AppRouterInstance) => void | Promise<void>; // Router will be passed from the command registry
   shortcut?: string;
   context?: CommandContext;

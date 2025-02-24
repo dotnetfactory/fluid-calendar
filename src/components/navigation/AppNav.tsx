@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BsCalendar, BsGear, BsListTask } from "react-icons/bs";
+import { HiOutlineLightBulb } from "react-icons/hi";
 import { cn } from "@/lib/utils";
 import { RiKeyboardLine } from "react-icons/ri";
 import { useShortcutsStore } from "@/store/shortcuts";
@@ -18,6 +19,7 @@ export function AppNav({ className }: AppNavProps) {
   const links = [
     { href: "/", label: "Calendar", icon: BsCalendar },
     { href: "/tasks", label: "Tasks", icon: BsListTask },
+    { href: "/focus", label: "Focus", icon: HiOutlineLightBulb },
     { href: "/settings", label: "Settings", icon: BsGear },
   ];
 
