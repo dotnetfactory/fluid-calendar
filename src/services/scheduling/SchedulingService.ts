@@ -56,17 +56,23 @@ export class SchedulingService {
     logger.debug(
       "Scheduling Performance Metrics",
       {
-        totalDuration: `${(totalDuration / 1000).toFixed(2)}s`,
-        operations: this.metrics.map((m) => ({
-          operation: m.operation,
-          duration: m.duration
-            ? `${(m.duration / 1000).toFixed(2)}s`
-            : "incomplete",
-          percentage: m.duration
-            ? `${((m.duration / totalDuration) * 100).toFixed(1)}%`
-            : "n/a",
-          metadata: m.metadata,
-        })),
+        metadata: {
+          data: {
+            totalDuration: `${(totalDuration / 1000).toFixed(2)}s`,
+            operations: JSON.stringify(
+              this.metrics.map((m) => ({
+                operation: m.operation,
+                duration: m.duration
+                  ? `${(m.duration / 1000).toFixed(2)}s`
+                  : "incomplete",
+                percentage: m.duration
+                  ? `${((m.duration / totalDuration) * 100).toFixed(1)}%`
+                  : "n/a",
+                metadata: m.metadata,
+              }))
+            ),
+          },
+        },
       },
       LOG_SOURCE
     );
@@ -290,7 +296,7 @@ export class SchedulingService {
         logger.debug(
           `No available slots found in ${window.label} window`,
           {
-            metadata: { windowLabel: window.label },
+            windowLabel: window.label,
           },
           LOG_SOURCE
         );

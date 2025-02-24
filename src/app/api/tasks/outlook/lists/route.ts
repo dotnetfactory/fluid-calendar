@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     logger.error(
       "Failed to list available task lists",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );

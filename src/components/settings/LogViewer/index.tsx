@@ -4,33 +4,19 @@ import { LogFilters } from "./LogFilters";
 import { LogSettings } from "./LogSettings";
 import { Log } from "@/types/logging";
 import { logger } from "@/lib/logger";
+import { useLogViewStore } from "@/store/logview";
 
 const LOG_SOURCE = "LogViewer";
-
-interface Pagination {
-  total: number;
-  pages: number;
-  current: number;
-  limit: number;
-}
 
 export function LogViewer() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<Pagination>({
-    total: 0,
-    pages: 0,
-    current: 1,
-    limit: 50,
-  });
-  const [filters, setFilters] = useState({
-    level: "",
-    source: "",
-    from: "",
-    to: "",
-    search: "",
-  });
+  const [totalLogs, setTotalLogs] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  const { filters, pagination, setFilters, setPagination, addSource } =
+    useLogViewStore();
 
   const fetchLogs = async () => {
     try {
@@ -52,14 +38,25 @@ export function LogViewer() {
 
       const data = await response.json();
       setLogs(data.logs);
-      setPagination(data.pagination);
+      setTotalLogs(data.pagination.total);
+      setTotalPages(data.pagination.pages);
+      setPagination({
+        current: data.pagination.current,
+        limit: data.pagination.limit,
+      });
+
+      // Add any new sources to the store
+      data.logs.forEach((log: Log) => {
+        if (log.source) {
+          addSource(log.source);
+        }
+      });
+
       logger.debug(
         "Logs fetched successfully",
         {
-          metadata: {
-            filterData: JSON.stringify(filters),
-            paginationData: JSON.stringify(data.pagination),
-          },
+          filterData: JSON.stringify(filters),
+          paginationData: JSON.stringify(data.pagination),
         },
         LOG_SOURCE
       );
@@ -70,10 +67,8 @@ export function LogViewer() {
         "Failed to fetch logs",
         {
           error: errorMessage,
-          metadata: {
-            filterData: JSON.stringify(filters),
-            paginationData: JSON.stringify(pagination),
-          },
+          filterData: JSON.stringify(filters),
+          paginationData: JSON.stringify(pagination),
         },
         LOG_SOURCE
       );
@@ -87,41 +82,30 @@ export function LogViewer() {
     logger.debug(
       "Log filters changed",
       {
-        metadata: {
-          oldFilters: JSON.stringify(filters),
-          newFilters: JSON.stringify(newFilters),
-        },
+        oldFilters: JSON.stringify(filters),
+        newFilters: JSON.stringify(newFilters),
       },
       LOG_SOURCE
     );
     setFilters(newFilters);
-    setPagination((prev) => ({ ...prev, current: 1 })); // Reset to first page
   };
 
   const handlePageChange = (page: number) => {
     logger.debug(
       "Log page changed",
       {
-        metadata: {
-          oldPage: String(pagination.current),
-          newPage: String(page),
-        },
+        oldPage: String(pagination.current),
+        newPage: String(page),
       },
       LOG_SOURCE
     );
-    setPagination((prev) => ({ ...prev, current: page }));
+    setPagination({ current: page });
   };
 
   const handleCleanup = async () => {
     try {
       setLoading(true);
-      logger.info(
-        "Starting log cleanup",
-        {
-          metadata: { timestamp: new Date().toISOString() },
-        },
-        LOG_SOURCE
-      );
+      logger.info("Starting log cleanup", undefined, LOG_SOURCE);
       const response = await fetch("/api/logs/cleanup", {
         method: "POST",
       });
@@ -131,10 +115,8 @@ export function LogViewer() {
       logger.info(
         "Log cleanup completed",
         {
-          metadata: {
-            deletedCount: String(data.count),
-            timestamp: new Date().toISOString(),
-          },
+          deletedCount: String(data.count),
+          timestamp: new Date().toISOString(),
         },
         LOG_SOURCE
       );
@@ -148,7 +130,6 @@ export function LogViewer() {
         "Failed to cleanup logs",
         {
           error: errorMessage,
-          metadata: { timestamp: new Date().toISOString() },
         },
         LOG_SOURCE
       );
@@ -191,7 +172,11 @@ export function LogViewer() {
       <LogTable
         logs={logs}
         loading={loading}
-        pagination={pagination}
+        pagination={{
+          ...pagination,
+          total: totalLogs,
+          pages: totalPages,
+        }}
         onPageChange={handlePageChange}
       />
     </div>

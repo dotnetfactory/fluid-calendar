@@ -86,9 +86,7 @@ export class OutlookTasksService {
         logger.error(
           "[ERROR] Invalid response format from Outlook API",
           {
-            metadata: {
-              response: JSON.stringify(response),
-            },
+            response: JSON.stringify(response),
           },
           LOG_SOURCE
         );
@@ -104,7 +102,7 @@ export class OutlookTasksService {
       logger.error(
         "[ERROR] Failed to get task lists",
         {
-          error,
+          error: error instanceof Error ? error.message : "Unknown error",
         },
         LOG_SOURCE
       );
@@ -141,7 +139,7 @@ export class OutlookTasksService {
       logger.error(
         "Failed to get tasks",
         {
-          error,
+          error: error instanceof Error ? error.message : "Unknown error",
         },
         LOG_SOURCE
       );
@@ -276,11 +274,9 @@ export class OutlookTasksService {
       logger.error(
         "Failed to import tasks",
         {
-          error,
-          metadata: {
-            listId,
-            projectId,
-          },
+          error: error instanceof Error ? error.message : "Unknown error",
+          listId,
+          projectId,
         },
         LOG_SOURCE
       );

@@ -1,5 +1,3 @@
-import { Log as PrismaLog } from "@prisma/client";
-
 export type LogLevel = "none" | "debug" | "info" | "warn" | "error";
 export type LogDestination = "db" | "file" | "both";
 
@@ -11,6 +9,7 @@ export type LogMetadata = Record<
   | boolean
   | null
   | LogMetadata[]
+  | string[]
   | { [key: string]: LogMetadata }
 >;
 

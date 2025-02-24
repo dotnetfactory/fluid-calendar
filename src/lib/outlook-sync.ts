@@ -147,9 +147,7 @@ export async function fetchAllEvents(
   if (syncToken && !forceFullSync) {
     logger.debug(
       "Using delta query for incremental sync",
-      {
-        metadata: { timestamp: new Date().toISOString() },
-      },
+      undefined,
       LOG_SOURCE
     );
     queryParams.push(`$deltatoken=${syncToken}`);
@@ -172,7 +170,7 @@ export async function fetchAllEvents(
     logger.debug(
       "Fetching next page of events",
       {
-        metadata: { nextLink },
+        nextLink,
       },
       LOG_SOURCE
     );
@@ -192,10 +190,8 @@ export async function fetchAllEvents(
   logger.debug(
     "Sync completed",
     {
-      metadata: {
-        totalEvents: String(allEvents.length),
-        hasDeltaLink: !!deltaLink,
-      },
+      totalEvents: String(allEvents.length),
+      hasDeltaLink: !!deltaLink,
     },
     LOG_SOURCE
   );
@@ -244,7 +240,7 @@ export async function fetchEventInstances(
     logger.debug(
       "Fetching next page of instances",
       {
-        metadata: { nextLink },
+        nextLink,
       },
       LOG_SOURCE
     );
@@ -309,11 +305,9 @@ export async function processMasterEvent(
         logger.error(
           "Failed to process instance",
           {
-            error,
-            metadata: {
-              eventId: instance.id,
-              subject: instance.subject,
-            },
+            error: error instanceof Error ? error.message : "Unknown error",
+            eventId: instance.id,
+            subject: instance.subject,
           },
           LOG_SOURCE
         );
@@ -323,11 +317,9 @@ export async function processMasterEvent(
     logger.error(
       "Failed to process master event",
       {
-        error,
-        metadata: {
-          masterEventId: masterEvent.id,
-          masterSubject: masterEvent.subject,
-        },
+        error: error instanceof Error ? error.message : "Unknown error",
+        masterEventId: masterEvent.id,
+        masterSubject: masterEvent?.subject || "Unknown",
       },
       LOG_SOURCE
     );
@@ -351,11 +343,9 @@ export async function syncOutlookCalendar(
   logger.debug(
     "Fetched events from Outlook",
     {
-      metadata: {
-        totalCount: allEvents.length,
-        deletedEventsCount: deletedEventIds?.length || 0,
-        nextSyncToken: nextSyncToken ? "present" : "not present",
-      },
+      totalCount: allEvents.length,
+      deletedEventsCount: deletedEventIds?.length || 0,
+      nextSyncToken: nextSyncToken ? "present" : "not present",
     },
     LOG_SOURCE
   );
@@ -388,10 +378,8 @@ export async function syncOutlookCalendar(
         logger.error(
           "Failed to delete event",
           {
-            error,
-            metadata: {
-              eventId,
-            },
+            error: error instanceof Error ? error.message : "Unknown error",
+            eventId,
           },
           LOG_SOURCE
         );
@@ -414,13 +402,11 @@ export async function syncOutlookCalendar(
   logger.debug(
     "Retrieved events from Outlook",
     {
-      metadata: {
-        totalCount: allEvents.length,
-        masterEventsCount: masterEvents.size,
-        nonRecurringCount: nonRecurringEvents.length,
-        deletedEventsCount: deletedEventIds?.length || 0,
-        nextSyncToken: nextSyncToken ? "present" : "not present",
-      },
+      totalCount: allEvents.length,
+      masterEventsCount: masterEvents.size,
+      nonRecurringCount: nonRecurringEvents.length,
+      deletedEventsCount: deletedEventIds?.length || 0,
+      nextSyncToken: nextSyncToken ? "present" : "not present",
     },
     LOG_SOURCE
   );
@@ -445,11 +431,9 @@ export async function syncOutlookCalendar(
       logger.error(
         "Failed to process non-recurring event",
         {
-          error,
-          metadata: {
-            eventId: event.id,
-            subject: event.subject,
-          },
+          error: error instanceof Error ? error.message : "Unknown error",
+          eventId: event.id,
+          subject: event.subject,
         },
         LOG_SOURCE
       );

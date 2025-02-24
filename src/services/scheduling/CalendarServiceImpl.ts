@@ -42,9 +42,7 @@ export class CalendarServiceImpl implements CalendarService {
     if (!this.cache) {
       logger.debug(
         "[DEBUG] Cache miss - no cache exists",
-        {
-          metadata: { timestamp: new Date().toISOString() },
-        },
+        undefined,
         LOG_SOURCE
       );
       return false;
@@ -56,7 +54,7 @@ export class CalendarServiceImpl implements CalendarService {
       logger.debug(
         "[DEBUG] Cache expired",
         {
-          metadata: { cacheAge: String(cacheAge) },
+          cacheAge: String(cacheAge),
         },
         LOG_SOURCE
       );
@@ -80,18 +78,16 @@ export class CalendarServiceImpl implements CalendarService {
       logger.debug(
         "[DEBUG] Cache invalid",
         {
-          metadata: {
-            reason: !hasDateRange ? "date range mismatch" : "calendar mismatch",
-            sameCalendars,
-            requestedStart: new Date(start).toISOString(),
-            requestedEnd: new Date(end).toISOString(),
-            requestedStartWeek: new Date(requestedStartWeek).toISOString(),
-            requestedEndWeek: new Date(requestedEndWeek).toISOString(),
-            cacheStart: new Date(this.cache.startDay).toISOString(),
-            cacheEnd: new Date(this.cache.endDay).toISOString(),
-            requestedIds: sortedRequestedIds,
-            cachedIds: sortedCachedIds,
-          },
+          reason: !hasDateRange ? "date range mismatch" : "calendar mismatch",
+          sameCalendars,
+          requestedStart: new Date(start).toISOString(),
+          requestedEnd: new Date(end).toISOString(),
+          requestedStartWeek: new Date(requestedStartWeek).toISOString(),
+          requestedEndWeek: new Date(requestedEndWeek).toISOString(),
+          cacheStart: new Date(this.cache.startDay).toISOString(),
+          cacheEnd: new Date(this.cache.endDay).toISOString(),
+          requestedIds: sortedRequestedIds,
+          cachedIds: sortedCachedIds,
         },
         LOG_SOURCE
       );
@@ -180,9 +176,7 @@ export class CalendarServiceImpl implements CalendarService {
     if (selectedCalendarIds.length === 0) {
       logger.debug(
         "[DEBUG] No calendars selected, skipping event check",
-        {
-          metadata: { timestamp: new Date().toISOString() },
-        },
+        undefined,
         LOG_SOURCE
       );
       return [];
@@ -192,9 +186,7 @@ export class CalendarServiceImpl implements CalendarService {
     if (this.isCacheValid(start, end, selectedCalendarIds)) {
       logger.debug(
         "[DEBUG] Using cached calendar events",
-        {
-          metadata: { timestamp: new Date().toISOString() },
-        },
+        undefined,
         LOG_SOURCE
       );
       return this.cache!.events.filter(
@@ -210,13 +202,11 @@ export class CalendarServiceImpl implements CalendarService {
     logger.debug(
       "[DEBUG] Cache miss - Fetching events for calendars:",
       {
-        metadata: {
           calendarIds: selectedCalendarIds,
           startDay: startDay.toISOString(),
           endDay: endDay.toISOString(),
           requestedStart: start.toISOString(),
           requestedEnd: end.toISOString(),
-        },
       },
       LOG_SOURCE
     );

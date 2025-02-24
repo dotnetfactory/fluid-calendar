@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     logger.error(
       "Failed to list available calendars",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );

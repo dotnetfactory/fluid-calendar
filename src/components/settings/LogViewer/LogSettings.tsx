@@ -19,13 +19,7 @@ export function LogSettings() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  logger.info(
-    "LogSettings component mounted",
-    {
-      metadata: { timestamp: new Date().toISOString() },
-    },
-    LOG_SOURCE
-  );
+  logger.info("LogSettings component mounted", undefined, LOG_SOURCE);
 
   useEffect(() => {
     fetchSettings();
@@ -42,9 +36,7 @@ export function LogSettings() {
       logger.debug(
         "Log settings fetched successfully",
         {
-          metadata: {
-            settings: JSON.stringify(data),
-          },
+          settings: JSON.stringify(data),
         },
         LOG_SOURCE
       );
@@ -83,10 +75,7 @@ export function LogSettings() {
       logger.info(
         "Log settings updated successfully",
         {
-          metadata: {
-            settings: JSON.stringify(settings),
-            timestamp: new Date().toISOString(),
-          },
+          settings: JSON.stringify(settings),
         },
         LOG_SOURCE
       );
@@ -99,10 +88,7 @@ export function LogSettings() {
         "Failed to update log settings",
         {
           error: errorMessage,
-          metadata: {
-            settings: JSON.stringify(settings),
-            timestamp: new Date().toISOString(),
-          },
+          settings: JSON.stringify(settings),
         },
         LOG_SOURCE
       );

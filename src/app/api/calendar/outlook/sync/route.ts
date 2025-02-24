@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     logger.error(
       "Failed to add Outlook calendar",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );
@@ -104,10 +104,8 @@ export async function PUT(req: NextRequest) {
     logger.error(
       "Starting Outlook calendar sync",
       {
-        metadata: {
-          feedId,
-          timestamp: new Date().toISOString(),
-        },
+            feedId: String(feedId),
+            timestamp: new Date().toISOString(),
       },
       LOG_SOURCE
     );
@@ -129,10 +127,8 @@ export async function PUT(req: NextRequest) {
       logger.error(
         "Invalid Outlook calendar",
         {
-          metadata: {
-            feed: JSON.stringify(feed),
-            timestamp: new Date().toISOString(),
-          },
+              feed: JSON.stringify(feed),
+              timestamp: new Date().toISOString(),
         },
         LOG_SOURCE
       );
@@ -205,10 +201,8 @@ export async function PUT(req: NextRequest) {
     logger.debug(
       "Completed Outlook calendar sync",
       {
-        metadata: {
-          feedId,
-          processedEvents: processedEventIds.size,
-        },
+        feedId: String(feedId),
+        processedEvents: String(processedEventIds.size),
       },
       LOG_SOURCE
     );
@@ -218,7 +212,7 @@ export async function PUT(req: NextRequest) {
     logger.error(
       "Failed to sync Outlook calendar",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );

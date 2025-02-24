@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     logger.error(
       "Failed to import Outlook tasks",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );

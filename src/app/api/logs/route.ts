@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { newDate, subDays } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
+import { Prisma } from "@prisma/client";
 
 const LOG_SOURCE = "LogsAPI";
 
@@ -19,21 +20,19 @@ export async function GET(request: Request) {
     logger.debug(
       "Fetching logs with params",
       {
-        metadata: {
-          page: String(page),
-          limit: String(limit),
-          level: level || "none",
-          source: source || "none",
-          from: from || "none",
-          to: to || "none",
-          search: search || "none",
-        },
+        page: String(page),
+        limit: String(limit),
+        level: level || "none",
+        source: source || "none",
+        from: from || "none",
+        to: to || "none",
+        search: search || "none",
       },
       LOG_SOURCE
     );
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.LogWhereInput = {};
     if (level) where.level = level;
     if (source) where.source = source;
     if (from || to) {
@@ -62,10 +61,8 @@ export async function GET(request: Request) {
     logger.debug(
       "Successfully fetched logs",
       {
-        metadata: {
-          totalLogs: String(total),
-          returnedLogs: String(logs.length),
-        },
+        totalLogs: String(total),
+        returnedLogs: String(logs.length),
       },
       LOG_SOURCE
     );
@@ -84,9 +81,6 @@ export async function GET(request: Request) {
       "Failed to fetch logs",
       {
         error: error instanceof Error ? error.message : "Unknown error",
-        metadata: {
-          timestamp: new Date().toISOString(),
-        },
       },
       LOG_SOURCE
     );
@@ -106,15 +100,13 @@ export async function DELETE(request: Request) {
     logger.info(
       "Deleting logs",
       {
-        metadata: {
-          olderThan: olderThan || "none",
-          level: level || "none",
-        },
+        olderThan: olderThan || "none",
+        level: level || "none",
       },
       LOG_SOURCE
     );
 
-    const where: any = {};
+    const where: Prisma.LogWhereInput = {};
 
     // Delete logs older than specified days
     if (olderThan) {
@@ -140,9 +132,7 @@ export async function DELETE(request: Request) {
     logger.info(
       "Successfully deleted logs",
       {
-        metadata: {
-          deletedCount: String(count),
-        },
+        deletedCount: String(count),
       },
       LOG_SOURCE
     );
@@ -156,9 +146,6 @@ export async function DELETE(request: Request) {
       "Failed to delete logs",
       {
         error: error instanceof Error ? error.message : "Unknown error",
-        metadata: {
-          timestamp: new Date().toISOString(),
-        },
       },
       LOG_SOURCE
     );

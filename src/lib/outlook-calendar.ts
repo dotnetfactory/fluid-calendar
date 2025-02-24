@@ -117,7 +117,7 @@ export class OutlookCalendarService {
       logger.error(
         "Failed to refresh token",
         {
-          error,
+          error: error instanceof Error ? error.message : "Unknown error",
         },
         LOG_SOURCE
       );
@@ -132,7 +132,7 @@ export class OutlookCalendarService {
       logger.error(
         "Failed to get user profile",
         {
-          error,
+          error: error instanceof Error ? error.message : "Unknown error",
         },
         LOG_SOURCE
       );
@@ -148,7 +148,7 @@ export class OutlookCalendarService {
       logger.error(
         "Failed to list calendars",
         {
-          error,
+          error: error instanceof Error ? error.message : "Unknown error",
         },
         LOG_SOURCE
       );
@@ -163,7 +163,7 @@ export class OutlookCalendarService {
       logger.error(
         "Failed to get calendar",
         {
-          error,
+          error: error instanceof Error ? error.message : "Unknown error",
         },
         LOG_SOURCE
       );
@@ -278,7 +278,7 @@ export class OutlookCalendarService {
       logger.error(
         "Failed to list events",
         {
-          error,
+          error: error instanceof Error ? error.message : "Unknown error",
         },
         LOG_SOURCE
       );
@@ -298,7 +298,7 @@ export class OutlookCalendarService {
       logger.error(
         "Failed to create event",
         {
-          error,
+          error: error instanceof Error ? error.message : "Unknown error",
         },
         LOG_SOURCE
       );
@@ -319,7 +319,7 @@ export class OutlookCalendarService {
       logger.error(
         "Failed to update event",
         {
-          error,
+          error: error instanceof Error ? error.message : "Unknown error",
         },
         LOG_SOURCE
       );
@@ -336,7 +336,7 @@ export class OutlookCalendarService {
       logger.error(
         "Failed to delete event",
         {
-          error,
+          error: error instanceof Error ? error.message : "Unknown error",
         },
         LOG_SOURCE
       );
@@ -379,7 +379,7 @@ export async function listOutlookCalendars(accountId: string) {
     logger.error(
       "Failed to list calendars",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );
@@ -468,7 +468,7 @@ export async function getOutlookEvent(
         logger.error(
           "Failed to get master event",
           {
-            error,
+            error: error instanceof Error ? error.message : "Unknown error",
           },
           LOG_SOURCE
         );
@@ -505,7 +505,7 @@ export async function getOutlookEvent(
     logger.error(
       "Failed to get event",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );
@@ -583,7 +583,7 @@ export async function updateOutlookEvent(
     logger.error(
       "Failed to update event",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );
@@ -618,7 +618,7 @@ export async function deleteOutlookEvent(
     logger.error(
       "Failed to delete event",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );

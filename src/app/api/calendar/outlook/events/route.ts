@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     logger.error(
       "Failed to create Outlook calendar event:",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );
@@ -150,7 +150,7 @@ export async function PUT(request: Request) {
     logger.error(
       "Failed to update Outlook calendar event:",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );
@@ -192,7 +192,7 @@ export async function DELETE(request: Request) {
     logger.error(
       "Failed to delete Outlook calendar event:",
       {
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       LOG_SOURCE
     );

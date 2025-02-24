@@ -1,6 +1,6 @@
 import { ClientLogger } from "./client";
 import { ServerLogger } from "./server";
-import { LogLevel, LogStorageConfig } from "./types";
+import { LogLevel, LogStorageConfig, LogMetadata } from "./types";
 
 class Logger {
   private static instance: Logger;
@@ -22,11 +22,7 @@ class Logger {
     return Logger.instance;
   }
 
-  async debug(
-    message: string,
-    metadata?: Record<string, any>,
-    source?: string
-  ) {
+  async debug(message: string, metadata?: LogMetadata, source?: string) {
     if (this.serverLogger) {
       await this.serverLogger.writeLog({
         level: "debug" as LogLevel,
@@ -40,7 +36,7 @@ class Logger {
     }
   }
 
-  async info(message: string, metadata?: Record<string, any>, source?: string) {
+  async info(message: string, metadata?: LogMetadata, source?: string) {
     if (this.serverLogger) {
       await this.serverLogger.writeLog({
         level: "info" as LogLevel,
@@ -54,7 +50,7 @@ class Logger {
     }
   }
 
-  async warn(message: string, metadata?: Record<string, any>, source?: string) {
+  async warn(message: string, metadata?: LogMetadata, source?: string) {
     if (this.serverLogger) {
       await this.serverLogger.writeLog({
         level: "warn" as LogLevel,
@@ -68,11 +64,7 @@ class Logger {
     }
   }
 
-  async error(
-    message: string,
-    metadata?: Record<string, any>,
-    source?: string
-  ) {
+  async error(message: string, metadata?: LogMetadata, source?: string) {
     if (this.serverLogger) {
       await this.serverLogger.writeLog({
         level: "error" as LogLevel,

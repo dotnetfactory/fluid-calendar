@@ -1,6 +1,9 @@
+import { useLogViewStore } from "@/store/logview";
+import { LogLevel } from "@/types/logging";
+
 interface LogFiltersProps {
   filters: {
-    level: string;
+    level: LogLevel | "";
     source: string;
     from: string;
     to: string;
@@ -11,6 +14,8 @@ interface LogFiltersProps {
 }
 
 export function LogFilters({ filters, onChange, disabled }: LogFiltersProps) {
+  const { sources } = useLogViewStore();
+
   const handleChange = (field: keyof typeof filters, value: string) => {
     onChange({
       ...filters,
@@ -31,7 +36,9 @@ export function LogFilters({ filters, onChange, disabled }: LogFiltersProps) {
           <select
             id="level"
             value={filters.level}
-            onChange={(e) => handleChange("level", e.target.value)}
+            onChange={(e) =>
+              handleChange("level", e.target.value as LogLevel | "")
+            }
             disabled={disabled}
             className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md disabled:bg-gray-100"
           >
@@ -50,15 +57,20 @@ export function LogFilters({ filters, onChange, disabled }: LogFiltersProps) {
           >
             Source
           </label>
-          <input
-            type="text"
+          <select
             id="source"
             value={filters.source}
             onChange={(e) => handleChange("source", e.target.value)}
             disabled={disabled}
-            placeholder="Filter by source"
-            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100"
-          />
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md disabled:bg-gray-100"
+          >
+            <option value="">All Sources</option>
+            {sources.sort().map((source) => (
+              <option key={source} value={source}>
+                {source}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
