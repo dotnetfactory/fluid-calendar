@@ -22,6 +22,10 @@ class Logger {
     return Logger.instance;
   }
 
+  async log(message: string, metadata?: LogMetadata, source?: string) {
+    this.debug(message, metadata, source);
+  }
+  
   async debug(message: string, metadata?: LogMetadata, source?: string) {
     if (this.serverLogger) {
       await this.serverLogger.writeLog({

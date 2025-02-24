@@ -1,35 +1,11 @@
 # FluidCalendar Implementation Plan
 
 ## Focus Mode Implementation
-- [ ] Phase 1: Core Focus Mode
-  - [ ] Add types and interfaces
-    - [ ] Create types/focus.ts with FocusMode interfaces
-    - [ ] Add focus-related types to existing Task type
-  - [ ] Create focus mode store
-    - [ ] Add store/focusMode.ts using Zustand
-    - [ ] Implement core state management
-    - [ ] Add session tracking logic
-  - [ ] Add focus mode components
-    - [ ] Create components/focus/FocusMode.tsx
-    - [ ] Create components/focus/FocusHeader.tsx
-    - [ ] Create components/focus/TaskQueue.tsx
-    - [ ] Create components/focus/FocusedTask.tsx
-    - [ ] Create components/focus/QuickActions.tsx
-  - [ ] Add focus mode route
-    - [ ] Create app/focus/page.tsx
-    - [ ] Add focus mode to navigation
-  - [ ] Add focus mode commands
-    - [ ] Create lib/commands/groups/focus.ts
-    - [ ] Add focus commands to useCommands.ts
-
-- [ ] Phase 2: Task Management Integration
-  - [ ] Integrate with auto-scheduling
-    - [ ] Add focus-specific scoring to SchedulingService
-    - [ ] Implement task queue management
-  - [ ] Add task transition logic
-    - [ ] Handle task completion
-    - [ ] Implement next task selection
-    - [ ] Update task status management
+- [ ] let's get rid of the concept of a session
+- [ ] show completed tasks in focus mode
+- [ ] add helper methods like skip, postpone
+- [ ] add a way to edit the task in focus mode
+- [ ] fix keyboard shortcuts
 
 # BUG
 - [ ] if i have a bunch of tasks that have isautoscheduled false and i click autoschedule the UI updates with a blank list because no tasks are returned. i have to refresh the page to get the tasks.

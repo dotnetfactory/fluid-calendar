@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFocusModeStore } from "@/store/focusMode";
 import { FocusMode } from "@/components/focus/FocusMode";
@@ -13,11 +13,47 @@ import { newDate } from "@/lib/date-utils";
 export default function FocusModePage() {
   const router = useRouter();
   const { isActive, startFocusMode } = useFocusModeStore();
-  const { tasks } = useTaskStore();
+  const { tasks, loading, fetchTasks } = useTaskStore();
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
+
+  // Mark hydration complete
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  // Ensure tasks are loaded
+  useEffect(() => {
+    const loadTasks = async () => {
+      if (isHydrated && !tasksLoaded) {
+        logger.info("[FocusMode] Loading tasks");
+        await fetchTasks();
+        setTasksLoaded(true);
+      }
+    };
+
+    loadTasks();
+  }, [isHydrated, tasksLoaded, fetchTasks]);
 
   // Start focus mode when the page loads if not already active
   useEffect(() => {
+    // Skip initialization before hydration completes and tasks load
+    if (!isHydrated || !tasksLoaded || loading) {
+      return;
+    }
+
+    // If focus mode is already active, don't do anything
+    if (isActive) {
+      logger.debug("[FocusMode] Focus mode already active, not initializing");
+      return;
+    }
+
     const initializeFocusMode = () => {
+      logger.info("[FocusMode] Initializing focus mode with", {
+        taskCount: tasks.length,
+        hasScheduledTasks: tasks.some((t) => t.scheduledStart !== null),
+      });
+
       // Get top 3 tasks by scheduled start time
       const focusTasks = tasks
         .filter(
@@ -46,6 +82,7 @@ export default function FocusModePage() {
       if (focusTasks.length > 0) {
         logger.info("[FocusMode] Starting focus mode with tasks", {
           taskCount: focusTasks.length,
+          taskIds: focusTasks.map((t) => t.id),
         });
         startFocusMode(focusTasks);
       } else {
@@ -54,11 +91,16 @@ export default function FocusModePage() {
       }
     };
 
-    // Only initialize if we're not already in focus mode
-    if (!isActive) {
-      initializeFocusMode();
-    }
-  }, [tasks, router, startFocusMode, isActive]);
+    initializeFocusMode();
+  }, [
+    tasks,
+    router,
+    startFocusMode,
+    isActive,
+    isHydrated,
+    tasksLoaded,
+    loading,
+  ]);
 
   return (
     <div className="h-full">

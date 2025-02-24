@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { TaskStatus, EnergyLevel, TimePreference } from "@/types/task";
 import { RRule } from "rrule";
+import { TaskStatus, EnergyLevel, TimePreference } from "@/types/task";
 import { newDate } from "@/lib/date-utils";
+import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
+import { logger } from "@/lib/logger";
+
+const LOG_SOURCE = "tasks-route";
 
 export async function GET(request: Request) {
   try {
@@ -50,7 +54,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(tasks);
   } catch (error) {
-    console.error("Error fetching tasks:", error);
+    logger.error("Error fetching tasks:", {
+      error: error instanceof Error ? error.message : String(error),
+    }, LOG_SOURCE);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
@@ -60,12 +66,20 @@ export async function POST(request: Request) {
     const json = await request.json();
     const { tagIds, recurrenceRule, ...taskData } = json;
 
-    // Validate recurrence rule if provided
-    if (recurrenceRule) {
+    // Normalize and validate recurrence rule if provided
+    const standardizedRecurrenceRule = recurrenceRule
+      ? normalizeRecurrenceRule(recurrenceRule)
+      : undefined;
+
+    if (standardizedRecurrenceRule) {
       try {
-        // Attempt to parse the RRule string to validate it
-        RRule.fromString(recurrenceRule);
-      } catch {
+        // Attempt to parse the standardized RRule string to validate it
+        RRule.fromString(standardizedRecurrenceRule);
+
+      } catch (error) {
+        logger.error("Error parsing recurrence rule:", {
+          error: error instanceof Error ? error.message : String(error),
+        }, LOG_SOURCE);
         return new NextResponse("Invalid recurrence rule", { status: 400 });
       }
     }
@@ -74,7 +88,7 @@ export async function POST(request: Request) {
       data: {
         ...taskData,
         isRecurring: !!recurrenceRule,
-        recurrenceRule,
+        recurrenceRule: standardizedRecurrenceRule,
         ...(tagIds && {
           tags: {
             connect: tagIds.map((id: string) => ({ id })),
@@ -89,7 +103,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(task);
   } catch (error) {
-    console.error("Error creating task:", error);
+    logger.error("Error creating task:", {
+      error: error instanceof Error ? error.message : String(error),
+    }, LOG_SOURCE);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
