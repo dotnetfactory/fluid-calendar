@@ -85,7 +85,7 @@ export default function SettingsPage() {
     <div className="container py-6">
       <div className="flex flex-col lg:flex-row lg:space-x-12 lg:space-y-0">
         <aside className="lg:w-1/5">
-          <nav className="space-y-1">
+          <nav className="space-y-1 px-4 py-3 bg-white rounded-lg border">
             {tabs.map((tab) => (
               <a
                 key={tab.id}
@@ -107,7 +107,7 @@ export default function SettingsPage() {
             ))}
           </nav>
         </aside>
-        <div className="flex-1">
+        <div className="flex-1 mt-6 lg:mt-0">
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">Settings</h2>

@@ -4,10 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Command } from "cmdk";
 import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
-import {
-  HiOutlineSearch,
-  HiX,
-} from "react-icons/hi";
+import { HiOutlineSearch, HiX } from "react-icons/hi";
 import { useCommands } from "@/hooks/useCommands";
 
 interface CommandPaletteProps {
@@ -66,6 +63,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 >
                   <HiX className="w-5 h-5" />
                 </button>
+              )}
+              {!search && (
+                <kbd className="hidden sm:flex items-center gap-1 px-2 py-0.5 text-xs text-gray-400 bg-gray-100 rounded">
+                  <span className="text-xs">⌘</span>
+                  <span>K</span>
+                </kbd>
               )}
               <Dialog.Close
                 className="ml-2 p-2 text-gray-400 hover:text-gray-600"
