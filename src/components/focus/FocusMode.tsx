@@ -6,11 +6,20 @@ import { TaskQueue } from "./TaskQueue";
 import { FocusedTask } from "./FocusedTask";
 import { QuickActions } from "./QuickActions";
 import { logger } from "@/lib/logger";
+import { ActionOverlay } from "@/components/ui/action-overlay";
 
 export function FocusMode() {
   // Add hydration safety
-  const { getCurrentTask, getQueuedTasks, getQueuedTaskIds, currentTaskId } =
-    useFocusModeStore();
+  const {
+    getCurrentTask,
+    getQueuedTasks,
+    getQueuedTaskIds,
+    currentTaskId,
+    isProcessing,
+    actionType,
+    actionMessage,
+    stopProcessing,
+  } = useFocusModeStore();
 
   // Get current task and queued tasks
   const currentTask = getCurrentTask();
@@ -34,16 +43,25 @@ export function FocusMode() {
     }
   }, [currentTaskId, currentTask, queuedTasks]);
 
-  
   logger.debug("[FocusMode] Rendering with tasks:", {
     hasCurrentTask: !!currentTask,
     queuedTasksCount: queuedTasks.length,
     currentTaskId,
     queuedTaskIds,
+    isProcessing,
+    actionType,
   });
 
   return (
     <div className="flex flex-col h-full">
+      {isProcessing && actionType && (
+        <ActionOverlay
+          type={actionType}
+          message={actionMessage || undefined}
+          onComplete={stopProcessing}
+        />
+      )}
+
       <div className="flex flex-1">
         {/* Left sidebar with queued tasks */}
         <aside className="w-64 border-r border-border h-full">

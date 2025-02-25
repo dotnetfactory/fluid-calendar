@@ -3,7 +3,7 @@
 ## Focus Mode Implementation
 - [ ] add a way to postpone a task
 - [ ] implement a better queue and it should also include overdue tasks 
-- [ ] add celebration for completing a task
+- [x] add celebration for completing a task
 - [ ] add helper methods like skip, postpone
 - [ ] add a way to edit the task in focus mode
 - [ ] fix keyboard shortcuts

@@ -5,19 +5,34 @@ import { addHours, addDays, newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { useTaskStore } from "@/store/task";
 import { TaskStatus } from "@/types/task";
+import { ActionType } from "@/components/ui/action-overlay";
 
 const LOG_SOURCE = "focusMode";
 
+// Extended state to include processing information
+interface ProcessingState {
+  isProcessing: boolean;
+  actionType: ActionType | null;
+  actionMessage: string | null;
+}
+
 // Initial state that maintains the same interface but removes session stats
-const initialState: FocusMode = {
+const initialState: FocusMode & ProcessingState = {
   currentTaskId: null,
+  isProcessing: false,
+  actionType: null,
+  actionMessage: null,
 };
 
-interface FocusModeStore extends FocusMode {
+interface FocusModeStore extends FocusMode, ProcessingState {
   // State getters
   getCurrentTask: () => FocusTask | null;
   getQueuedTasks: () => FocusTask[];
   getQueuedTaskIds: () => string[];
+
+  // Processing state actions
+  startProcessing: (actionType: ActionType, message?: string) => void;
+  stopProcessing: () => void;
 
   // Actions
   completeCurrentTask: () => void;
@@ -29,6 +44,29 @@ export const useFocusModeStore = create<FocusModeStore>()(
   persist(
     (set, get) => ({
       ...initialState,
+
+      // Processing state actions
+      startProcessing: (actionType: ActionType, message?: string) => {
+        logger.debug(
+          "[FocusMode] Starting processing",
+          { actionType, message: message || null },
+          LOG_SOURCE
+        );
+        set({
+          isProcessing: true,
+          actionType,
+          actionMessage: message || null,
+        });
+      },
+
+      stopProcessing: () => {
+        logger.debug("[FocusMode] Stopping processing", {}, LOG_SOURCE);
+        set({
+          isProcessing: false,
+          actionType: null,
+          actionMessage: null,
+        });
+      },
 
       getCurrentTask: () => {
         const state = get();
@@ -149,6 +187,9 @@ export const useFocusModeStore = create<FocusModeStore>()(
           return;
         }
 
+        // Show loading overlay
+        get().startProcessing("celebration", "Task completed! 🎉");
+
         // First update the task status in the database
         const taskStore = useTaskStore.getState();
 
@@ -170,7 +211,7 @@ export const useFocusModeStore = create<FocusModeStore>()(
             };
 
             await taskStore.updateTask(currentTaskId, updates);
-
+            // Show celebration overlay
             logger.debug(
               "[FocusMode] Task successfully marked as completed in database",
               {
@@ -181,13 +222,26 @@ export const useFocusModeStore = create<FocusModeStore>()(
 
             // Refresh tasks to make sure our tasks list is up-to-date
             await taskStore.fetchTasks();
+            // Wait for celebration to finish (3 seconds)
             // Move to next task if available
             const queuedTaskIds = get().getQueuedTaskIds();
             const nextTaskId = queuedTaskIds[0];
             set({
               currentTaskId: nextTaskId || null,
             });
+            get().stopProcessing();
           } catch (error) {
+            // Show error overlay
+            get().startProcessing(
+              "error",
+              "Error completing task. Please try again."
+            );
+
+            // Hide error after 3 seconds
+            setTimeout(() => {
+              get().stopProcessing();
+            }, 3000);
+
             console.error(
               "Error handling task completion:",
               error instanceof Error ? error.message : String(error)
@@ -198,9 +252,17 @@ export const useFocusModeStore = create<FocusModeStore>()(
 
       switchToTask: (taskId: string) => {
         logger.debug("[FocusMode] Switching to task", { taskId }, LOG_SOURCE);
-        set({
-          currentTaskId: taskId,
-        });
+
+        // Show loading overlay
+        get().startProcessing("loading", "Switching tasks...");
+
+        // Use setTimeout to give the UI time to update
+        setTimeout(() => {
+          set({
+            currentTaskId: taskId,
+          });
+          get().stopProcessing();
+        }, 500);
       },
 
       postponeTask: (duration: string) => {
@@ -216,6 +278,9 @@ export const useFocusModeStore = create<FocusModeStore>()(
           );
           return;
         }
+
+        // Show loading overlay
+        get().startProcessing("loading", `Postponing task for ${duration}...`);
 
         // First update the task in the database
         const taskStore = useTaskStore.getState();
@@ -274,7 +339,19 @@ export const useFocusModeStore = create<FocusModeStore>()(
             set({
               currentTaskId: nextTaskId || null,
             });
+            get().stopProcessing();
           } catch (error) {
+            // Show error overlay
+            get().startProcessing(
+              "error",
+              "Error postponing task. Please try again."
+            );
+
+            // Hide error after 3 seconds
+            setTimeout(() => {
+              get().stopProcessing();
+            }, 3000);
+
             console.error(
               "Error handling task postponing:",
               error instanceof Error ? error.message : String(error)
@@ -287,6 +364,7 @@ export const useFocusModeStore = create<FocusModeStore>()(
       name: "focus-mode-storage",
       partialize: (state) => ({
         currentTaskId: state.currentTaskId,
+        // Don't persist processing state
       }),
     }
   )
