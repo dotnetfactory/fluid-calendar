@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFocusModeStore } from "@/store/focusMode";
 import { TaskQueue } from "./TaskQueue";
 import { FocusedTask } from "./FocusedTask";
@@ -9,6 +9,8 @@ import { logger } from "@/lib/logger";
 import { ActionOverlay } from "@/components/ui/action-overlay";
 
 export function FocusMode() {
+  const [mounted, setMounted] = useState(false);
+
   // Add hydration safety
   const {
     getCurrentTask,
@@ -21,7 +23,7 @@ export function FocusMode() {
     stopProcessing,
   } = useFocusModeStore();
 
-  // Get current task and queued tasks
+  // Get current task and queued tasks - do this before any conditional returns
   const currentTask = getCurrentTask();
   const queuedTasks = getQueuedTasks();
   const queuedTaskIds = getQueuedTaskIds();
@@ -43,6 +45,11 @@ export function FocusMode() {
     }
   }, [currentTaskId, currentTask, queuedTasks]);
 
+  // This effect will only run on the client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   logger.debug("[FocusMode] Rendering with tasks:", {
     hasCurrentTask: !!currentTask,
     queuedTasksCount: queuedTasks.length,
@@ -51,6 +58,15 @@ export function FocusMode() {
     isProcessing,
     actionType,
   });
+
+  // If not mounted yet, render a simple loading state
+  if (!mounted) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <p className="text-lg text-muted-foreground">Loading focus mode...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
