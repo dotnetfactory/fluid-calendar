@@ -30,11 +30,7 @@ export function TaskQueue({ tasks }: TaskQueueProps) {
           >
             <div className="flex flex-col items-start text-left w-full">
               <span className="font-medium truncate w-full">{task.title}</span>
-              {task.description && (
-                <span className="text-sm text-muted-foreground line-clamp-2">
-                  {task.description}
-                </span>
-              )}
+
               {task.focusScore && (
                 <span className="text-xs text-muted-foreground mt-1">
                   Score: {task.focusScore.toFixed(2)}

@@ -17,11 +17,25 @@ export class ClientLogger {
   private config: LogStorageConfig;
   private flushTimer: NodeJS.Timeout | null = null;
   private storageKey = "fluid_calendar_logs";
+  private errorCache: Record<
+    string,
+    {
+      count: number;
+      lastLogged: Date;
+    }
+  > = {};
+  private errorCacheCleanupTimer: NodeJS.Timeout | null = null;
 
   constructor(config: Partial<LogStorageConfig> = {}) {
     this.config = { ...DEFAULT_STORAGE_CONFIG, ...config };
     this.restoreBuffer();
     this.startFlushTimer();
+
+    // Clean up error cache every hour
+    this.errorCacheCleanupTimer = setInterval(
+      () => this.cleanupErrorCache(),
+      3600000
+    );
   }
 
   private generateId(): string {
@@ -33,6 +47,13 @@ export class ClientLogger {
       const stored = localStorage.getItem(this.storageKey);
       if (stored) {
         const logs = JSON.parse(stored) as BufferedLogEntry[];
+
+        // Convert date strings back to Date objects
+        logs.forEach((entry) => {
+          if (entry.timestamp) entry.timestamp = newDate(entry.timestamp);
+          if (entry.lastAttempt) entry.lastAttempt = newDate(entry.lastAttempt);
+        });
+
         this.buffer.push(...logs);
         // Clear storage after successful restore
         localStorage.removeItem(this.storageKey);
@@ -106,6 +127,11 @@ export class ClientLogger {
 
     const now = newDate();
     const batch = this.buffer.filter((entry) => {
+      // Ensure lastAttempt is a Date object if it exists
+      if (entry.lastAttempt && !(entry.lastAttempt instanceof Date)) {
+        entry.lastAttempt = newDate(entry.lastAttempt);
+      }
+
       const shouldRetry =
         !entry.attempts || // Never tried
         (entry.attempts < this.config.maxRetries && // Haven't exceeded max retries
@@ -172,6 +198,26 @@ export class ClientLogger {
     }
   }
 
+  private cleanupErrorCache() {
+    const now = newDate();
+
+    // Remove entries older than 1 hour
+    Object.keys(this.errorCache).forEach((key) => {
+      const entry = this.errorCache[key];
+
+      // Ensure lastLogged is a Date object
+      if (!(entry.lastLogged instanceof Date)) {
+        entry.lastLogged = newDate(entry.lastLogged);
+      }
+
+      const timeSinceLastLog = now.getTime() - entry.lastLogged.getTime();
+      if (timeSinceLastLog > 3600000) {
+        // 1 hour in milliseconds
+        delete this.errorCache[key];
+      }
+    });
+  }
+
   // Convenience methods
   async debug(message: string, metadata?: LogMetadata, source?: string) {
     return this.log("debug", message, metadata, source);
@@ -186,6 +232,68 @@ export class ClientLogger {
   }
 
   async error(message: string, metadata?: LogMetadata, source?: string) {
+    // Create a simple key from the message and source
+    const key = `${message}|${source || ""}`;
+
+    // Check if we've seen this error recently
+    const now = newDate();
+    const cached = this.errorCache[key];
+
+    if (cached) {
+      // Increment the counter
+      cached.count++;
+
+      // Ensure lastLogged is a Date object
+      if (!(cached.lastLogged instanceof Date)) {
+        cached.lastLogged = newDate(cached.lastLogged);
+      }
+
+      // Only log if it's been at least 1 minute since we last logged this error
+      const timeSinceLastLog = now.getTime() - cached.lastLogged.getTime();
+      if (timeSinceLastLog < 60000) {
+        // 1 minute in milliseconds
+        // Skip logging this occurrence
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            `Error throttled (occurred ${cached.count} times): ${message}`
+          );
+        }
+        return;
+      }
+
+      // Update the metadata to include the count
+      const enhancedMetadata = {
+        ...(metadata || {}),
+        occurrences: cached.count,
+      };
+
+      // Update the last logged time
+      cached.lastLogged = now;
+
+      // Log with the enhanced metadata
+      return this.log("error", message, enhancedMetadata, source);
+    }
+
+    // First time seeing this error, add to cache
+    this.errorCache[key] = {
+      count: 1,
+      lastLogged: now,
+    };
+
+    // Log normally
     return this.log("error", message, metadata, source);
+  }
+
+  // Add a cleanup method to clear timers
+  cleanup() {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+      this.flushTimer = null;
+    }
+
+    if (this.errorCacheCleanupTimer) {
+      clearInterval(this.errorCacheCleanupTimer);
+      this.errorCacheCleanupTimer = null;
+    }
   }
 }

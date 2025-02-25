@@ -23,20 +23,20 @@ export function useFocusCommands(): Command[] {
         focusMode.completeCurrentTask();
       },
     },
-    {
-      id: "focus.next",
-      title: "Switch to Next Task",
-      keywords: ["focus", "next", "switch", "task"],
-      icon: HiOutlineArrowRight,
-      section: "focus",
-      shortcut: "right",
-      context: focusContext,
-      perform: () => {
-        const nextTaskId = focusMode.queuedTaskIds[0];
-        if (nextTaskId) {
-          focusMode.switchToTask(nextTaskId);
-        }
-      },
-    },
+    // {
+    //   id: "focus.next",
+    //   title: "Switch to Next Task",
+    //   keywords: ["focus", "next", "switch", "task"],
+    //   icon: HiOutlineArrowRight,
+    //   section: "focus",
+    //   shortcut: "n",
+    //   context: focusContext,
+    //   perform: () => {
+    //     const nextTaskId = focusMode.queuedTaskIds[0];
+    //     if (nextTaskId) {
+    //       focusMode.switchToTask(nextTaskId);
+    //     }
+    //   },
+    // },
   ];
 }

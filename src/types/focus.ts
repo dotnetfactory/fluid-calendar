@@ -5,7 +5,6 @@ import { Task } from "@prisma/client";
  */
 export interface FocusMode {
   currentTaskId: string | null;
-  queuedTaskIds: string[];
 }
 
 /**
@@ -32,7 +31,6 @@ export interface FocusTask extends Task {
  */
 export const DEFAULT_FOCUS_MODE: FocusMode = {
   currentTaskId: null,
-  queuedTaskIds: [],
 };
 
 /**

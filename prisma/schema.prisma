@@ -167,6 +167,7 @@ model Task {
   scheduledEnd    DateTime?
   scheduleScore   Float?
   lastScheduled   DateTime?
+  postponedUntil  DateTime? // New field for postponing tasks
 
   // Organization
   tags Tag[]
@@ -175,6 +176,7 @@ model Task {
   isRecurring       Boolean   @default(false)
   recurrenceRule    String?
   lastCompletedDate DateTime?
+  completedAt       DateTime? // When the task was marked as completed
 
   // External Integration
   externalTaskId String?
@@ -197,6 +199,7 @@ model Task {
   @@index([scheduledStart, scheduledEnd])
   @@index([externalTaskId])
   @@index([source])
+  @@index([postponedUntil])
 }
 
 model Tag {

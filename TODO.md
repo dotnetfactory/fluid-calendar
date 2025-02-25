@@ -1,12 +1,32 @@
 # FluidCalendar Implementation Plan
 
 ## Focus Mode Implementation
-- [ ] let's get rid of the concept of a session
-- [ ] show completed tasks in focus mode
+- [ ] add a way to postpone a task
+- [ ] implement a better queue and it should also include overdue tasks 
+- [ ] add celebration for completing a task
 - [ ] add helper methods like skip, postpone
 - [ ] add a way to edit the task in focus mode
 - [ ] fix keyboard shortcuts
-- [ ] fix padding in quick actions sidebar
+- [ ] go next just rotates between top 2 tasks and doesn't rotate the whole queue
+- [ ] handle inifinte client side errors
+- [ ] Error in terminal:
+```
+Failed to restore log buffer: ReferenceError: localStorage is not defined
+    at ClientLogger.restoreBuffer (src/lib/logger/client.ts:33:21)
+    at new ClientLogger (src/lib/logger/client.ts:23:9)
+    at new Logger (src/lib/logger/index.ts:11:24)
+    at Logger.getInstance (src/lib/logger/index.ts:20:24)
+    at [project]/src/lib/logger/index.ts [app-route] (ecmascript) (src/lib/logger/index.ts:87:29)
+    at [project]/src/app/api/tasks/route.ts [app-route] (ecmascript) (src/app/api/tasks/route.ts:7:0)
+    at Object.<anonymous> (.next/server/app/api/tasks/route.js:7:26)
+  31 |   private async restoreBuffer() {
+  32 |     try {
+> 33 |       const stored = localStorage.getItem(this.storageKey);
+     |                     ^
+  34 |       if (stored) {
+  35 |         const logs = JSON.parse(stored) as BufferedLogEntry[];
+  36 |         this.buffer.push(...logs);
+  ```
 
 # BUG
 - [ ] if i have a bunch of tasks that have isautoscheduled false and i click autoschedule the UI updates with a blank list because no tasks are returned. i have to refresh the page to get the tasks.

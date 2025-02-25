@@ -63,6 +63,14 @@ export async function PUT(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { tagIds, project, projectId, ...updates } = json;
 
+    // Set completedAt when task is marked as completed
+    if (
+      updates.status === TaskStatus.COMPLETED &&
+      task.status !== TaskStatus.COMPLETED
+    ) {
+      updates.completedAt = newDate();
+    }
+
     // Handle recurring task completion
     if (
       task.isRecurring &&
@@ -106,6 +114,7 @@ export async function PUT(
               preferredTime: task.preferredTime,
               projectId: task.projectId,
               isRecurring: false,
+              completedAt: newDate(), // Set completedAt for the completed instance
               tags: {
                 connect: task.tags.map((tag) => ({ id: tag.id })),
               },

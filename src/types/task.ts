@@ -48,6 +48,7 @@ export interface Task {
   updatedAt: Date;
   recurrenceRule?: string | null;
   lastCompletedDate?: Date | null;
+  completedAt?: Date | null;
   isRecurring: boolean;
   // Auto-scheduling fields
   isAutoScheduled: boolean;
@@ -56,6 +57,7 @@ export interface Task {
   scheduleScore?: number | null;
   lastScheduled?: Date | null;
   scheduleLocked: boolean;
+  postponedUntil?: Date | null;
 }
 
 export interface NewTask
