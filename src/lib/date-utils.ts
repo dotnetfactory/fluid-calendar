@@ -16,6 +16,7 @@ import {
   subDays,
   isSameDay,
   areIntervalsOverlapping,
+  isBefore,
 } from "date-fns";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 
@@ -142,4 +143,5 @@ export {
   formatInTimeZone,
   toZonedTime,
   areIntervalsOverlapping,
+  isBefore,
 };

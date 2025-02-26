@@ -1,16 +1,9 @@
 # FluidCalendar Implementation Plan
 
 ## Focus Mode Implementation
-- [x] add a way to postpone a task
-- [ ] implement a better queue and it should also include overdue tasks 
-- [x] add celebration for completing a task
-- [x] add helper methods like skip, postpone
-- [x] add a way to edit the task in focus mode
 - [ ] fix keyboard shortcuts
-- [ ] go next just rotates between top 2 tasks and doesn't rotate the whole queue
-- [x] handle inifinte client side errors
-- [ ] improve description display in focus mode
-- [x] improve the postpone buttons because it's hard to say what they mean
+- [ ] improve description display in focus mode and hyperlink links
+- [ ] in taskmodal make the tags more obvious if they are selected
 
 # BUG
 - [ ] if i have a bunch of tasks that have isautoscheduled false and i click autoschedule the UI updates with a blank list because no tasks are returned. i have to refresh the page to get the tasks.

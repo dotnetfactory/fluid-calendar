@@ -82,8 +82,6 @@ export const useFocusModeStore = create<FocusModeStore>()(
 
         // If task not found or is postponed, return null
         if (!task) return null;
-        if (task.postponedUntil && newDate(task.postponedUntil) > newDate())
-          return null;
 
         return task;
       },

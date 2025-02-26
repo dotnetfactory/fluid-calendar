@@ -5,7 +5,6 @@ import { useFocusModeStore } from "@/store/focusMode";
 import { TaskQueue } from "./TaskQueue";
 import { FocusedTask } from "./FocusedTask";
 import { QuickActions } from "./QuickActions";
-import { logger } from "@/lib/logger";
 import { ActionOverlay } from "@/components/ui/action-overlay";
 
 export function FocusMode() {
@@ -14,9 +13,6 @@ export function FocusMode() {
   // Add hydration safety
   const {
     getCurrentTask,
-    getQueuedTasks,
-    getQueuedTaskIds,
-    currentTaskId,
     isProcessing,
     actionType,
     actionMessage,
@@ -25,39 +21,11 @@ export function FocusMode() {
 
   // Get current task and queued tasks - do this before any conditional returns
   const currentTask = getCurrentTask();
-  const queuedTasks = getQueuedTasks();
-  const queuedTaskIds = getQueuedTaskIds();
-
-  // If currentTaskId exists but getCurrentTask returns null, we need to update the currentTaskId
-  useEffect(() => {
-    if (currentTaskId && !currentTask && queuedTasks.length > 0) {
-      logger.info(
-        "[FocusMode] Current task not available, updating currentTaskId",
-        {
-          oldCurrentTaskId: currentTaskId,
-          newCurrentTaskId: queuedTasks[0].id,
-        }
-      );
-
-      useFocusModeStore.setState({
-        currentTaskId: queuedTasks[0].id,
-      });
-    }
-  }, [currentTaskId, currentTask, queuedTasks]);
-
+  
   // This effect will only run on the client
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  logger.debug("[FocusMode] Rendering with tasks:", {
-    hasCurrentTask: !!currentTask,
-    queuedTasksCount: queuedTasks.length,
-    currentTaskId,
-    queuedTaskIds,
-    isProcessing,
-    actionType,
-  });
 
   // If not mounted yet, render a simple loading state
   if (!mounted) {
@@ -80,10 +48,8 @@ export function FocusMode() {
 
       <div className="flex flex-1">
         {/* Left sidebar with queued tasks */}
-        <aside className="w-64 border-r border-border h-full">
-          <TaskQueue
-            tasks={queuedTasks.filter((task) => task.id !== currentTaskId)}
-          />
+        <aside className="w-80 border-r border-border h-full">
+          <TaskQueue />
         </aside>
 
         {/* Main content area */}
