@@ -106,7 +106,8 @@ export function TaskQueue() {
           <span
             className={cn(
               "font-medium truncate",
-              task.id === currentTaskId && "text-accent-foreground"
+              task.id === currentTaskId && "text-accent-foreground",
+              "task-title"
             )}
           >
             {task.title}

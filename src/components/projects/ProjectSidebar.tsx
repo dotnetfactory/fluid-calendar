@@ -207,7 +207,7 @@ function ProjectItem({ project, isActive, onEdit }: ProjectItemProps) {
           style={{ backgroundColor: project.color }}
         />
       )}
-      <span className="truncate flex-1">{project.name}</span>
+      <span className="truncate flex-1 project-name">{project.name}</span>
       <span className="text-xs text-gray-500">{taskCount}</span>
       <button
         className="p-1 rounded hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"

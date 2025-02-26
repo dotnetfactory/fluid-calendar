@@ -2,7 +2,6 @@
 
 ## Focus Mode Implementation
 - [ ] fix keyboard shortcuts
-- [ ] improve description display in focus mode and hyperlink links
 - [ ] in taskmodal make the tags more obvious if they are selected
 
 # BUG

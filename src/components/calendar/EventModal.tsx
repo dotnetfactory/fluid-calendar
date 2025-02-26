@@ -397,7 +397,8 @@ export function EventModal({
                   className={cn(
                     "mt-1 block w-full rounded-md border-gray-300",
                     "shadow-sm focus:border-blue-500 focus:ring-blue-500",
-                    "text-sm"
+                    "text-sm",
+                    "event-title"
                   )}
                   required
                 />
@@ -517,7 +518,8 @@ export function EventModal({
                   className={cn(
                     "mt-1 block w-full rounded-md border-gray-300",
                     "shadow-sm focus:border-blue-500 focus:ring-blue-500",
-                    "text-sm"
+                    "text-sm",
+                    "event-location"
                   )}
                 />
               </div>
@@ -538,7 +540,8 @@ export function EventModal({
                   className={cn(
                     "mt-1 block w-full rounded-md border-gray-300",
                     "shadow-sm focus:border-blue-500 focus:ring-blue-500",
-                    "text-sm resize-none"
+                    "text-sm resize-none",
+                    "event-description"
                   )}
                 />
               </div>

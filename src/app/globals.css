@@ -213,3 +213,38 @@
   align-items: center;
   margin-bottom: 8px;
 }
+
+/* Privacy Mode Styles */
+.privacy-mode-active .private-content {
+  filter: blur(3px);
+  transition: filter 0.1s ease-in-out;
+}
+
+.privacy-mode-active .private-content:hover {
+  filter: blur(3px); /* Increase blur on hover for better privacy */
+}
+
+/* Apply to specific content types */
+.privacy-mode-active .event-title,
+.privacy-mode-active .event-description,
+.privacy-mode-active .event-location,
+.privacy-mode-active .event-attendees,
+.privacy-mode-active .calendar-event-title,
+.privacy-mode-active .calendar-event-description {
+  filter: blur(3px);
+  transition: filter 0.1s ease-in-out;
+}
+.privacy-mode-active .task-title,
+.privacy-mode-active .task-description,
+.privacy-mode-active .task-notes,
+.privacy-mode-active .focus-notes,
+.privacy-mode-active .calendar-name,
+.privacy-mode-active .project-name {
+  filter: blur(3px);
+  transition: filter 0.1s ease-in-out;
+}
+
+/* Ensure privacy mode toggle is always visible */
+.privacy-mode-toggle {
+  z-index: 100;
+}

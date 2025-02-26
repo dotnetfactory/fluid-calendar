@@ -58,7 +58,7 @@ export function FocusedTask({ task }: FocusedTaskProps) {
     <Card className="p-6 h-full flex flex-col">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold mb-2">{task.title}</h2>
+          <h2 className="text-2xl font-bold mb-2 task-title">{task.title}</h2>
 
           {/* Display tags */}
           {task.tags && task.tags.length > 0 && (
@@ -125,7 +125,7 @@ export function FocusedTask({ task }: FocusedTaskProps) {
       {task.description && (
         <div className="pt-4 border-t border-border">
           <h3 className="text-sm font-medium mb-2">Description</h3>
-          <div className="text-muted-foreground whitespace-pre-wrap overflow-auto ">
+          <div className="text-muted-foreground whitespace-pre-wrap overflow-auto task-description">
             {linkifyText(task.description)}
           </div>
         </div>

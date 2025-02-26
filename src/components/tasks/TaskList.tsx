@@ -303,9 +303,11 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
       >
         {field === "title" ? (
           <div>
-            <div className="text-sm font-medium text-gray-900">{value}</div>
+            <div className="text-sm font-medium text-gray-900 task-title">
+              {value}
+            </div>
             {task.description && (
-              <div className="text-xs text-gray-500 line-clamp-1">
+              <div className="text-xs text-gray-500 line-clamp-1 task-description">
                 {task.description}
               </div>
             )}
@@ -540,9 +542,9 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
             selected={
               editValue
                 ? newDateFromYMD(
-                  newDate(editValue).getUTCFullYear(),
-                  newDate(editValue).getUTCMonth(),
-                  newDate(editValue).getUTCDate()
+                    newDate(editValue).getUTCFullYear(),
+                    newDate(editValue).getUTCMonth(),
+                    newDate(editValue).getUTCDate()
                   )
                 : null
             }

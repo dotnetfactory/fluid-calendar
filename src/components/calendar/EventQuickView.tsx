@@ -94,7 +94,7 @@ export function EventQuickView({
         >
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-medium text-gray-900 flex items-center gap-2">
+              <h3 className="font-medium text-gray-900 flex items-center gap-2 event-title">
                 {item.title}
                 {isTask ? (
                   <>
@@ -153,7 +153,9 @@ export function EventQuickView({
                 {eventItem.location && (
                   <div className="flex items-center gap-2">
                     <IoLocationOutline className="h-4 w-4 flex-shrink-0" />
-                    <span className="line-clamp-2">{eventItem.location}</span>
+                    <span className="line-clamp-2 event-location">
+                      {eventItem.location}
+                    </span>
                   </div>
                 )}
                 {eventItem.attendees && eventItem.attendees.length > 0 && (
@@ -165,7 +167,7 @@ export function EventQuickView({
                           key={attendee.email}
                           className="flex items-center justify-between text-xs"
                         >
-                          <span className="truncate flex-1">
+                          <span className="truncate flex-1 event-attendees">
                             {attendee.name || attendee.email}
                           </span>
                           <span
@@ -182,7 +184,7 @@ export function EventQuickView({
                   </div>
                 )}
                 {eventItem.description && (
-                  <div className="text-xs mt-2 text-gray-500 line-clamp-2">
+                  <div className="text-xs mt-2 text-gray-500 line-clamp-2 event-description">
                     {eventItem.description}
                   </div>
                 )}
@@ -297,7 +299,7 @@ export function EventQuickView({
                 )}
 
                 {taskItem.description && (
-                  <div className="text-xs mt-2 text-gray-500 line-clamp-2">
+                  <div className="text-xs mt-2 text-gray-500 line-clamp-2 task-description">
                     {taskItem.description}
                   </div>
                 )}

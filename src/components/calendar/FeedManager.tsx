@@ -52,7 +52,7 @@ export function FeedManager() {
                 onChange={() => toggleFeed(feed.id)}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
-              <span className="text-gray-900">{feed.name}</span>
+              <span className="text-gray-900 calendar-name">{feed.name}</span>
               {feed.type === "GOOGLE" && (
                 <BsGoogle className="w-4 h-4 text-gray-500" />
               )}

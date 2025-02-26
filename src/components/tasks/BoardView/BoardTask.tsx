@@ -108,7 +108,9 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
                 )}
               </div>
             )}
-            <h3 className="text-sm font-medium text-gray-900">{task.title}</h3>
+            <h3 className="text-sm font-medium text-gray-900 task-title">
+              {task.title}
+            </h3>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
@@ -135,7 +137,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
         </div>
 
         {task.description && (
-          <p className="text-xs text-gray-500 line-clamp-2">
+          <p className="text-xs text-gray-500 line-clamp-2 task-description">
             {task.description}
           </p>
         )}
