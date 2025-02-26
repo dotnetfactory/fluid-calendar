@@ -4,13 +4,20 @@ import { LogLevel, LogStorageConfig, LogMetadata } from "./types";
 
 class Logger {
   private static instance: Logger;
-  private clientLogger: ClientLogger;
+  private clientLogger: ClientLogger | null = null;
   private serverLogger: ServerLogger | null = null;
+  private isClient: boolean;
 
   private constructor(config?: Partial<LogStorageConfig>) {
-    this.clientLogger = new ClientLogger(config);
+    this.isClient = typeof window !== "undefined";
+
+    // Only create client logger if we're in a browser context
+    if (this.isClient) {
+      this.clientLogger = new ClientLogger(config);
+    }
+
     // Only create server logger if we're in a server context
-    if (typeof window === "undefined") {
+    if (!this.isClient) {
       this.serverLogger = new ServerLogger();
     }
   }
@@ -25,7 +32,7 @@ class Logger {
   async log(message: string, metadata?: LogMetadata, source?: string) {
     this.debug(message, metadata, source);
   }
-  
+
   async debug(message: string, metadata?: LogMetadata, source?: string) {
     if (this.serverLogger) {
       await this.serverLogger.writeLog({
@@ -35,8 +42,11 @@ class Logger {
         source,
         timestamp: new Date(),
       });
-    } else {
+    } else if (this.clientLogger) {
       await this.clientLogger.debug(message, metadata, source);
+    } else {
+      // Fallback to console in case neither logger is available
+      console.debug(message, metadata);
     }
   }
 
@@ -49,8 +59,10 @@ class Logger {
         source,
         timestamp: new Date(),
       });
-    } else {
+    } else if (this.clientLogger) {
       await this.clientLogger.info(message, metadata, source);
+    } else {
+      console.info(message, metadata);
     }
   }
 
@@ -63,8 +75,10 @@ class Logger {
         source,
         timestamp: new Date(),
       });
-    } else {
+    } else if (this.clientLogger) {
       await this.clientLogger.warn(message, metadata, source);
+    } else {
+      console.warn(message, metadata);
     }
   }
 
@@ -77,8 +91,10 @@ class Logger {
         source,
         timestamp: new Date(),
       });
-    } else {
+    } else if (this.clientLogger) {
       await this.clientLogger.error(message, metadata, source);
+    } else {
+      console.error(message, metadata);
     }
   }
 }

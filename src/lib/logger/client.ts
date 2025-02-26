@@ -17,6 +17,7 @@ export class ClientLogger {
   private config: LogStorageConfig;
   private flushTimer: NodeJS.Timeout | null = null;
   private storageKey = "fluid_calendar_logs";
+  private enableDBLogging = false;
   private errorCache: Record<
     string,
     {
@@ -25,17 +26,21 @@ export class ClientLogger {
     }
   > = {};
   private errorCacheCleanupTimer: NodeJS.Timeout | null = null;
+  private isClient: boolean;
 
   constructor(config: Partial<LogStorageConfig> = {}) {
     this.config = { ...DEFAULT_STORAGE_CONFIG, ...config };
+    this.isClient = typeof window !== "undefined";
     this.restoreBuffer();
     this.startFlushTimer();
 
     // Clean up error cache every hour
-    this.errorCacheCleanupTimer = setInterval(
-      () => this.cleanupErrorCache(),
-      3600000
-    );
+    if (this.isClient) {
+      this.errorCacheCleanupTimer = setInterval(
+        () => this.cleanupErrorCache(),
+        3600000
+      );
+    }
   }
 
   private generateId(): string {
@@ -43,6 +48,8 @@ export class ClientLogger {
   }
 
   private async restoreBuffer() {
+    if (!this.isClient) return;
+
     try {
       const stored = localStorage.getItem(this.storageKey);
       if (stored) {
@@ -64,6 +71,8 @@ export class ClientLogger {
   }
 
   private saveBuffer() {
+    if (!this.isClient) return;
+
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.buffer));
     } catch (error) {
@@ -83,6 +92,8 @@ export class ClientLogger {
   }
 
   private startFlushTimer() {
+    if (!this.isClient) return;
+
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
     }
@@ -181,6 +192,9 @@ export class ClientLogger {
       source,
       timestamp: newDate(),
     };
+    if (!this.enableDBLogging) {
+      console.log(entry);
+    }
 
     this.buffer.push(entry);
 
@@ -286,6 +300,8 @@ export class ClientLogger {
 
   // Add a cleanup method to clear timers
   cleanup() {
+    if (!this.isClient) return;
+
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
@@ -295,5 +311,8 @@ export class ClientLogger {
       clearInterval(this.errorCacheCleanupTimer);
       this.errorCacheCleanupTimer = null;
     }
+
+    // Attempt one final flush
+    this.flush().catch(console.error);
   }
 }

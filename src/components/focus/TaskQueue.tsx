@@ -1,12 +1,12 @@
 "use client";
 
-import { FocusTask } from "@/types/focus";
 import { useFocusModeStore } from "@/store/focusMode";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Task } from "@/types/task";
 
 interface TaskQueueProps {
-  tasks: FocusTask[];
+  tasks: Task[];
 }
 
 export function TaskQueue({ tasks }: TaskQueueProps) {
@@ -31,9 +31,9 @@ export function TaskQueue({ tasks }: TaskQueueProps) {
             <div className="flex flex-col items-start text-left w-full">
               <span className="font-medium truncate w-full">{task.title}</span>
 
-              {task.focusScore && (
+              {task.scheduleScore && (
                 <span className="text-xs text-muted-foreground mt-1">
-                  Score: {task.focusScore.toFixed(2)}
+                  Score: {task.scheduleScore.toFixed(2)}
                 </span>
               )}
             </div>

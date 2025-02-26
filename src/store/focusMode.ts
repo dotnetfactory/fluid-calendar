@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { FocusMode, FocusTask } from "@/types/focus";
+import { FocusMode } from "@/types/focus";
 import { addHours, addDays, newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { useTaskStore } from "@/store/task";
-import { TaskStatus } from "@/types/task";
+import { Task, TaskStatus } from "@/types/task";
 import { ActionType } from "@/components/ui/action-overlay";
 
 const LOG_SOURCE = "focusMode";
@@ -26,8 +26,8 @@ const initialState: FocusMode & ProcessingState = {
 
 interface FocusModeStore extends FocusMode, ProcessingState {
   // State getters
-  getCurrentTask: () => FocusTask | null;
-  getQueuedTasks: () => FocusTask[];
+  getCurrentTask: () => Task | null;
+  getQueuedTasks: () => Task[];
   getQueuedTaskIds: () => string[];
 
   // Processing state actions
@@ -85,13 +85,7 @@ export const useFocusModeStore = create<FocusModeStore>()(
         if (task.postponedUntil && newDate(task.postponedUntil) > newDate())
           return null;
 
-        // Convert to FocusTask
-        return {
-          ...task,
-          focusScore: task.scheduleScore || 0,
-          lastFocusedAt: null,
-          focusTimeSpent: 0,
-        } as unknown as FocusTask;
+        return task;
       },
 
       getQueuedTasks: () => {
@@ -154,13 +148,7 @@ export const useFocusModeStore = create<FocusModeStore>()(
           LOG_SOURCE
         );
 
-        // Convert to FocusTasks
-        return topTasks.map((task) => ({
-          ...task,
-          focusScore: task.scheduleScore || 0,
-          lastFocusedAt: null,
-          focusTimeSpent: 0,
-        })) as unknown as FocusTask[];
+        return topTasks;
       },
 
       getQueuedTaskIds: () => {
@@ -252,17 +240,9 @@ export const useFocusModeStore = create<FocusModeStore>()(
 
       switchToTask: (taskId: string) => {
         logger.debug("[FocusMode] Switching to task", { taskId }, LOG_SOURCE);
-
-        // Show loading overlay
-        get().startProcessing("loading", "Switching tasks...");
-
-        // Use setTimeout to give the UI time to update
-        setTimeout(() => {
-          set({
-            currentTaskId: taskId,
-          });
-          get().stopProcessing();
-        }, 500);
+        set({
+          currentTaskId: taskId,
+        });
       },
 
       postponeTask: (duration: string) => {
@@ -296,6 +276,9 @@ export const useFocusModeStore = create<FocusModeStore>()(
             break;
           case "1d":
             postponedUntil = addDays(postponedUntil, 1);
+            break;
+          case "1w":
+            postponedUntil = addDays(postponedUntil, 7);
             break;
           default:
             postponedUntil = addHours(postponedUntil, 1); // Default to 1 hour

@@ -1,4 +1,3 @@
-import { Task } from "@prisma/client";
 
 /**
  * Represents the state of a focus mode session
@@ -17,14 +16,6 @@ export interface FocusSessionStats {
   sessionEnd: Date | null;
 }
 
-/**
- * Task with additional focus-related properties
- */
-export interface FocusTask extends Task {
-  focusScore?: number; // Score for task priority in focus mode
-  lastFocusedAt?: Date | null; // Last time this task was focused on
-  focusTimeSpent?: number; // Total time spent focusing on this task (in minutes)
-}
 
 /**
  * Default values for a new focus mode session
