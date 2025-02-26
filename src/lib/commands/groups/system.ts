@@ -7,7 +7,6 @@ export function useSystemCommands(): Command[] {
       title: "View System Logs",
       keywords: ["logs", "view logs", "system logs", "log viewer"],
       section: "system",
-      shortcut: "ctrl+shift+l",
       perform: async (router) => {
         if (router) {
           router.push("/settings#logs");

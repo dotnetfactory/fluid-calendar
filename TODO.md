@@ -3,6 +3,7 @@
 ## Focus Mode Implementation
 - [ ] fix keyboard shortcuts
 - [ ] in taskmodal make the tags more obvious if they are selected
+- [ ] Daily Email
 
 # BUG
 - [ ] if i have a bunch of tasks that have isautoscheduled false and i click autoschedule the UI updates with a blank list because no tasks are returned. i have to refresh the page to get the tasks.
@@ -24,6 +25,20 @@
 - [ ] Use AI to break down tasks
 - [ ] recurring tasks don't indicate that it's recurring
 - [ ] Ability to add tasks in calendar view
+
+## Focus Mode Enhancements (Future)
+- [ ] Add focus session analytics
+  - [ ] Track time spent in focus mode
+  - [ ] Record tasks completed per session
+  - [ ] Visualize productivity patterns
+- [ ] Implement custom focus modes
+  - [ ] Deep work mode (2+ hour sessions)
+  - [ ] Quick task mode (15-30 minute sessions)
+  - [ ] Meeting preparation mode
+- [ ] Add Pomodoro technique integration
+  - [ ] Configurable work/break intervals
+  - [ ] Break reminders
+  - [ ] Session statistics
 
 ## Outlook sync issues
 - [ ] deleting one instance doesn't sync correctly
