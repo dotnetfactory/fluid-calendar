@@ -23,15 +23,28 @@ export async function getEvent(eventId: string) {
 
 export async function validateEvent(
   event: EventWithFeed | null,
-  provider: "GOOGLE" | "OUTLOOK"
+  provider: "GOOGLE" | "OUTLOOK" | "CALDAV"
 ): Promise<ValidatedEvent | NextResponse> {
-  if (!event || !event.feed || !event.feed.url || !event.feed.accountId) {
+  if (!event || !event.feed || !event.feed.accountId) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
   if (event.feed.type !== provider) {
     return NextResponse.json(
       { error: `Not a ${provider} Calendar event` },
+      { status: 400 }
+    );
+  }
+
+  // For CalDAV, we need either a URL or a caldavPath
+  if (provider === "CALDAV" && !event.feed.caldavPath && !event.feed.url) {
+    return NextResponse.json(
+      { error: "No CalDAV calendar path found" },
+      { status: 400 }
+    );
+  } else if (provider !== "CALDAV" && !event.feed.url) {
+    return NextResponse.json(
+      { error: "No calendar URL found" },
       { status: 400 }
     );
   }

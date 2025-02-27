@@ -4,7 +4,7 @@ import { MICROSOFT_GRAPH_AUTH_ENDPOINTS } from "./outlook";
 import { getOutlookCredentials } from "@/lib/auth";
 import { newDate } from "./date-utils";
 
-export type Provider = "GOOGLE" | "OUTLOOK";
+export type Provider = "GOOGLE" | "OUTLOOK" | "CALDAV";
 
 interface TokenInfo {
   accessToken: string;
@@ -210,5 +210,23 @@ export class TokenManager {
       console.error("Failed to refresh Outlook tokens:", error);
       return null;
     }
+  }
+
+  // For CalDAV, we don't need to refresh tokens as we store the password directly
+  // This method is provided for consistency with other providers
+  async refreshCalDAVTokens(accountId: string): Promise<TokenInfo | null> {
+    const account = await prisma.connectedAccount.findUnique({
+      where: { id: accountId },
+    });
+
+    if (!account) {
+      return null;
+    }
+
+    // For CalDAV, we just return the existing tokens
+    return {
+      accessToken: account.accessToken,
+      expiresAt: account.expiresAt,
+    };
   }
 }

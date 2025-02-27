@@ -13,11 +13,13 @@ import { Badge } from "@/components/ui/badge";
 import { AvailableCalendars } from "./AvailableCalendars";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { CalDAVAccountForm } from "./CalDAVAccountForm";
 
 export function AccountManager() {
   const { accounts, refreshAccounts, removeAccount } = useSettingsStore();
   const { system } = useSettingsStore();
   const [showAvailableFor, setShowAvailableFor] = useState<string | null>(null);
+  const [showCalDAVForm, setShowCalDAVForm] = useState(false);
 
   useEffect(() => {
     refreshAccounts();
@@ -50,6 +52,11 @@ export function AccountManager() {
 
   const showOutlookCredentialsWarning =
     !system.outlookClientId || !system.outlookClientSecret;
+
+  const handleCalDAVSuccess = () => {
+    setShowCalDAVForm(false);
+    refreshAccounts();
+  };
 
   return (
     <div className="space-y-6">
@@ -96,7 +103,19 @@ export function AccountManager() {
             >
               Connect Outlook Calendar
             </Button>
+            <Button onClick={() => setShowCalDAVForm(true)} variant="outline">
+              Connect CalDAV Calendar
+            </Button>
           </div>
+
+          {showCalDAVForm && (
+            <div className="mt-4">
+              <CalDAVAccountForm
+                onSuccess={handleCalDAVSuccess}
+                onCancel={() => setShowCalDAVForm(false)}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             {accounts.map((account) => (
@@ -105,7 +124,11 @@ export function AccountManager() {
                   <div className="flex items-center gap-2">
                     <Badge
                       variant={
-                        account.provider === "GOOGLE" ? "default" : "secondary"
+                        account.provider === "GOOGLE"
+                          ? "default"
+                          : account.provider === "OUTLOOK"
+                          ? "secondary"
+                          : "outline"
                       }
                     >
                       {account.provider}

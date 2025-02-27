@@ -1,326 +1,214 @@
-# CalDAV Integration Implementation Plan
+# CalDAV Integration Plan
 
-## Overview
-This document outlines the implementation plan for adding CalDAV calendar support to FluidCalendar. This feature will enable users to connect and sync with CalDAV-compatible calendar servers (like NextCloud, Radicale, Baikal, etc.), expanding the calendar integration options beyond the current Google Calendar support.
+This document outlines the plan for adding CalDAV support to Fluid Calendar, enabling users to connect to a wide range of calendar servers that support the CalDAV standard (NextCloud, Fastmail, Baikal, Radicale, etc.).
 
-## CalDAV Integration Details
+## Current Architecture Overview
 
-The CalDAV integration system will handle authentication, synchronization, and CRUD operations for CalDAV calendars. This component is responsible for:
+Our application currently supports Google Calendar and Outlook Calendar integrations with the following architecture:
 
-### 1. Core Interfaces
-```typescript
-interface CalDAVAccount {
-  id: string;
-  provider: "CALDAV";
-  serverUrl: string;
-  username: string;
-  credentials: string; // encrypted
-  email?: string;
-  calendars: CalDAVCalendar[];
-  discoveryUrl?: string;
+1. **Service Interface**: `CalendarService` interface defines the contract for calendar operations
+2. **Service Implementation**: `CalendarServiceImpl` implements this interface and handles caching and database operations
+3. **Provider-Specific Implementations**: 
+   - `google-calendar.ts` for Google Calendar integration
+   - `outlook-calendar.ts` for Outlook Calendar integration
+4. **Authentication**: `TokenManager` handles OAuth tokens for different providers
+5. **Database Schema**: 
+   - `ConnectedAccount` stores account credentials
+   - `CalendarFeed` represents a calendar source
+   - `CalendarEvent` stores calendar events
+
+## CalDAV Technical Background
+
+### What is CalDAV?
+
+CalDAV (Calendar Distributed Authoring and Versioning) is an internet standard for calendar access, defined in RFC 4791. It extends WebDAV (which itself extends HTTP) to provide calendar-specific functionality.
+
+### Key Components
+
+1. **Protocol**: CalDAV uses HTTP methods (GET, PUT, DELETE, PROPFIND, REPORT) for calendar operations
+2. **Data Format**: CalDAV uses iCalendar (RFC 5545) as its data format for calendar objects
+3. **Authentication**: Typically Basic Auth, but some servers support OAuth
+4. **Discovery**: Uses PROPFIND requests to discover available calendars
+5. **Sync**: Uses WebDAV sync-collection or time-range filtering for efficient synchronization
+
+### Why iCalendar is Necessary
+
+iCalendar (often abbreviated as iCal) is essential for working with CalDAV because:
+
+1. **Data Format Standard**: CalDAV servers store and exchange calendar data in iCalendar format
+2. **Complete Event Information**: iCalendar defines the structure for representing all calendar data
+3. **Protocol Requirement**: The CalDAV specification explicitly requires calendar objects to be stored as iCalendar data
+
+## Implementation Plan
+
+### Phase 1: Foundation and Research
+
+- [ ] Research CalDAV client libraries (tsdav, caldav.js, etc.)
+- [ ] Select and add the chosen library to the project
+- [ ] Add an iCalendar parsing/generation library (ical.js recommended)
+- [ ] Update database schema to support CalDAV-specific fields
+- [ ] Create basic CalDAV client class structure
+
+### Phase 2: Authentication and Discovery
+
+- [ ] Implement CalDAV authentication (Basic Auth support)
+- [ ] Implement calendar discovery functionality
+- [ ] Create UI for adding CalDAV accounts
+- [ ] Store CalDAV credentials securely
+- [ ] Test connection to various CalDAV servers (NextCloud, Fastmail, etc.)
+
+### Phase 3: Read Operations
+
+- [ ] Implement calendar event fetching
+- [ ] Convert iCalendar events to internal format
+- [ ] Handle recurring events properly
+- [ ] Implement efficient sync strategy
+- [ ] Integrate with existing caching mechanism
+- [ ] Add CalDAV calendars to the calendar selection UI
+
+### Phase 4: Write Operations
+
+- [ ] Implement event creation
+- [ ] Implement event updates
+- [ ] Implement event deletion
+- [ ] Handle recurring event modifications (single vs. series)
+- [ ] Convert internal event format to iCalendar
+- [ ] Test two-way sync with various CalDAV servers
+
+### Phase 5: Integration and Optimization
+
+- [ ] Integrate with conflict detection system
+- [ ] Implement background sync for CalDAV calendars
+- [ ] Add comprehensive error handling
+- [ ] Optimize performance for large calendars
+- [ ] Handle different CalDAV server implementations and quirks
+- [ ] Add logging for debugging purposes
+
+### Phase 6: Testing and Documentation
+
+- [ ] Create unit tests for CalDAV functionality
+- [ ] Create integration tests with mock CalDAV server
+- [ ] Test with real-world CalDAV servers
+- [ ] Document CalDAV setup process for users
+- [ ] Document supported CalDAV servers and any limitations
+
+## Technical Implementation Details
+
+### Database Schema Updates
+
+```prisma
+model ConnectedAccount {
+  // Add fields for CalDAV
+  caldavUrl      String?  // Base URL for CalDAV server
+  caldavUsername String?  // Username for Basic Auth
+  // Note: password would be stored in accessToken for consistency
 }
 
-interface CalDAVCalendar {
-  id: string;
-  url: string;
-  displayName: string;
-  color?: string;
-  description?: string;
-  timezone?: string;
-  ctag: string;
-  syncToken?: string;
-}
-
-interface CalDAVEvent {
-  uid: string;
-  etag: string;
-  url: string;
-  data: string; // iCal format
-  lastModified: Date;
-  sequence: number;
+model CalendarFeed {
+  // Add CalDAV to the type enum: "LOCAL", "GOOGLE", "OUTLOOK", "CALDAV"
+  caldavPath     String?  // Path to the specific calendar on the server
 }
 ```
 
-### 2. Core Responsibilities
-- **Authentication Management**
-  - Basic Auth support
-  - Token-based auth support
-  - Credential encryption
-  - Connection testing
-  - Auto-discovery support
+### CalDAV Client Structure
 
-- **Calendar Synchronization**
-  - Initial calendar discovery
-  - Efficient change detection (ctag/etag)
-  - Incremental sync support
-  - Conflict resolution
-  - Error recovery
+Create a new file `src/lib/caldav-calendar.ts` with the following structure:
 
-- **Event Management**
-  - CRUD operations for events
-  - Recurring event handling
-  - Attachment support
-  - Rich text description
-  - Custom property support
-
-- **Security & Error Handling**
-  - Secure credential storage
-  - SSL/TLS certificate validation
-  - Connection timeout handling
-  - Retry mechanisms
-  - Offline support
-
-### 3. Implementation Approach
 ```typescript
-class CalDAVServiceImpl implements CalendarService {
-  constructor(
-    private prisma: PrismaClient,
-    private settings: SystemSettings
-  ) {}
-
-  async connect(serverUrl: string, credentials: CalDAVCredentials): Promise<CalDAVAccount> {
-    // 1. Validate server URL
-    // 2. Attempt connection
-    // 3. Discover calendars
-    // 4. Store encrypted credentials
-    // 5. Return account info
+export class CalDAVCalendarService {
+  constructor(private prisma: PrismaClient, private account: ConnectedAccount) {
+    // Initialize CalDAV client
   }
 
-  async sync(account: CalDAVAccount): Promise<void> {
-    // 1. Check calendar changes (ctag)
-    // 2. Fetch changed events (etag)
-    // 3. Apply local changes
-    // 4. Handle conflicts
-    // 5. Update sync tokens
-  }
-
-  async createEvent(calendar: CalDAVCalendar, event: CalendarEvent): Promise<CalDAVEvent> {
-    // 1. Convert to iCal
-    // 2. Upload to server
-    // 3. Store sync metadata
-    // 4. Return created event
-  }
+  // Authentication and discovery
+  async testConnection(): Promise<boolean>
+  async discoverCalendars(): Promise<CalDAVCalendar[]>
+  
+  // Event operations
+  async getEvents(start: Date, end: Date, calendarPath: string): Promise<CalendarEvent[]>
+  async createEvent(calendarPath: string, event: CalendarEventInput): Promise<CalendarEvent>
+  async updateEvent(calendarPath: string, eventId: string, event: CalendarEventInput): Promise<CalendarEvent>
+  async deleteEvent(calendarPath: string, eventId: string, mode: "single" | "series"): Promise<void>
+  
+  // Sync operations
+  async syncCalendar(calendarPath: string): Promise<SyncResult>
+  
+  // Helper methods
+  private convertToICalendar(event: CalendarEventInput): string
+  private convertFromICalendar(icalData: string): CalendarEvent
 }
 ```
 
-### 4. Key Components
-1. **CalDAV Client**
-   - Server communication
-   - iCal parsing/generation
-   - Authentication handling
-   - Request/response management
+### iCalendar Conversion
 
-2. **Sync Engine**
-   ```typescript
-   interface SyncEngine {
-     getChanges(calendar: CalDAVCalendar): Promise<{
-       created: CalDAVEvent[];
-       updated: CalDAVEvent[];
-       deleted: string[];
-     }>;
-     
-     applyChanges(changes: SyncChanges): Promise<void>;
-     
-     resolveConflicts(local: CalDAVEvent, remote: CalDAVEvent): Promise<CalDAVEvent>;
-   }
-   ```
+Example of converting between internal format and iCalendar:
 
-3. **Security Manager**
-   ```typescript
-   interface SecurityManager {
-     encryptCredentials(credentials: CalDAVCredentials): string;
-     decryptCredentials(encrypted: string): CalDAVCredentials;
-     validateCertificate(cert: Certificate): boolean;
-     generateAuthHeaders(credentials: CalDAVCredentials): Headers;
-   }
-   ```
+```typescript
+// Internal event to iCalendar
+function convertToICalendar(event: CalendarEventInput): string {
+  const calendar = new ICAL.Component(['vcalendar', [], []]);
+  calendar.updatePropertyWithValue('prodid', '-//Fluid Calendar//EN');
+  calendar.updatePropertyWithValue('version', '2.0');
+  
+  const vevent = new ICAL.Component(['vevent', [], []]);
+  vevent.updatePropertyWithValue('uid', event.id || crypto.randomUUID());
+  vevent.updatePropertyWithValue('summary', event.title);
+  
+  if (event.description) {
+    vevent.updatePropertyWithValue('description', event.description);
+  }
+  
+  // Add start and end times
+  const dtstart = new ICAL.Property('dtstart');
+  const dtend = new ICAL.Property('dtend');
+  
+  if (event.allDay) {
+    dtstart.setParameter('value', 'date');
+    dtend.setParameter('value', 'date');
+    // Format as YYYYMMDD
+    dtstart.setValue(formatDateToYYYYMMDD(event.start));
+    dtend.setValue(formatDateToYYYYMMDD(event.end));
+  } else {
+    // Set as date-time with timezone
+    dtstart.setValue(ICAL.Time.fromJSDate(event.start, false));
+    dtend.setValue(ICAL.Time.fromJSDate(event.end, false));
+  }
+  
+  vevent.addProperty(dtstart);
+  vevent.addProperty(dtend);
+  
+  // Handle recurring events
+  if (event.isRecurring && event.recurrenceRule) {
+    vevent.updatePropertyWithValue('rrule', event.recurrenceRule);
+  }
+  
+  calendar.addSubcomponent(vevent);
+  return calendar.toString();
+}
+```
 
-### 5. Edge Cases to Handle
-- Self-signed certificates
-- Different server implementations
-- Network interruptions
-- Timezone conversions
-- Recurring event modifications
-- Partial sync failures
-- Rate limiting
-- Server redirects
+## Recommended Libraries
 
-## Implementation Status
+1. **tsdav**: A TypeScript library for CalDAV/CardDAV
+   - https://github.com/natelindev/tsdav
+   - Modern TypeScript support
+   - Handles both CalDAV protocol and authentication
 
-### 🚧 Phase 1: Foundation Setup (Current Focus)
-- [ ] Database Schema Updates
-  - [ ] Add CalDAV account model
-  - [ ] Add CalDAV calendar model
-  - [ ] Add sync metadata tables
-  - [ ] Add proper indexes
-- [ ] Basic CalDAV Client
-  - [ ] Server connection
-  - [ ] Basic authentication
-  - [ ] Calendar discovery
-  - [ ] Simple CRUD operations
-- [ ] Security Infrastructure
-  - [ ] Credential encryption
-  - [ ] Certificate validation
-  - [ ] Auth header generation
+2. **ical.js**: For parsing and generating iCalendar data
+   - https://github.com/kewisch/ical.js
+   - Comprehensive support for iCalendar format
+   - Handles recurring events and timezones
 
-### ⏳ Phase 2: Core Integration (Planned)
-- [ ] Calendar Integration
-  - [ ] Full CRUD support
-  - [ ] Recurring event handling
-  - [ ] Property mapping
-  - [ ] Error handling
-- [ ] Sync Engine
-  - [ ] Change detection
-  - [ ] Incremental sync
-  - [ ] Conflict resolution
-  - [ ] Retry mechanisms
-- [ ] UI Integration
-  - [ ] Account management
-  - [ ] Calendar selection
-  - [ ] Sync status display
-  - [ ] Error reporting
+## Challenges and Considerations
 
-### ⏳ Phase 3: Advanced Features (Planned)
-- [ ] Auto-discovery
-  - [ ] Well-known URL support
-  - [ ] DNS-based discovery
-  - [ ] Multiple protocols
-- [ ] Enhanced Sync
-  - [ ] Batch operations
-  - [ ] Delta sync
-  - [ ] Offline support
-- [ ] Rich Features
-  - [ ] Attachment handling
-  - [ ] Custom properties
-  - [ ] Categories/tags
-  - [ ] Sharing support
+1. **Server Compatibility**: CalDAV servers can vary in their implementation details
+2. **Authentication**: Some servers may require specific authentication methods
+3. **Performance**: Efficient sync is crucial for large calendars
+4. **Recurring Events**: Complex recurrence rules need careful handling
+5. **Error Handling**: Robust error handling for different server behaviors
 
-## Next Implementation Steps
+## Resources
 
-1. Database Schema
-   ```sql
-   -- CalDAV Account
-   CREATE TABLE caldav_accounts (
-     id TEXT PRIMARY KEY,
-     server_url TEXT NOT NULL,
-     username TEXT NOT NULL,
-     credentials TEXT NOT NULL,
-     email TEXT,
-     discovery_url TEXT,
-     created_at TIMESTAMP NOT NULL,
-     updated_at TIMESTAMP NOT NULL
-   );
-
-   -- CalDAV Calendar
-   CREATE TABLE caldav_calendars (
-     id TEXT PRIMARY KEY,
-     account_id TEXT NOT NULL,
-     url TEXT NOT NULL,
-     display_name TEXT NOT NULL,
-     color TEXT,
-     ctag TEXT,
-     sync_token TEXT,
-     FOREIGN KEY (account_id) REFERENCES caldav_accounts(id)
-   );
-   ```
-
-2. Security Implementation
-   ```typescript
-   interface CredentialManager {
-     encrypt(data: string): Promise<string>;
-     decrypt(encrypted: string): Promise<string>;
-     validate(serverUrl: string): Promise<boolean>;
-   }
-   ```
-
-3. UI Components
-   ```typescript
-   interface CalDAVConnectionForm {
-     serverUrl: string;
-     username: string;
-     password: string;
-     autoDiscover: boolean;
-   }
-   ```
-
-4. API Routes
-   ```typescript
-   // POST /api/calendar/caldav/auth
-   // GET /api/calendar/caldav/discover
-   // GET /api/calendar/caldav/calendars
-   // POST /api/calendar/caldav/sync
-   ```
-
-## Technical Considerations
-
-1. **Security**
-   - Credentials must be encrypted at rest
-   - Support for various auth methods
-   - Proper certificate validation
-   - Rate limiting implementation
-
-2. **Performance**
-   - Efficient sync algorithms
-   - Batch operations where possible
-   - Caching strategies
-   - Background sync support
-
-3. **Reliability**
-   - Robust error handling
-   - Automatic retry logic
-   - Conflict resolution
-   - Data validation
-
-4. **User Experience**
-   - Simple connection process
-   - Clear error messages
-   - Sync status indicators
-   - Easy calendar selection
-
-## Dependencies
-
-1. **Required Libraries**
-   - `tsdav` - CalDAV client
-   - `ical.js` - iCal parsing
-   - `crypto-js` - Credential encryption
-   - `date-fns-tz` - Timezone handling
-
-2. **Development Tools**
-   - CalDAV test server
-   - SSL certificates
-   - Test accounts
-   - Performance monitoring
-
-## Testing Strategy
-
-1. **Unit Tests**
-   - Client operations
-   - Data parsing
-   - Security functions
-   - Sync logic
-
-2. **Integration Tests**
-   - Server communication
-   - Full sync cycles
-   - Error scenarios
-   - Concurrent operations
-
-3. **End-to-End Tests**
-   - Account connection
-   - Calendar operations
-   - UI interactions
-   - Error handling
-
-## Documentation Requirements
-
-1. **User Documentation**
-   - Connection guide
-   - Troubleshooting steps
-   - Security best practices
-   - Feature overview
-
-2. **Developer Documentation**
-   - Architecture overview
-   - API documentation
-   - Security considerations
-   - Extension points 
+- [RFC 4791: CalDAV](https://datatracker.ietf.org/doc/html/rfc4791)
+- [RFC 5545: iCalendar](https://datatracker.ietf.org/doc/html/rfc5545)
+- [CalConnect: CalDAV Resources](https://devguide.calconnect.org/CalDAV/) 

@@ -11,15 +11,18 @@ datasource db {
 }
 
 model ConnectedAccount {
-  id           String         @id @default(cuid())
-  provider     String // "GOOGLE" | "OUTLOOK"
-  email        String
-  accessToken  String
-  refreshToken String?
-  expiresAt    DateTime
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  calendars    CalendarFeed[]
+  id             String         @id @default(cuid())
+  provider       String // "GOOGLE" | "OUTLOOK" | "CALDAV"
+  email          String
+  accessToken    String
+  refreshToken   String?
+  expiresAt      DateTime
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  calendars      CalendarFeed[]
+  // CalDAV specific fields
+  caldavUrl      String? // Base URL for CalDAV server
+  caldavUsername String? // Username for Basic Auth
 
   @@unique([provider, email])
 }
@@ -75,7 +78,7 @@ model CalendarFeed {
   id                String            @id @default(uuid())
   name              String
   url               String? // Optional for local calendars
-  type              String // "LOCAL", "GOOGLE", "OUTLOOK"
+  type              String // "LOCAL", "GOOGLE", "OUTLOOK", "CALDAV"
   color             String? // Add back color field
   enabled           Boolean           @default(true)
   createdAt         DateTime          @default(now())
@@ -91,6 +94,9 @@ model CalendarFeed {
   user              User?             @relation(fields: [userId], references: [id])
   accountId         String?
   account           ConnectedAccount? @relation(fields: [accountId], references: [id])
+  // CalDAV specific fields
+  caldavPath        String? // Path to the specific calendar on the server
+  ctag              String? // CalDAV collection tag for change detection
 
   @@index([accountId])
 }
