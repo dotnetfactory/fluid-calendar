@@ -17,13 +17,14 @@ const LOG_SOURCE = "CalDAVCalendar";
  */
 export async function POST(request: Request) {
   try {
-    const { accountId, calendarUrl, name, color } = await request.json();
+    const json = await request.json();
+    const { accountId, calendarId } = json;
 
     // Validate required fields
-    if (!accountId || !calendarUrl) {
+    if (!accountId) {
       logger.error(
         "Missing required fields for adding CalDAV calendar",
-        { accountId: !!accountId, calendarUrl: !!calendarUrl },
+        { accountId: !!accountId },
         LOG_SOURCE
       );
       return NextResponse.json(
@@ -31,12 +32,6 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
-    logger.info(
-      `Adding CalDAV calendar for account: ${accountId}`,
-      { calendarUrl },
-      LOG_SOURCE
-    );
 
     // Get the account from the database
     const account = await prisma.connectedAccount.findUnique({
@@ -76,6 +71,12 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    logger.info(
+      `Adding CalDAV calendar for account: ${accountId}`,
+      { caldavUrl: account.caldavUrl },
+      LOG_SOURCE
+    );
 
     try {
       // Create a CalDAV client
@@ -120,10 +121,10 @@ export async function POST(request: Request) {
       // Fetch calendars to verify the calendar URL exists
       const calendars = await fetchCalDAVCalendars(client);
 
-      const calendar = calendars.find((cal) => cal.url === calendarUrl);
+      const calendar = calendars.find((cal) => cal.url === calendarId);
       if (!calendar) {
         logger.error(
-          `Calendar not found: ${calendarUrl}`,
+          `Calendar not found: ${calendarId}`,
           { accountId },
           LOG_SOURCE
         );
@@ -133,16 +134,50 @@ export async function POST(request: Request) {
         );
       }
 
+
+
+      const existingCalendar = await prisma.calendarFeed.findFirst({
+        where: {
+          url: calendarId,
+        },
+      });
+
+      if (existingCalendar) {
+        logger.info(
+          `Calendar already exists: ${calendarId}`,
+          { accountId },
+          LOG_SOURCE
+        );
+        return NextResponse.json({
+          success: true,
+          calendar: {
+            id: existingCalendar.id,
+            name: existingCalendar.name,
+            color: existingCalendar.color,
+            url: existingCalendar.url,
+          },
+        });
+      }
       // Add the calendar to the database
+      let calendarColor = calendar.calendarColor || "#4285F4";
+      if (typeof calendarColor !== "string") {
+        calendarColor = "#4285F4";
+      }
+      let calendarName = calendar.displayName || "Unnamed Calendar";
+      if (typeof calendarName !== "string") {
+        calendarName = "Unnamed Calendar";
+      }
+      // const newCalendarOptions = ;
       const newCalendar = await prisma.calendarFeed.create({
         data: {
-          name: name || calendar.displayName || "Unnamed Calendar",
-          color: color || calendar.calendarColor || "#4285F4",
+          name: calendarName,
+          color: calendarColor,
           type: "CALDAV",
-          url: calendarUrl,
+          url: calendarId,
           accountId,
           enabled: true,
           lastSync: formatISO(new Date()),
+          syncToken: calendar.syncToken
         },
       });
 
@@ -167,7 +202,7 @@ export async function POST(request: Request) {
         {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack || null : null,
-          calendarUrl,
+          calendarId,
         },
         LOG_SOURCE
       );

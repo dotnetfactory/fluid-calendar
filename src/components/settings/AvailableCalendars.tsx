@@ -8,6 +8,7 @@ interface AvailableCalendar {
   color: string;
   accessRole?: string;
   canEdit?: boolean;
+  alreadyAdded?: boolean;
 }
 
 interface Props {
@@ -93,7 +94,17 @@ export function AvailableCalendars({ accountId, provider }: Props) {
         if (!response.ok) throw new Error("Failed to add calendar");
 
         // Remove from available list
-        setCalendars((prev) => prev.filter((c) => c.id !== calendar.id));
+        setCalendars((prev) =>
+          prev.filter((c) => {
+            if (calendar.alreadyAdded) {
+              return false;
+            }
+            if (c.id === calendar.id) {
+              return false;
+            }
+            return true;
+          })
+        );
       } catch (error) {
         console.error("Failed to add calendar:", error);
       } finally {

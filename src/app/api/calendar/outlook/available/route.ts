@@ -20,6 +20,9 @@ export async function GET(req: NextRequest) {
     // Get the account
     const account = await prisma.connectedAccount.findUnique({
       where: { id: accountId },
+      include: {
+        calendars: true,
+      },
     });
 
     if (!account || account.provider !== "OUTLOOK") {
@@ -39,7 +42,16 @@ export async function GET(req: NextRequest) {
       name: calendar.name,
       color: calendar.color || "#3b82f6",
       canEdit: calendar.canEdit ?? true,
-    }));
+    })).filter((cal) => {
+      // Only include calendars that:
+      // 1. Have an ID and name
+      // 2. Are not already connected
+      // 3. User has write access
+      return (
+        cal.id &&
+        !account.calendars.some((f) => f.url === cal.id)
+      );
+    });
 
     return NextResponse.json(availableCalendars);
   } catch (error) {

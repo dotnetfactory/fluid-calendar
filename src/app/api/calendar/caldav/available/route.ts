@@ -145,7 +145,7 @@ export async function GET(request: Request) {
       );
 
       // Return the array directly, consistent with Google and Outlook
-      return NextResponse.json(formattedCalendars);
+      return NextResponse.json(formattedCalendars.filter((cal) => !cal.alreadyAdded));
     } catch (error) {
       logger.error(
         `Error fetching available calendars for account: ${accountId}`,
