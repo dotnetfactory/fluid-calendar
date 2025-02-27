@@ -1,77 +1,15 @@
 import { NextResponse } from "next/server";
-import { DAVClient } from "tsdav";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import {
+  formatAbsoluteUrl,
+  createCalDAVClient,
+  loginToCalDAVServer,
+  handleFastmailPath,
+  fetchCalDAVCalendars,
+} from "../utils";
 
 const LOG_SOURCE = "CalDAVAuth";
-
-/**
- * Helper function to ensure a URL is properly formatted
- * @param baseUrl The base URL (e.g., https://caldav.fastmail.com)
- * @param path The path to append (e.g., /dav/calendars/user/email/)
- * @returns A properly formatted absolute URL
- */
-function formatAbsoluteUrl(baseUrl: string, path?: string): string {
-  // If no path, ensure baseUrl is a valid URL
-  if (!path) {
-    try {
-      // Validate that baseUrl is a valid URL
-      new URL(baseUrl);
-      return baseUrl;
-    } catch (_e) {
-      // If baseUrl is not a valid URL, try to fix it
-      if (!baseUrl.startsWith("http")) {
-        return `https://${baseUrl}`;
-      }
-      throw new Error(`Invalid base URL: ${baseUrl}`);
-    }
-  }
-
-  // If path is already an absolute URL, validate and return it
-  if (path.startsWith("http")) {
-    try {
-      // Validate that path is a valid URL
-      new URL(path);
-      return path;
-    } catch (_e) {
-      throw new Error(`Invalid URL in path: ${path}`);
-    }
-  }
-
-  // Ensure baseUrl doesn't end with a slash if path starts with one
-  const base =
-    baseUrl.endsWith("/") && path.startsWith("/")
-      ? baseUrl.slice(0, -1)
-      : baseUrl;
-
-  // Ensure path starts with a slash
-  const pathWithSlash = path.startsWith("/") ? path : `/${path}`;
-
-  // Construct the full URL
-  const fullUrl = `${base}${pathWithSlash}`;
-
-  // Validate the constructed URL
-  try {
-    new URL(fullUrl);
-    return fullUrl;
-  } catch (_e) {
-    // If the URL is invalid, try to fix it
-    if (!fullUrl.startsWith("http")) {
-      const fixedUrl = `https://${fullUrl}`;
-      try {
-        new URL(fixedUrl);
-        return fixedUrl;
-      } catch (_e) {
-        throw new Error(
-          `Could not create valid URL from: ${base} and ${pathWithSlash}`
-        );
-      }
-    }
-    throw new Error(
-      `Invalid URL constructed from: ${base} and ${pathWithSlash}`
-    );
-  }
-}
 
 /**
  * API route for authenticating and adding a CalDAV account
@@ -103,48 +41,12 @@ export async function POST(request: Request) {
 
     try {
       // Create a DAVClient instance
-      const client = new DAVClient({
-        serverUrl,
-        credentials: {
-          username,
-          password,
-        },
-        authMethod: "Basic" as const,
-        defaultAccountType: "caldav" as const,
-      });
-      let caldavPath = path;
+      const client = createCalDAVClient(serverUrl, username, password);
+
       // Try to login to verify credentials
       try {
-        await client.login();
-        logger.info(
-          "Successfully logged in to CalDAV server",
-          { serverUrl, username },
-          LOG_SOURCE
-        );
-
-        // If this is Fastmail and no path is provided, set a default path
-
-        if (!path && serverUrl.includes("fastmail.com")) {
-          caldavPath = `/dav/calendars/user/${encodeURIComponent(username)}/`;
-          logger.info(
-            "Detected Fastmail server, using default path",
-            { caldavPath },
-            LOG_SOURCE
-          );
-        }
+        await loginToCalDAVServer(client, serverUrl, username);
       } catch (loginError) {
-        logger.error(
-          "Failed to login to CalDAV server",
-          {
-            error:
-              loginError instanceof Error
-                ? loginError.message
-                : String(loginError),
-            serverUrl,
-            username,
-          },
-          LOG_SOURCE
-        );
         return NextResponse.json(
           {
             error:
@@ -158,38 +60,19 @@ export async function POST(request: Request) {
         );
       }
 
+      // Handle Fastmail-specific path formatting
+      const caldavPath = handleFastmailPath(serverUrl, path, username);
+
       // If path is provided, try to fetch calendars to verify the path
       if (caldavPath) {
         try {
-          // Construct the full URL if path is provided
-          const fullUrl = formatAbsoluteUrl(serverUrl, caldavPath);
-
           logger.info(
             `Verifying CalDAV path: ${caldavPath}`,
-            { fullUrl, username },
+            { fullUrl: formatAbsoluteUrl(serverUrl, caldavPath), username },
             LOG_SOURCE
           );
 
-          // Ensure client account has necessary properties
-          if (client.account && !client.account.homeUrl) {
-            // Set homeUrl if not discovered during login (common with Fastmail)
-            const homeUrl = formatAbsoluteUrl(serverUrl, caldavPath);
-
-            client.account.homeUrl = homeUrl;
-            logger.info(
-              "Setting homeUrl manually for path validation",
-              { homeUrl },
-              LOG_SOURCE
-            );
-          }
-
-          const calendars = await client.fetchCalendars();
-
-          logger.info(
-            `Found ${calendars.length} calendars at path`,
-            { caldavPath, username },
-            LOG_SOURCE
-          );
+          await fetchCalDAVCalendars(client);
         } catch (pathError) {
           logger.error(
             "Failed to validate CalDAV path",

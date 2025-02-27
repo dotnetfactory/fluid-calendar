@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
-import { DAVClient } from "tsdav";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import {
+  createCalDAVClient,
+  loginToCalDAVServer,
+  fetchCalDAVCalendars,
+} from "../utils";
 
 const LOG_SOURCE = "CalDAVAvailable";
 
@@ -68,24 +72,19 @@ export async function GET(request: Request) {
     }
 
     try {
-      // Create a DAVClient instance
-      const client = new DAVClient({
-        serverUrl: account.caldavUrl,
-        credentials: {
-          username: account.caldavUsername,
-          password: account.accessToken, // For CalDAV, we store the password as the access token
-        },
-        authMethod: "Basic",
-        defaultAccountType: "caldav",
-      });
+      // Create a CalDAV client
+      const client = createCalDAVClient(
+        account.caldavUrl,
+        account.caldavUsername,
+        account.accessToken
+      );
 
       // Login to the CalDAV server
       try {
-        await client.login();
-        logger.info(
-          `Successfully logged in to CalDAV server for account: ${accountId}`,
-          { url: account.caldavUrl },
-          LOG_SOURCE
+        await loginToCalDAVServer(
+          client,
+          account.caldavUrl,
+          account.caldavUsername
         );
       } catch (loginError) {
         logger.error(
@@ -113,37 +112,52 @@ export async function GET(request: Request) {
       }
 
       // Fetch available calendars
-      const calendars = await client.fetchCalendars();
+      const calendars = await fetchCalDAVCalendars(client);
+
+      // Get existing calendars for this account
+      const existingCalendars = await prisma.calendarFeed.findMany({
+        where: {
+          accountId: account.id,
+          type: "CALDAV",
+        },
+        select: {
+          url: true,
+        },
+      });
+
+      const existingUrls = new Set(existingCalendars.map((cal) => cal.url));
+
+      // Format the calendars for the response
+      const formattedCalendars = calendars.map((cal) => ({
+        id: cal.url, // Use url as id to match other providers
+        url: cal.url,
+        name: cal.displayName || "Unnamed Calendar",
+        color: cal.calendarColor || "#4285F4",
+        description: cal.description || "",
+        alreadyAdded: existingUrls.has(cal.url),
+        canEdit: true, // Assume all calendars can be edited for consistency with Outlook
+      }));
 
       logger.info(
-        `Found ${calendars.length} calendars for account: ${accountId}`,
-        {},
+        `Found ${calendars.length} available calendars for account: ${accountId}`,
+        { alreadyAdded: existingCalendars.length },
         LOG_SOURCE
       );
 
-      // Transform the calendars to a simpler format
-      const calendarList = calendars.map((calendar) => ({
-        id: calendar.url,
-        name: calendar.displayName || "Unnamed Calendar",
-        description: calendar.description || "",
-        color: calendar.calendarColor || "#4285F4",
-        url: calendar.url,
-      }));
-
-      return NextResponse.json(calendarList);
+      // Return the array directly, consistent with Google and Outlook
+      return NextResponse.json(formattedCalendars);
     } catch (error) {
       logger.error(
-        `Error fetching calendars for account: ${accountId}`,
+        `Error fetching available calendars for account: ${accountId}`,
         {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack || null : null,
-          url: account.caldavUrl,
         },
         LOG_SOURCE
       );
       return NextResponse.json(
         {
-          error: "Failed to fetch calendars from CalDAV server",
+          error: "Failed to fetch available calendars",
           details: error instanceof Error ? error.message : String(error),
         },
         { status: 500 }

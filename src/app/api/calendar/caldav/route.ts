@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
-import { DAVClient } from "tsdav";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { formatISO } from "date-fns";
+import {
+  createCalDAVClient,
+  loginToCalDAVServer,
+  fetchCalDAVCalendars,
+} from "./utils";
 
 const LOG_SOURCE = "CalDAVCalendar";
 
@@ -74,24 +78,19 @@ export async function POST(request: Request) {
     }
 
     try {
-      // Verify the calendar exists
-      const client = new DAVClient({
-        serverUrl: account.caldavUrl,
-        credentials: {
-          username: account.caldavUsername,
-          password: account.accessToken, // For CalDAV, we store the password as the access token
-        },
-        authMethod: "Basic",
-        defaultAccountType: "caldav",
-      });
+      // Create a CalDAV client
+      const client = createCalDAVClient(
+        account.caldavUrl,
+        account.caldavUsername,
+        account.accessToken
+      );
 
       // Login to the CalDAV server
       try {
-        await client.login();
-        logger.info(
-          `Successfully logged in to CalDAV server for account: ${accountId}`,
-          { url: account.caldavUrl },
-          LOG_SOURCE
+        await loginToCalDAVServer(
+          client,
+          account.caldavUrl,
+          account.caldavUsername
         );
       } catch (loginError) {
         logger.error(
@@ -119,7 +118,7 @@ export async function POST(request: Request) {
       }
 
       // Fetch calendars to verify the calendar URL exists
-      const calendars = await client.fetchCalendars();
+      const calendars = await fetchCalDAVCalendars(client);
 
       const calendar = calendars.find((cal) => cal.url === calendarUrl);
       if (!calendar) {
