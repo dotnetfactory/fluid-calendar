@@ -2,7 +2,7 @@ export interface CalendarFeed {
   id: string;
   name: string;
   url?: string; // Make optional since local calendar won't have URL
-  type: "LOCAL" | "GOOGLE" | "OUTLOOK";
+  type: "LOCAL" | "GOOGLE" | "OUTLOOK" | "CALDAV";
   color?: string;
   enabled: boolean;
   lastSync?: Date;

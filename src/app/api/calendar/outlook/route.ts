@@ -69,6 +69,8 @@ export async function GET(req: NextRequest) {
       expiresAt,
       createdAt: newDate(),
       updatedAt: newDate(),
+      caldavUrl: null,
+      caldavUsername: null,
     };
 
     // Get user info

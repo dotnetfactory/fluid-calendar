@@ -85,7 +85,7 @@ interface CalendarStore extends CalendarState {
   addFeed: (
     name: string,
     url: string,
-    type: "LOCAL" | "GOOGLE" | "OUTLOOK",
+    type: "LOCAL" | "GOOGLE" | "OUTLOOK" | "CALDAV",
     color?: string
   ) => Promise<void>;
   removeFeed: (id: string) => Promise<void>;
@@ -638,6 +638,16 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         if (!response.ok) {
           throw new Error("Failed to sync Outlook Calendar");
         }
+      } else if (feed.type === "CALDAV") {
+        const response = await fetch("/api/calendar/caldav/sync", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ feedId: id }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to sync CalDAV Calendar");
+        }
       }
 
       // Reload events from database
@@ -747,6 +757,8 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
       const endpoint =
         feed.type === "GOOGLE"
           ? `/api/calendar/google/${feedId}`
+          : feed.type === "CALDAV"
+          ? `/api/calendar/caldav/sync`
           : `/api/calendar/outlook/sync`;
 
       const response = await fetch(endpoint, {

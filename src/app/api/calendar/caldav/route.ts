@@ -7,6 +7,8 @@ import {
   loginToCalDAVServer,
   fetchCalDAVCalendars,
 } from "./utils";
+import { CalDAVCalendarService } from "@/lib/caldav-calendar";
+import { newDate } from "@/lib/date-utils";
 
 const LOG_SOURCE = "CalDAVCalendar";
 
@@ -134,8 +136,6 @@ export async function POST(request: Request) {
         );
       }
 
-
-
       const existingCalendar = await prisma.calendarFeed.findFirst({
         where: {
           url: calendarId,
@@ -167,7 +167,6 @@ export async function POST(request: Request) {
       if (typeof calendarName !== "string") {
         calendarName = "Unnamed Calendar";
       }
-      // const newCalendarOptions = ;
       const newCalendar = await prisma.calendarFeed.create({
         data: {
           name: calendarName,
@@ -177,7 +176,7 @@ export async function POST(request: Request) {
           accountId,
           enabled: true,
           lastSync: formatISO(new Date()),
-          syncToken: calendar.syncToken
+          syncToken: calendar.syncToken,
         },
       });
 
@@ -186,6 +185,45 @@ export async function POST(request: Request) {
         { name: newCalendar.name, accountId },
         LOG_SOURCE
       );
+
+      // Perform initial sync of events
+      try {
+        logger.info(
+          `Performing initial sync of CalDAV calendar: ${newCalendar.id}`,
+          { calendarId },
+          LOG_SOURCE
+        );
+
+        const caldavService = new CalDAVCalendarService(prisma, account);
+        await caldavService.syncCalendar(calendarId);
+
+        // Update the last sync time
+        await prisma.calendarFeed.update({
+          where: { id: newCalendar.id },
+          data: {
+            lastSync: newDate(),
+          },
+        });
+
+        logger.info(
+          `Initial sync completed for CalDAV calendar: ${newCalendar.id}`,
+          { calendarId },
+          LOG_SOURCE
+        );
+      } catch (syncError) {
+        logger.error(
+          `Failed to perform initial sync of CalDAV calendar: ${newCalendar.id}`,
+          {
+            error:
+              syncError instanceof Error
+                ? syncError.message
+                : String(syncError),
+            calendarId,
+          },
+          LOG_SOURCE
+        );
+        // Don't return an error here, as we've already created the calendar
+      }
 
       return NextResponse.json({
         success: true,
