@@ -2,9 +2,6 @@ import { CalendarEvent, PrismaClient } from "@prisma/client";
 import { TimeSlot, Conflict } from "@/types/scheduling";
 import { BatchConflictCheck, CalendarService } from "./CalendarService";
 import { areIntervalsOverlapping } from "@/lib/date-utils";
-import { logger } from "@/lib/logger";
-
-const LOG_SOURCE = "CalendarService";
 
 interface EventCache {
   events: CalendarEvent[];
@@ -40,24 +37,12 @@ export class CalendarServiceImpl implements CalendarService {
   //TODO: we need to check cache if calendars or events change e.g. sync or crud of events or calendars - DO NOT REMOVE THIS COMMENT
   private isCacheValid(start: Date, end: Date, calendarIds: string[]): boolean {
     if (!this.cache) {
-      logger.debug(
-        "[DEBUG] Cache miss - no cache exists",
-        undefined,
-        LOG_SOURCE
-      );
       return false;
     }
 
     const now = Date.now();
     const cacheAge = now - this.cache.timestamp;
     if (cacheAge > this.CACHE_TTL) {
-      logger.debug(
-        "[DEBUG] Cache expired",
-        {
-          cacheAge: String(cacheAge),
-        },
-        LOG_SOURCE
-      );
       return false;
     }
 
@@ -73,25 +58,6 @@ export class CalendarServiceImpl implements CalendarService {
     const hasDateRange =
       this.cache.startDay <= requestedStartWeek &&
       this.cache.endDay >= requestedEndWeek;
-
-    if (!hasDateRange || !sameCalendars) {
-      logger.debug(
-        "[DEBUG] Cache invalid",
-        {
-          reason: !hasDateRange ? "date range mismatch" : "calendar mismatch",
-          sameCalendars,
-          requestedStart: new Date(start).toISOString(),
-          requestedEnd: new Date(end).toISOString(),
-          requestedStartWeek: new Date(requestedStartWeek).toISOString(),
-          requestedEndWeek: new Date(requestedEndWeek).toISOString(),
-          cacheStart: new Date(this.cache.startDay).toISOString(),
-          cacheEnd: new Date(this.cache.endDay).toISOString(),
-          requestedIds: sortedRequestedIds,
-          cachedIds: sortedCachedIds,
-        },
-        LOG_SOURCE
-      );
-    }
 
     return sameCalendars && hasDateRange;
   }
@@ -174,21 +140,11 @@ export class CalendarServiceImpl implements CalendarService {
   ): Promise<CalendarEvent[]> {
     // Only query if we have selected calendars
     if (selectedCalendarIds.length === 0) {
-      logger.debug(
-        "[DEBUG] No calendars selected, skipping event check",
-        undefined,
-        LOG_SOURCE
-      );
       return [];
     }
 
     // Check if we can use cached events
     if (this.isCacheValid(start, end, selectedCalendarIds)) {
-      logger.debug(
-        "[DEBUG] Using cached calendar events",
-        undefined,
-        LOG_SOURCE
-      );
       return this.cache!.events.filter(
         (event) => event.start <= end && event.end >= start
       );
@@ -198,18 +154,6 @@ export class CalendarServiceImpl implements CalendarService {
     const startDay = new Date(this.getWeekTimestamp(start, true));
     const endDay = new Date(this.getWeekTimestamp(end, false));
     endDay.setDate(endDay.getDate() + 1); // Add one more day just to be safe
-
-    logger.debug(
-      "[DEBUG] Cache miss - Fetching events for calendars:",
-      {
-          calendarIds: selectedCalendarIds,
-          startDay: startDay.toISOString(),
-          endDay: endDay.toISOString(),
-          requestedStart: start.toISOString(),
-          requestedEnd: end.toISOString(),
-      },
-      LOG_SOURCE
-    );
 
     const events = await this.prisma.calendarEvent.findMany({
       where: {

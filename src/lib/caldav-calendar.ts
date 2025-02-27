@@ -27,6 +27,11 @@ interface ExtendedDAVClient {
   fetchPrincipalUrl: () => Promise<string>;
   fetchCalendars: () => Promise<DAVCalendar[]>;
   calendarQuery: (params: CalendarQueryParams) => Promise<DAVResponse[]>;
+  createObject: (params: {
+    url: string;
+    data: string;
+    headers?: Record<string, string>;
+  }) => Promise<DAVResponse>;
   // Add other methods as needed
 }
 
@@ -901,13 +906,19 @@ export class CalDAVCalendarService {
       const rrule = vevent.getFirstPropertyValue("rrule");
       const isRecurring = !!rrule;
 
+      // Get recurrence-id if this is an exception
+      const recurrenceId = vevent.getFirstPropertyValue("recurrence-id");
+      const isInstance = !!recurrenceId;
+
+      // Only master events should be marked as recurring
+      const isMaster = isRecurring && !isInstance;
+
       // Convert iCalendar recurrence rule to RRule string format if present
       const recurrenceRuleString = isRecurring
         ? convertICalRRuleToRRuleString(rrule as unknown as ICalRRule)
         : null;
 
       // Create a partial CalendarEvent object
-      // Note: This is incomplete and would need to be properly saved to the database
       return {
         id: uid,
         feedId: "", // This would need to be set when saving to the database
@@ -917,7 +928,7 @@ export class CalDAVCalendarService {
         start: startDate,
         end: endDate,
         location: location || null,
-        isRecurring,
+        isRecurring: isMaster, // Only master events are recurring
         recurrenceRule: recurrenceRuleString,
         allDay: isAllDay,
         status: null,
@@ -928,9 +939,9 @@ export class CalDAVCalendarService {
         attendees: null,
         createdAt: newDate(),
         updatedAt: newDate(),
-        isMaster: isRecurring,
-        masterEventId: null,
-        recurringEventId: null,
+        isMaster: isMaster,
+        masterEventId: isInstance ? String(uid).split("_")[0] : null,
+        recurringEventId: isInstance ? String(uid) : null,
       } as CalendarEvent;
     } catch (error) {
       logger.error(
@@ -1011,7 +1022,36 @@ export class CalDAVCalendarService {
 
     // Handle recurring events
     if (event.isRecurring && event.recurrenceRule) {
-      vevent.updatePropertyWithValue("rrule", event.recurrenceRule);
+      // Convert from RRule string format (e.g., "FREQ=DAILY;INTERVAL=1") to iCalendar format
+      // The iCalendar format expects just the rule part without the property name
+      const rruleValue = event.recurrenceRule;
+
+      // Create a proper RRULE property
+      const rruleProp = new ICAL.Property("rrule");
+
+      // Parse the RRule string into an object
+      const rruleObj: Record<string, string | number | string[]> = {};
+      rruleValue.split(";").forEach((part) => {
+        const [key, value] = part.split("=");
+        if (key && value) {
+          // Handle array values like BYDAY=MO,TU,WE
+          if (value.includes(",")) {
+            rruleObj[key.toLowerCase()] = value.split(",");
+          } else if (!isNaN(Number(value))) {
+            // Handle numeric values
+            rruleObj[key.toLowerCase()] = Number(value);
+          } else {
+            // Handle string values
+            rruleObj[key.toLowerCase()] = value;
+          }
+        }
+      });
+
+      // Set the value as a jCal-compatible object
+      rruleProp.setValue(rruleObj);
+
+      // Add the property to the event
+      vevent.addProperty(rruleProp);
     }
 
     // Add the event to the calendar
@@ -1028,13 +1068,265 @@ export class CalDAVCalendarService {
    * @returns Created calendar event
    */
   async createEvent(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _calendarPath: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _event: CalendarEventInput
+    calendarPath: string,
+    event: CalendarEventInput
   ): Promise<CalendarEvent> {
-    // This will be implemented in Phase 4
-    throw new Error("Method not implemented");
+    try {
+      logger.info(
+        "Creating new event in CalDAV calendar",
+        {
+          calendarPath,
+          eventTitle: event.title,
+          start: event.start.toISOString(),
+          end: event.end.toISOString(),
+          isRecurring: event.isRecurring || false,
+        },
+        LOG_SOURCE
+      );
+
+      // Generate a unique ID for the event if not provided
+      const eventId = event.id || crypto.randomUUID();
+
+      // Generate the iCalendar data
+      const icalData = this.convertToICalendar({
+        ...event,
+        id: eventId,
+      });
+
+      // Get the CalDAV client
+      const client = await this.getClient();
+
+      // For Fastmail compatibility, we'll use a PUT request to a specific URL
+      // Ensure the calendar path doesn't have a trailing slash
+      const normalizedCalendarPath = calendarPath.endsWith("/")
+        ? calendarPath.slice(0, -1)
+        : calendarPath;
+
+      // Create a URL for the event using the UID
+      const eventUrl = `${normalizedCalendarPath}/${eventId}.ics`;
+
+      logger.debug(
+        "Creating CalDAV event",
+        {
+          eventUrl,
+          calendarPath,
+          dataLength: icalData.length,
+          icalData: icalData.substring(0, 500), // Log first 500 chars of iCal data
+          accountId: this.account.id,
+          caldavUrl: this.account.caldavUrl,
+          username: this.account.caldavUsername || this.account.email,
+          authMethod: "Basic",
+        },
+        LOG_SOURCE
+      );
+
+      let response;
+      try {
+        // Try using PUT method first (works better with some CalDAV servers like Fastmail)
+        response = await fetch(eventUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "text/calendar; charset=utf-8",
+            "If-None-Match": "*", // Ensures we're creating a new resource
+            Authorization:
+              "Basic " +
+              Buffer.from(
+                `${this.account.caldavUsername || this.account.email}:${
+                  this.account.accessToken
+                }`
+              ).toString("base64"),
+          },
+          body: icalData,
+        });
+
+        logger.debug(
+          "CalDAV server response for PUT request",
+          {
+            status: response.status,
+            statusText: response.statusText,
+            url: eventUrl,
+          },
+          LOG_SOURCE
+        );
+
+        // Check if the response indicates success (2xx status code)
+        if (response.status < 200 || response.status >= 300) {
+          logger.error(
+            "Server returned error status when creating event with PUT",
+            {
+              status: response.status,
+              statusText: response.statusText,
+              calendarPath,
+              eventId,
+              eventUrl,
+            },
+            LOG_SOURCE
+          );
+
+          // If PUT fails, fall back to the createObject method
+          logger.info(
+            "Falling back to createObject method",
+            { calendarPath },
+            LOG_SOURCE
+          );
+
+          response = await client.createObject({
+            url: calendarPath,
+            data: icalData,
+            headers: {
+              "Content-Type": "text/calendar; charset=utf-8",
+              "If-None-Match": "*", // Ensures we're creating a new resource
+            },
+          });
+
+          logger.debug(
+            "CalDAV server response for createObject fallback",
+            {
+              status: response.status,
+              statusText: response.statusText,
+              href: response.href || null,
+              hasProps: !!response.props,
+            },
+            LOG_SOURCE
+          );
+
+          // Check if the fallback method also failed
+          if (response.status < 200 || response.status >= 300) {
+            logger.error(
+              "Server returned error status when creating event with fallback method",
+              {
+                status: response.status,
+                statusText: response.statusText,
+                calendarPath,
+                eventId,
+              },
+              LOG_SOURCE
+            );
+            throw new Error(
+              `Failed to create event on server: ${
+                response.statusText || response.status
+              }`
+            );
+          }
+        }
+
+        // Log the successful response
+        logger.info(
+          "Successfully created event on CalDAV server",
+          {
+            status: response.status,
+            url: eventUrl,
+            eventId,
+          },
+          LOG_SOURCE
+        );
+      } catch (createError) {
+        logger.error(
+          "Failed to create event on CalDAV server",
+          {
+            error:
+              createError instanceof Error
+                ? createError.message
+                : "Unknown error",
+            stack:
+              createError instanceof Error && createError.stack
+                ? createError.stack
+                : null,
+            calendarPath,
+            eventUrl,
+          },
+          LOG_SOURCE
+        );
+        throw createError;
+      }
+
+      // Get the calendar feed from the database
+      const feed = await this.prisma.calendarFeed.findFirst({
+        where: {
+          url: calendarPath,
+          accountId: this.account.id,
+          type: "CALDAV",
+        },
+      });
+
+      if (!feed) {
+        throw new Error(`Calendar feed not found for path: ${calendarPath}`);
+      }
+
+      // Instead of creating the event locally, trigger a sync to fetch it from the server
+      logger.info(
+        "Triggering calendar sync to fetch newly created event",
+        {
+          calendarPath,
+          eventId,
+        },
+        LOG_SOURCE
+      );
+
+      // Sync the calendar to get the newly created event
+      const syncResult = await this.syncCalendar(calendarPath);
+
+      // Find the newly created event in the sync results
+      const createdEvent = syncResult.added.find(
+        (e) => e.externalEventId === eventId
+      );
+
+      if (!createdEvent) {
+        logger.warn(
+          "Newly created event not found in sync results, creating placeholder",
+          {
+            eventId,
+            calendarPath,
+            addedEvents: syncResult.added.length,
+          },
+          LOG_SOURCE
+        );
+
+        // If the event wasn't found in the sync results (might happen if there's a delay),
+        // create a placeholder event with the data we have
+        return {
+          id: eventId,
+          feedId: feed.id,
+          externalEventId: eventId,
+          title: event.title,
+          description: event.description || null,
+          start: event.start,
+          end: event.end,
+          location: event.location || null,
+          isRecurring: !!event.isRecurring,
+          recurrenceRule: event.recurrenceRule || null,
+          allDay: !!event.allDay,
+          isMaster: !!event.isRecurring,
+          status: "confirmed",
+          created: newDate(),
+          lastModified: newDate(),
+          createdAt: newDate(),
+          updatedAt: newDate(),
+        } as CalendarEvent;
+      }
+
+      logger.info(
+        "Successfully created and synced CalDAV event",
+        {
+          eventId: createdEvent.id,
+          calendarPath,
+        },
+        LOG_SOURCE
+      );
+
+      return createdEvent;
+    } catch (error) {
+      logger.error(
+        "Failed to create CalDAV event",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          calendarPath,
+          eventTitle: event.title,
+        },
+        LOG_SOURCE
+      );
+      throw error;
+    }
   }
 
   /**
@@ -1261,7 +1553,7 @@ export class CalDAVCalendarService {
             start: event.start,
             end: event.end,
             location: event.location,
-            isRecurring: true, // Instance events are not recurring themselves
+            isRecurring: masterEvent?.isRecurring || false, // Instance events are not recurring themselves
             recurrenceRule: masterEvent?.recurrenceRule, // Instance events don't have recurrence rules
             allDay: event.allDay || false,
             status: event.status,
@@ -1471,6 +1763,7 @@ export class CalDAVCalendarService {
             ...exceptionCalendarEvent,
             isMaster: false,
             masterEventId: masterCalendarEvent.id,
+            isRecurring: false, // Exception events are not recurring themselves
           });
         } else {
           // Create a new instance based on the master event
@@ -1491,6 +1784,7 @@ export class CalDAVCalendarService {
             end: instanceEnd,
             isMaster: false,
             masterEventId: masterCalendarEvent.id,
+            isRecurring: true, // Instance events are recurring themselves
           });
         }
       }
@@ -1670,6 +1964,10 @@ export class CalDAVCalendarService {
 
       // Get recurrence-id if this is an exception
       const recurrenceId = vevent.getFirstPropertyValue("recurrence-id");
+      const isInstance = !!recurrenceId;
+
+      // Only master events should be marked as recurring
+      const isMaster = isRecurring && !isInstance;
 
       // Convert iCalendar recurrence rule to RRule string format if present
       const recurrenceRuleString = isRecurring
@@ -1686,7 +1984,7 @@ export class CalDAVCalendarService {
         start: startDate,
         end: endDate,
         location: location || null,
-        isRecurring,
+        isRecurring: isMaster, // Only master events are recurring
         recurrenceRule: recurrenceRuleString,
         allDay: isAllDay,
         status: null,
@@ -1697,9 +1995,9 @@ export class CalDAVCalendarService {
         attendees: null,
         createdAt: newDate(),
         updatedAt: newDate(),
-        isMaster: isRecurring && !recurrenceId,
-        masterEventId: null,
-        recurringEventId: recurrenceId ? String(uid) : null,
+        isMaster: isMaster,
+        masterEventId: isInstance ? String(uid).split("_")[0] : null,
+        recurringEventId: isInstance ? String(uid) : null,
       } as CalendarEvent;
     } catch (error) {
       logger.error(

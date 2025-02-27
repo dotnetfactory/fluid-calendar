@@ -100,17 +100,6 @@ export class SchedulingService {
       };
     }
 
-    // logger.debug("[DEBUG] Creating TimeSlotManager with settings", {
-    //   workHours: {
-    //     start: settings.workHourStart,
-    //     end: settings.workHourEnd,
-    //   },
-    //   workDays: settings.workDays,
-    //   selectedCalendars: settings.selectedCalendars,
-    //   bufferMinutes: settings.bufferMinutes,
-    //   timeZone: useSettingsStore.getState().user.timeZone,
-    // });
-
     const manager = new TimeSlotManagerImpl(
       settings,
       this.calendarService,

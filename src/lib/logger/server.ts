@@ -94,6 +94,8 @@ export class ServerLogger {
         },
       });
 
+      console.log("Log written:", entry);
+
       return true;
     } catch (error) {
       console.error("Failed to write log:", error);

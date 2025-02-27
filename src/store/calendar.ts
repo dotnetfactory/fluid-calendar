@@ -463,6 +463,27 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         return;
       }
 
+      // For CalDAV Calendar feeds, use the CalDAV Calendar API
+      if (feed.type === "CALDAV") {
+        const response = await fetch("/api/calendar/caldav/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newEvent),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to add event to CalDAV Calendar");
+        }
+
+        // Reload from database to get the latest state
+        await get().loadFromDatabase();
+
+        // Trigger auto-scheduling after event is created
+        const { scheduleAllTasks } = useTaskStore.getState();
+        await scheduleAllTasks();
+        return;
+      }
+
       // For other calendars, use the existing API
       const response = await fetch("/api/events", {
         method: "POST",
@@ -535,6 +556,26 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         return;
       }
 
+      // For CalDAV Calendar feeds, use the CalDAV Calendar API
+      if (feed.type === "CALDAV") {
+        const response = await fetch(`/api/calendar/caldav/events`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId: id, mode, ...updates }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to update event in CalDAV Calendar");
+        }
+
+        // Reload from database to get the latest state
+        await get().loadFromDatabase();
+        // Trigger auto-scheduling after event is created
+        const { scheduleAllTasks } = useTaskStore.getState();
+        await scheduleAllTasks();
+        return;
+      }
+
       // For other calendars, use the existing API
       const response = await fetch(`/api/events/${id}`, {
         method: "PATCH",
@@ -586,6 +627,17 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
 
         if (!response.ok) {
           throw new Error("Failed to delete event from Outlook Calendar");
+        }
+      } else if (feed.type === "CALDAV") {
+        // For CalDAV Calendar feeds, use the CalDAV Calendar API
+        const response = await fetch(`/api/calendar/caldav/events`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId: id, mode }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete event from CalDAV Calendar");
         }
       } else {
         // For other calendars, use the existing API

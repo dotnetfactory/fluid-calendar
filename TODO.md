@@ -22,6 +22,7 @@
 - [ ] Create/update/delete events on CalDAV server
 - [ ] Handle recurring events
 - [ ] Implement two-way sync with change tracking
+- [ ] all day events are off by a day
 
 ## Phase 4: Advanced Features (Pending)
 - [ ] Support for CalDAV collections
