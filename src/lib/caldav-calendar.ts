@@ -804,7 +804,7 @@ export class CalDAVCalendarService {
         LOG_SOURCE
       );
 
-      const isAllDay = dtstart.getParameter("value") === "date";
+      const isAllDay = this.isAllDayEvent(vevent);
 
       // Convert to JavaScript Date objects
       const dtstartValue = dtstart.getFirstValue();
@@ -1509,6 +1509,45 @@ export class CalDAVCalendarService {
   }
 
   /**
+   * Checks if a VEVENT component represents an all-day event
+   * @param vevent VEVENT component to check
+   * @returns true if the event is an all-day event
+   */
+  private isAllDayEvent(vevent: ICAL.Component): boolean {
+    try {
+      // Get the dtstart property
+      const dtstart = vevent.getFirstProperty("dtstart");
+      if (!dtstart) return false;
+
+      // Check if the value parameter is "date"
+      if (dtstart.getParameter("value") === "date") return true;
+
+      // Check if the jCal type is "date"
+      if (dtstart.jCal && dtstart.jCal[2] === "date") return true;
+
+      // Check for a duration of P1D which is common for all-day events
+      const duration = vevent.getFirstProperty("duration");
+      if (duration) {
+        const durationValue = duration.getFirstValue();
+        if (typeof durationValue === "string" && durationValue === "P1D") {
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      logger.warn(
+        "Error checking if event is all-day",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+        LOG_SOURCE
+      );
+      return false;
+    }
+  }
+
+  /**
    * Converts a VEVENT component to a CalendarEvent
    * @param vevent VEVENT component
    * @param vcalendar Parent VCALENDAR component
@@ -1531,7 +1570,8 @@ export class CalDAVCalendarService {
         throw new Error("Event is missing start time");
       }
 
-      const isAllDay = dtstart.getParameter("value") === "date";
+      // Use the helper function to check if this is an all-day event
+      const isAllDay = this.isAllDayEvent(vevent);
 
       // Convert to JavaScript Date objects
       const dtstartValue = dtstart.getFirstValue();
