@@ -4,7 +4,6 @@ import { CalDAVCalendarService } from "@/lib/caldav-calendar";
 import { logger } from "@/lib/logger";
 import { newDate } from "@/lib/date-utils";
 import {
-  deleteCalendarEvent,
   getEvent,
   validateEvent,
 } from "@/lib/calendar-db";
@@ -270,9 +269,6 @@ export async function DELETE(request: Request) {
       validatedEvent.externalEventId,
       mode || "single"
     );
-
-    // Delete the event from our database
-    await deleteCalendarEvent(eventId, mode);
 
     logger.info(
       "Successfully deleted CalDAV event",

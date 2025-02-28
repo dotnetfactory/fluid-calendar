@@ -1,0 +1,47 @@
+---
+description: conve
+globs: 
+alwaysApply: true
+---
+Using Nextjs 15 with app router.
+
+When creating a route, use this method:
+```typescript
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+```
+
+- when you create a method, add documentation to explain what it does and update it if is changed.
+- do not remove //todo comments in the code.
+- make minimal changesnd don't change or overwrite existing logic and only apply the changes requested.
+- if you delete/change a method or a file, make sure to refactor any usages of it.
+- for docker compose use `docker compose` not `docker-compose`
+- when we are discussing a new change and i tell you to start implementing then: start by creating a list of todos in @TODO.md on top once we agree on a plan and update the list as you implement stuff.
+- for icons use react-icons
+- 
+use @date-utils.ts for all date functions including new Date instead of directly using date-fns or date-fns-tz
+
+use @calendar-db.ts for all db calls related to calendars
+
+when we add new screens or pages or functionality, consider if they need to be added to cmdk commands in src/lib/commands or @useCommands.ts
+
+all logging should use the logger class defined in /lib/logger/index.js not console.log, the logger is used by importing it and also defining a source:
+```
+import { logger } from "@/lib/logger";
+const LOG_SOURCE = "OutlookCalendar";
+```
+here is an example for logging an error:
+```
+logger.error(
+  "Failed to refresh token",
+  {
+    error: error instanceof Error ? error.message : "Unknown error",
+  },
+  LOG_SOURCE
+);
+```
+

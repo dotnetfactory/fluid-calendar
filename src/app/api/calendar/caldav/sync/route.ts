@@ -79,6 +79,12 @@ export async function PUT(req: NextRequest) {
 
     // Sync calendar
     try {
+      //delete all events from the database
+      await prisma.calendarEvent.deleteMany({
+        where: {
+          feedId: feed.id,
+        },
+      });
       await caldavService.syncCalendar(feed.url);
     } catch (syncError) {
       logger.error(

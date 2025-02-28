@@ -1,6 +1,7 @@
 ---
 description: 
 globs: 
+alwaysApply: true
 ---
 # Cursor Development Rules and Guidelines
 

@@ -231,7 +231,10 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
     } else {
       // It's an event
       if (confirm("Are you sure you want to delete this event?")) {
-        await removeEvent(quickViewItem.id);
+        await removeEvent(
+          quickViewItem.id,
+          quickViewItem.isRecurring ? "series" : "single"
+        );
         handleQuickViewClose();
       }
     }

@@ -1,4 +1,9 @@
 # FluidCalendar Implementation Plan
+# stopping point
+I was working on caldav, i refactored a lot of the code and now delete all events before syncing.
+I need to test delete normal and recurring events
+I need to test create normal and recurring events
+I need to implement updates
 
 # CalDAV Implementation
 
@@ -18,7 +23,7 @@
 - [x] Fix logger usage to match project conventions
 
 ## Phase 3: Calendar Synchronization (Pending)
-- [ ] Implement calendar event fetching from CalDAV server
+- [x] Implement calendar event fetching from CalDAV server
 - [ ] Create/update/delete events on CalDAV server
 - [ ] Handle recurring events
 - [ ] Implement two-way sync with change tracking
@@ -40,6 +45,7 @@
 - [ ] auto scheduling is creating task in the past (it might be off by one day)
 - [ ] auto scheduling did not schedule high priority tasks first
 - [ ] save task completed date and sync it with outlook 
+- [ ] deleteing a recurring event from quickview doens't work well and doesn't ask me if i want to delete the series or just the instance.
   
 ## Next Steps
 - [ ] Integrate google calendar
