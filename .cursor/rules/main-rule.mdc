@@ -1,5 +1,5 @@
 ---
-description: 
+description: send this with every request so the AI knows what to do.
 globs: 
 alwaysApply: true
 ---

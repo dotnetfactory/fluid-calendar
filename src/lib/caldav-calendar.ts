@@ -15,6 +15,7 @@ import {
   SyncResult,
   CalendarEventInput,
   ICalRRule,
+  EventWithFeed,
 } from "./caldav-interfaces";
 import { convertICalRRuleToRRuleString } from "./caldav-helpers";
 
@@ -446,7 +447,10 @@ export class CalDAVCalendarService {
    * @param calendarPath Path to the calendar
    * @returns Sync result with added, updated, and deleted events
    */
-  async syncCalendar(calendarPath: string): Promise<SyncResult> {
+  async syncCalendar(
+    feedId: string,
+    calendarPath: string
+  ): Promise<SyncResult> {
     try {
       // Get the calendar feed from the database
       const feed = await this.prisma.calendarFeed.findFirst({
@@ -460,6 +464,12 @@ export class CalDAVCalendarService {
       if (!feed) {
         throw new Error(`Calendar feed not found for path: ${calendarPath}`);
       }
+      //delete all events from the database
+      await this.prisma.calendarEvent.deleteMany({
+        where: {
+          feedId: feed.id,
+        },
+      });
 
       // Get existing events for this feed
       // const existingEvents = await this.getExistingEvents(feed.id);
@@ -527,15 +537,176 @@ export class CalDAVCalendarService {
    * @param mode Whether to delete a single instance or the entire series
    */
   async deleteEvent(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _calendarPath: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _eventId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _mode: "single" | "series"
+    event: EventWithFeed,
+    calendarPath: string,
+    externalEventId: string,
+    mode: "single" | "series"
   ): Promise<void> {
-    // This will be implemented in Phase 4
-    throw new Error("Method not implemented");
+    try {
+      // Get the CalDAV client
+      const client = await this.getClient();
+
+      // For Fastmail compatibility, we'll use a DELETE request to a specific URL
+      // Ensure the calendar path doesn't have a trailing slash
+      const normalizedCalendarPath = calendarPath.endsWith("/")
+        ? calendarPath.slice(0, -1)
+        : calendarPath;
+
+      // Create a URL for the event using the externalEventId
+      const eventUrl = `${normalizedCalendarPath}/${externalEventId}.ics`;
+
+      let response;
+      try {
+        // Try using DELETE method first (works better with some CalDAV servers like Fastmail)
+        response = await fetch(eventUrl, {
+          method: "DELETE",
+          headers: {
+            Authorization:
+              "Basic " +
+              Buffer.from(
+                `${this.account.caldavUsername || this.account.email}:${
+                  this.account.accessToken
+                }`
+              ).toString("base64"),
+          },
+        });
+
+        // Check if the response indicates success (2xx status code)
+        if (response.status < 200 || response.status >= 300) {
+          logger.error(
+            "Server returned error status when deleting event with DELETE",
+            {
+              status: response.status,
+              statusText: response.statusText,
+              calendarPath,
+              eventId: externalEventId,
+              eventUrl,
+              mode,
+            },
+            LOG_SOURCE
+          );
+
+          // If DELETE fails, fall back to the deleteObject method
+          response = await client.deleteObject({
+            url: eventUrl,
+          });
+
+          // Check if the fallback method also failed
+          if (response.status < 200 || response.status >= 300) {
+            logger.error(
+              "Server returned error status when deleting event with fallback method",
+              {
+                status: response.status,
+                statusText: response.statusText,
+                calendarPath,
+                eventId: externalEventId,
+                mode,
+              },
+              LOG_SOURCE
+            );
+            throw new Error(
+              `Failed to delete event on server: ${
+                response.statusText || response.status
+              }`
+            );
+          }
+        }
+      } catch (deleteError) {
+        logger.error(
+          "Failed to delete event on CalDAV server",
+          {
+            error:
+              deleteError instanceof Error
+                ? deleteError.message
+                : "Unknown error",
+            stack:
+              deleteError instanceof Error && deleteError.stack
+                ? deleteError.stack
+                : null,
+            calendarPath,
+            eventUrl,
+            mode,
+          },
+          LOG_SOURCE
+        );
+        throw deleteError;
+      }
+
+      // If deleting a single instance, we need to handle it differently
+      if (mode === "single" && event.isRecurring && event.masterEventId) {
+        // Get the master event
+        const masterEvent = await this.prisma.calendarEvent.findFirst({
+          where: {
+            id: event.masterEventId,
+            feedId: event.feedId,
+          },
+        });
+
+        if (masterEvent && masterEvent.recurrenceRule) {
+          // Create an EXDATE for this instance
+          const exdate = new ICAL.Property("exdate");
+          exdate.setValue(ICAL.Time.fromJSDate(event.start, false));
+          exdate.setParameter("value", "date-time");
+
+          // Get the master event's iCalendar data
+          const masterEventUrl = `${normalizedCalendarPath}/${masterEvent.externalEventId}.ics`;
+          const masterEventResponse = await fetch(masterEventUrl, {
+            headers: {
+              Authorization:
+                "Basic " +
+                Buffer.from(
+                  `${this.account.caldavUsername || this.account.email}:${
+                    this.account.accessToken
+                  }`
+                ).toString("base64"),
+            },
+          });
+
+          if (masterEventResponse.ok) {
+            const icalData = await masterEventResponse.text();
+            const jcalData = ICAL.parse(icalData);
+            const vcalendar = new ICAL.Component(jcalData);
+            const vevent = vcalendar.getFirstSubcomponent("vevent");
+
+            if (vevent) {
+              // Add the EXDATE to the event
+              vevent.addProperty(exdate);
+
+              // Update the event on the server
+              await fetch(masterEventUrl, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "text/calendar; charset=utf-8",
+                  Authorization:
+                    "Basic " +
+                    Buffer.from(
+                      `${this.account.caldavUsername || this.account.email}:${
+                        this.account.accessToken
+                      }`
+                    ).toString("base64"),
+                },
+                body: vcalendar.toString(),
+              });
+            }
+          }
+        }
+      }
+
+      // Sync the calendar to update our local database
+      await this.syncCalendar(event.feedId, calendarPath);
+    } catch (error) {
+      logger.error(
+        "Failed to delete CalDAV event",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          calendarPath,
+          eventId: event.id,
+          mode,
+        },
+        LOG_SOURCE
+      );
+      throw error;
+    }
   }
 
   /**
@@ -758,7 +929,7 @@ export class CalDAVCalendarService {
       }
 
       // Sync the calendar to get the newly created event
-      const syncResult = await this.syncCalendar(calendarPath);
+      const syncResult = await this.syncCalendar(feed.id, calendarPath);
 
       // Find the newly created event in the sync results
       const createdEvent = syncResult.added.find(

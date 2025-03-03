@@ -229,6 +229,9 @@ export async function DELETE(request: Request) {
 
     // Get the event from the database
     const event = await getEvent(eventId);
+    if (!event) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
     const validatedEvent = await validateEvent(event, "CALDAV");
 
     if (validatedEvent instanceof NextResponse) {
@@ -263,8 +266,8 @@ export async function DELETE(request: Request) {
     const caldavService = new CalDAVCalendarService(prisma, account);
 
     // Delete the event from CalDAV
-    // Note: This will throw an error until deleteEvent is implemented in Phase 4
     await caldavService.deleteEvent(
+      event,
       calendarPath,
       validatedEvent.externalEventId,
       mode || "single"

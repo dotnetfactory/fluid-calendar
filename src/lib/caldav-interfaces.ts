@@ -1,4 +1,4 @@
-import { CalendarEvent } from "@prisma/client";
+import { CalendarEvent, CalendarFeed } from "@prisma/client";
 import { DAVResponse } from "tsdav";
 import { DAVCalendar } from "tsdav";
 import ICAL from "ical.js";
@@ -28,7 +28,10 @@ export interface ExtendedDAVClient {
     data: string;
     headers?: Record<string, string>;
   }) => Promise<DAVResponse>;
-  // Add other methods as needed
+  deleteObject: (params: {
+    url: string;
+    headers?: Record<string, string>;
+  }) => Promise<DAVResponse>;
 }
 
 // Define the structure for calendar query parameters
@@ -88,3 +91,15 @@ export interface CalendarEventInput {
   isRecurring?: boolean;
   recurrenceRule?: string;
 }
+
+export type EventWithFeed = CalendarEvent & {
+  feed: CalendarFeed;
+};
+
+export type ValidatedEvent = CalendarEvent & {
+  feed: CalendarFeed & {
+    accountId: string;
+    url: string;
+  };
+  externalEventId: string;
+};

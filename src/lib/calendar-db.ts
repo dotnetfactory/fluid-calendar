@@ -1,20 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { CalendarEvent, CalendarFeed } from "@prisma/client";
+import { ValidatedEvent } from "./caldav-interfaces";
+import { EventWithFeed } from "./caldav-interfaces";
 
-type EventWithFeed = CalendarEvent & {
-  feed: CalendarFeed;
-};
 
-type ValidatedEvent = CalendarEvent & {
-  feed: CalendarFeed & {
-    accountId: string;
-    url: string;
-  };
-  externalEventId: string;
-};
 
-export async function getEvent(eventId: string) {
+export async function getEvent(eventId: string): Promise<EventWithFeed | null> {
   return prisma.calendarEvent.findUnique({
     where: { id: eventId },
     include: { feed: true },
