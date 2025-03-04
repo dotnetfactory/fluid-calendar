@@ -2,11 +2,13 @@ export interface CalendarFeed {
   id: string;
   name: string;
   url?: string; // Make optional since local calendar won't have URL
-  type: "LOCAL" | "GOOGLE" | "OUTLOOK" | "CALDAV";
+  type: "GOOGLE" | "OUTLOOK" | "CALDAV";
   color?: string;
   enabled: boolean;
   lastSync?: Date;
   error?: string;
+  caldavPath?: string;
+  accountId?: string;
 }
 
 export interface ExtendedEventProps {
@@ -83,3 +85,15 @@ export interface CalendarViewState {
   date: Date;
   selectedEventId?: string;
 }
+
+export type CalendarEventWithFeed = CalendarEvent & {
+  feed: CalendarFeed;
+};
+
+export type ValidatedEvent = CalendarEvent & {
+  feed: CalendarFeed & {
+    accountId: string;
+    url: string;
+  };
+  externalEventId: string;
+};

@@ -9,7 +9,6 @@ import {
   CalendarView,
   CalendarViewState,
 } from "@/types/calendar";
-import { CalendarType } from "@/lib/calendar/init";
 import { useTaskStore } from "@/store/task";
 import { newDate } from "@/lib/date-utils";
 import { DEFAULT_TASK_COLOR } from "@/lib/task-utils";
@@ -85,7 +84,7 @@ interface CalendarStore extends CalendarState {
   addFeed: (
     name: string,
     url: string,
-    type: "LOCAL" | "GOOGLE" | "OUTLOOK" | "CALDAV",
+    type: "GOOGLE" | "OUTLOOK" | "CALDAV",
     color?: string
   ) => Promise<void>;
   removeFeed: (id: string) => Promise<void>;
@@ -406,13 +405,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
     try {
       // If no feedId specified, use local calendar
       if (!newEvent.feedId) {
-        const localFeed = get().feeds.find(
-          (f) => f.type === CalendarType.LOCAL
-        );
-        if (!localFeed) {
-          throw new Error("No local calendar found");
-        }
-        newEvent.feedId = localFeed.id;
+        throw new Error("No feedId specified");
       }
 
       // Check if we have write permission for this calendar

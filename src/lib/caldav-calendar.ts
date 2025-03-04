@@ -14,10 +14,9 @@ import {
   CalDAVCalendarObject,
   SyncResult,
   CalendarEventInput,
-  EventWithFeed,
 } from "./caldav-interfaces";
 import { convertVEventToCalendarEvent } from "./caldav-helpers";
-
+import { CalendarEventWithFeed } from "@/types/calendar";
 const LOG_SOURCE = "CalDAVCalendar";
 
 /**
@@ -518,7 +517,7 @@ export class CalDAVCalendarService {
    * @returns Updated calendar event
    */
   async updateEvent(
-    eventWithFeed: EventWithFeed,
+    eventWithFeed: CalendarEventWithFeed,
     calendarPath: string,
     externalEventId: string,
     event: CalendarEventInput,
@@ -726,7 +725,7 @@ export class CalDAVCalendarService {
    * @param mode Whether to delete a single instance or the entire series
    */
   async deleteEvent(
-    event: EventWithFeed,
+    event: CalendarEventWithFeed,
     calendarPath: string,
     externalEventId: string,
     mode: "single" | "series"

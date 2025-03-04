@@ -133,7 +133,6 @@ export function EventModal({
   const [selectedFeedId, setSelectedFeedId] = useState<string>(
     event?.feedId ||
       calendar.defaultCalendarId ||
-      feeds.find((f) => f.type === "LOCAL")?.id ||
       ""
   );
   const [isAllDay, setIsAllDay] = useState(event?.allDay || false);
@@ -166,7 +165,6 @@ export function EventModal({
       setSelectedFeedId(
         event?.feedId ||
           calendar.defaultCalendarId ||
-          feeds.find((f) => f.type === "LOCAL")?.id ||
           ""
       );
       setIsAllDay(event?.allDay || false);

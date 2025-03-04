@@ -1,4 +1,4 @@
-import { CalendarEvent, CalendarFeed } from "@prisma/client";
+import { CalendarEvent } from "@prisma/client";
 import { DAVResponse } from "tsdav";
 import { DAVCalendar } from "tsdav";
 import ICAL from "ical.js";
@@ -97,14 +97,3 @@ export interface CalendarEventInput {
   recurrenceRule?: string;
 }
 
-export type EventWithFeed = CalendarEvent & {
-  feed: CalendarFeed;
-};
-
-export type ValidatedEvent = CalendarEvent & {
-  feed: CalendarFeed & {
-    accountId: string;
-    url: string;
-  };
-  externalEventId: string;
-};
