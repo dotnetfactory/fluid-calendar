@@ -1,9 +1,4 @@
 # FluidCalendar Implementation Plan
-# stopping point
-I was working on caldav, i refactored a lot of the code and now delete all events before syncing.
-I need to test delete normal and recurring events
-I need to test create normal and recurring events
-I need to implement updates
 
 # CalDAV Implementation
 
@@ -24,8 +19,8 @@ I need to implement updates
 
 ## Phase 3: Calendar Synchronization (Pending)
 - [x] Implement calendar event fetching from CalDAV server
-- [ ] Create/update/delete events on CalDAV server
-- [ ] Handle recurring events
+- [x] Create/update/delete events on CalDAV server
+- [x] Handle recurring events
 - [ ] Implement two-way sync with change tracking
 - [ ] all day events are off by a day
 

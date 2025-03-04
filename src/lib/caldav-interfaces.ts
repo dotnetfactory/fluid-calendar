@@ -32,6 +32,11 @@ export interface ExtendedDAVClient {
     url: string;
     headers?: Record<string, string>;
   }) => Promise<DAVResponse>;
+  updateObject: (params: {
+    url: string;
+    data: string;
+    headers?: Record<string, string>;
+  }) => Promise<DAVResponse>;
 }
 
 // Define the structure for calendar query parameters

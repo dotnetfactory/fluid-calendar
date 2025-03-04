@@ -195,7 +195,9 @@ export function EventModal({
   // Show recurrence dialog when editing a recurring event
   useEffect(() => {
     if (isOpen && event?.isRecurring && !editMode && !showRecurrenceDialog) {
-      setShowRecurrenceDialog(true);
+      //todo: we need to handle editing series vs single, for now forcing to always edit series
+      // setShowRecurrenceDialog(true);
+      setEditMode("series");
     }
   }, [isOpen, event?.isRecurring, editMode, showRecurrenceDialog]);
 

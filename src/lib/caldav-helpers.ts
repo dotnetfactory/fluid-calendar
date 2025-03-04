@@ -1,9 +1,10 @@
+import { CalendarEvent } from "@prisma/client";
 import { ICalRRule } from "./caldav-interfaces";
 import { logger } from "./logger";
 import ICAL from "ical.js";
+import { newDate } from "./date-utils";
 
 const LOG_SOURCE = "CalDAVHelpers";
-
 
 /**
  * Converts an iCalendar recurrence rule object to RRule string format
@@ -82,66 +83,75 @@ export function convertICalRRuleToRRuleString(
       }
     }
 
-    // Add bymonth if present
-    if (rrule.bymonth) {
-      parts.push(
-        `BYMONTH=${
-          Array.isArray(rrule.bymonth) ? rrule.bymonth.join(",") : rrule.bymonth
-        }`
-      );
-    }
+    // Handle nested parts structure from ICAL.js
+    if (rrule.parts && typeof rrule.parts === "object") {
+      const partsObj = rrule.parts as Record<string, unknown>;
 
-    // Add bymonthday if present
-    if (rrule.bymonthday) {
-      parts.push(
-        `BYMONTHDAY=${
-          Array.isArray(rrule.bymonthday)
-            ? rrule.bymonthday.join(",")
-            : rrule.bymonthday
-        }`
-      );
-    }
+      // Add bymonth if present
+      if (partsObj.BYMONTH) {
+        parts.push(
+          `BYMONTH=${
+            Array.isArray(partsObj.BYMONTH)
+              ? partsObj.BYMONTH.join(",")
+              : partsObj.BYMONTH
+          }`
+        );
+      }
 
-    // Add byday if present
-    if (rrule.byday) {
-      parts.push(
-        `BYDAY=${
-          Array.isArray(rrule.byday) ? rrule.byday.join(",") : rrule.byday
-        }`
-      );
-    }
+      // Add bymonthday if present
+      if (partsObj.BYMONTHDAY) {
+        parts.push(
+          `BYMONTHDAY=${
+            Array.isArray(partsObj.BYMONTHDAY)
+              ? partsObj.BYMONTHDAY.join(",")
+              : partsObj.BYMONTHDAY
+          }`
+        );
+      }
 
-    // Add byweekno if present
-    if (rrule.byweekno) {
-      parts.push(
-        `BYWEEKNO=${
-          Array.isArray(rrule.byweekno)
-            ? rrule.byweekno.join(",")
-            : rrule.byweekno
-        }`
-      );
-    }
+      // Add byday if present
+      if (partsObj.BYDAY) {
+        parts.push(
+          `BYDAY=${
+            Array.isArray(partsObj.BYDAY)
+              ? partsObj.BYDAY.join(",")
+              : partsObj.BYDAY
+          }`
+        );
+      }
 
-    // Add byyearday if present
-    if (rrule.byyearday) {
-      parts.push(
-        `BYYEARDAY=${
-          Array.isArray(rrule.byyearday)
-            ? rrule.byyearday.join(",")
-            : rrule.byyearday
-        }`
-      );
-    }
+      // Add byweekno if present
+      if (partsObj.BYWEEKNO) {
+        parts.push(
+          `BYWEEKNO=${
+            Array.isArray(partsObj.BYWEEKNO)
+              ? partsObj.BYWEEKNO.join(",")
+              : partsObj.BYWEEKNO
+          }`
+        );
+      }
 
-    // Add bysetpos if present
-    if (rrule.bysetpos) {
-      parts.push(
-        `BYSETPOS=${
-          Array.isArray(rrule.bysetpos)
-            ? rrule.bysetpos.join(",")
-            : rrule.bysetpos
-        }`
-      );
+      // Add byyearday if present
+      if (partsObj.BYYEARDAY) {
+        parts.push(
+          `BYYEARDAY=${
+            Array.isArray(partsObj.BYYEARDAY)
+              ? partsObj.BYYEARDAY.join(",")
+              : partsObj.BYYEARDAY
+          }`
+        );
+      }
+
+      // Add bysetpos if present
+      if (partsObj.BYSETPOS) {
+        parts.push(
+          `BYSETPOS=${
+            Array.isArray(partsObj.BYSETPOS)
+              ? partsObj.BYSETPOS.join(",")
+              : partsObj.BYSETPOS
+          }`
+        );
+      }
     }
 
     // Add wkst if present
@@ -265,3 +275,227 @@ export function convertRRuleStringToICalRRule(
     return null;
   }
 }
+
+  /**
+   * Converts a VEVENT component to a CalendarEvent
+   * @param vevent VEVENT component
+   * @param vcalendar Parent VCALENDAR component
+   * @returns Converted calendar event
+   */
+  export function convertVEventToCalendarEvent(vevent: ICAL.Component): CalendarEvent {
+    try {
+      // Extract event properties
+      const uidValue = vevent.getFirstPropertyValue("uid");
+      const uid = uidValue ? String(uidValue) : crypto.randomUUID();
+      const summary = vevent.getFirstPropertyValue("summary");
+      const description = vevent.getFirstPropertyValue("description");
+      const location = vevent.getFirstPropertyValue("location");
+
+      // Get start and end times
+      const dtstart = vevent.getFirstProperty("dtstart");
+      const dtend =
+        vevent.getFirstProperty("dtend") || vevent.getFirstProperty("duration");
+
+      if (!dtstart) {
+        throw new Error("Event is missing start time");
+      }
+
+      // Use the helper function to check if this is an all-day event
+      const isAllDay = isAllDayEvent(vevent);
+
+      // Convert to JavaScript Date objects
+      const dtstartValue = dtstart.getFirstValue();
+
+      // Handle ICAL.js types properly by using type assertion
+      // ICAL.Time objects have toJSDate() but TypeScript doesn't know this
+      const startDate =
+        typeof dtstartValue === "object" && dtstartValue !== null
+          ? (dtstartValue as unknown as { toJSDate(): Date }).toJSDate()
+          : new Date();
+
+      let endDate: Date;
+
+      if (dtend) {
+        const dtendValue = dtend.getFirstValue();
+
+        // Check if it's a duration instead of a date
+        if (dtend.name === "duration") {
+          // If it's a duration, calculate end time by adding duration to start time
+          const duration = dtendValue;
+          // Create a new date object to avoid modifying the original
+          endDate = new Date(startDate.getTime());
+
+          // If duration has toSeconds method (ICAL.Duration), use it
+          if (
+            typeof duration === "object" &&
+            duration !== null &&
+            "toSeconds" in duration
+          ) {
+            endDate = new Date(
+              startDate.getTime() + duration.toSeconds() * 1000
+            );
+          } else if (typeof duration === "string") {
+            // Try to parse ISO duration format (e.g., PT1H30M)
+            const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+            if (match) {
+              const hours = parseInt(match[1] || "0", 10);
+              const minutes = parseInt(match[2] || "0", 10);
+              const seconds = parseInt(match[3] || "0", 10);
+              const durationMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
+              endDate = new Date(startDate.getTime() + durationMs);
+            } else {
+              // Default to 1 hour if we can't parse
+              endDate = new Date(startDate.getTime() + 3600000);
+            }
+          } else {
+            // Default to 1 hour if we can't determine duration
+            endDate = new Date(startDate.getTime() + 3600000);
+          }
+        } else {
+          // Handle regular end date/time
+          if (typeof dtendValue === "object" && dtendValue !== null) {
+            // Check if it has toJSDate method
+            if (
+              "toJSDate" in dtendValue &&
+              typeof dtendValue.toJSDate === "function"
+            ) {
+              endDate = dtendValue.toJSDate();
+            } else {
+              // Try to convert to date if it has a toString method
+              try {
+                const dateStr = dtendValue.toString();
+                const parsedDate = new Date(dateStr);
+                endDate = isNaN(parsedDate.getTime())
+                  ? new Date(startDate.getTime() + 3600000) // Default to 1 hour later if invalid
+                  : parsedDate;
+              } catch {
+                // Default to 1 hour after start if conversion fails
+                endDate = new Date(startDate.getTime() + 3600000);
+              }
+            }
+          } else if (typeof dtendValue === "string") {
+            // Try to parse string date
+            try {
+              const parsedDate = new Date(dtendValue);
+              endDate = isNaN(parsedDate.getTime())
+                ? new Date(startDate.getTime() + 3600000) // Default to 1 hour later if invalid
+                : parsedDate;
+            } catch {
+              // Default to 1 hour after start if parsing fails
+              endDate = new Date(startDate.getTime() + 3600000);
+            }
+          } else {
+            // Default to 1 hour after start for unknown types
+            endDate = new Date(startDate.getTime() + 3600000);
+          }
+        }
+      } else {
+        // If no end time or duration, default to 1 hour after start
+        endDate = new Date(startDate.getTime() + 3600000);
+      }
+
+      // Check for recurrence
+      const rrule = vevent.getFirstPropertyValue("rrule");
+      const isRecurring = !!rrule;
+
+      // Get recurrence-id if this is an exception
+      const recurrenceId = vevent.getFirstPropertyValue("recurrence-id");
+      const isInstance = !!recurrenceId;
+
+      // Only master events should be marked as recurring
+      const isMaster = isRecurring && !isInstance;
+
+      // Convert iCalendar recurrence rule to RRule string format if present
+      const recurrenceRuleString = isRecurring
+        ? convertICalRRuleToRRuleString(rrule as unknown as ICalRRule)
+        : null;
+
+      // Create a partial CalendarEvent object
+      return {
+        id: uid,
+        feedId: "", // This would need to be set when saving to the database
+        externalEventId: uid,
+        title: summary ? String(summary) : "Untitled Event",
+        description: description ? String(description) : null,
+        start: startDate,
+        end: endDate,
+        location: location ? String(location) : null,
+        isRecurring: isMaster, // Only master events are recurring
+        recurrenceRule: recurrenceRuleString,
+        allDay: isAllDay,
+        status: null,
+        sequence: null,
+        created: null,
+        lastModified: null,
+        organizer: null,
+        attendees: null,
+        createdAt: newDate(),
+        updatedAt: newDate(),
+        isMaster: isMaster,
+        masterEventId: isInstance ? uid.split("_")[0] : null,
+        recurringEventId: isInstance ? uid : null,
+      } as CalendarEvent;
+    } catch (error) {
+      logger.error(
+        "Failed to convert VEVENT to CalendarEvent",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+        LOG_SOURCE
+      );
+
+      // Return a minimal event as fallback
+      return {
+        id: crypto.randomUUID(),
+        feedId: "",
+        title: "Error parsing event",
+        start: newDate(),
+        end: newDate(),
+        createdAt: newDate(),
+        updatedAt: newDate(),
+        allDay: false,
+        isRecurring: false,
+        isMaster: false,
+      } as CalendarEvent;
+    }
+  }
+
+    /**
+   * Checks if a VEVENT component represents an all-day event
+   * @param vevent VEVENT component to check
+   * @returns true if the event is an all-day event
+   */
+    export function isAllDayEvent(vevent: ICAL.Component): boolean {
+      try {
+        // Get the dtstart property
+        const dtstart = vevent.getFirstProperty("dtstart");
+        if (!dtstart) return false;
+  
+        // Check if the value parameter is "date"
+        if (dtstart.getParameter("value") === "date") return true;
+  
+        // Check if the jCal type is "date"
+        if (dtstart.jCal && dtstart.jCal[2] === "date") return true;
+  
+        // Check for a duration of P1D which is common for all-day events
+        const duration = vevent.getFirstProperty("duration");
+        if (duration) {
+          const durationValue = duration.getFirstValue();
+          if (typeof durationValue === "string" && durationValue === "P1D") {
+            return true;
+          }
+        }
+  
+        return false;
+      } catch (error) {
+        logger.warn(
+          "Error checking if event is all-day",
+          {
+            error: error instanceof Error ? error.message : "Unknown error",
+          },
+          LOG_SOURCE
+        );
+        return false;
+      }
+    }
+  

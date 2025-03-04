@@ -3,10 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { CalDAVCalendarService } from "@/lib/caldav-calendar";
 import { logger } from "@/lib/logger";
 import { newDate } from "@/lib/date-utils";
-import {
-  getEvent,
-  validateEvent,
-} from "@/lib/calendar-db";
+import { getEvent, validateEvent } from "@/lib/calendar-db";
 
 const LOG_SOURCE = "CalDAVEventsAPI";
 
@@ -129,6 +126,9 @@ export async function PUT(request: Request) {
 
     // Get the event from the database
     const event = await getEvent(eventId);
+    if (!event) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
     const validatedEvent = await validateEvent(event, "CALDAV");
 
     if (validatedEvent instanceof NextResponse) {
@@ -163,8 +163,8 @@ export async function PUT(request: Request) {
     const caldavService = new CalDAVCalendarService(prisma, account);
 
     // Update the event in CalDAV
-    // Note: This will throw an error until updateEvent is implemented in Phase 4
-    await caldavService.updateEvent(
+    const updatedEvent = await caldavService.updateEvent(
+      event,
       calendarPath,
       validatedEvent.externalEventId,
       {
@@ -176,14 +176,9 @@ export async function PUT(request: Request) {
         allDay: updates.allDay ?? validatedEvent.allDay,
         isRecurring: updates.isRecurring ?? validatedEvent.isRecurring,
         recurrenceRule: updates.recurrenceRule ?? validatedEvent.recurrenceRule,
-      }
+      },
+      "series" //todo: implement editing a single instance correctly.
     );
-
-    // Update the event in our database
-    const updatedEvent = await prisma.calendarEvent.update({
-      where: { id: eventId },
-      data: updates,
-    });
 
     logger.info(
       "Successfully updated CalDAV event",

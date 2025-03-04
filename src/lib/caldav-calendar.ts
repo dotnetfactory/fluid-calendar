@@ -14,10 +14,9 @@ import {
   CalDAVCalendarObject,
   SyncResult,
   CalendarEventInput,
-  ICalRRule,
   EventWithFeed,
 } from "./caldav-interfaces";
-import { convertICalRRuleToRRuleString } from "./caldav-helpers";
+import { convertVEventToCalendarEvent } from "./caldav-helpers";
 
 const LOG_SOURCE = "CalDAVCalendar";
 
@@ -323,7 +322,7 @@ export class CalDAVCalendarService {
             this.extractEventProperties(vevent);
 
           // Convert VEVENT to CalendarEvent
-          const event = this.convertVEventToCalendarEvent(vevent);
+          const event = convertVEventToCalendarEvent(vevent);
 
           // Set event properties based on its type
           this.setEventTypeProperties(
@@ -514,20 +513,210 @@ export class CalDAVCalendarService {
   /**
    * Updates an existing event in a CalDAV calendar
    * @param calendarPath Path to the calendar
-   * @param eventId ID of the event to update
+   * @param externalEventId ID of the event to update
    * @param event Updated event data
    * @returns Updated calendar event
    */
   async updateEvent(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _calendarPath: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _eventId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _event: CalendarEventInput
+    eventWithFeed: EventWithFeed,
+    calendarPath: string,
+    externalEventId: string,
+    event: CalendarEventInput,
+    mode: "single" | "series"
   ): Promise<CalendarEvent> {
-    // This will be implemented in Phase 4
-    throw new Error("Method not implemented");
+    try {
+      // Get the CalDAV client
+      const client = await this.getClient();
+
+      // For Fastmail compatibility, we'll use a PUT request to a specific URL
+      // Ensure the calendar path doesn't have a trailing slash
+      const normalizedCalendarPath = calendarPath.endsWith("/")
+        ? calendarPath.slice(0, -1)
+        : calendarPath;
+
+      // Create a URL for the event using the externalEventId
+      const eventUrl = `${normalizedCalendarPath}/${externalEventId}.ics`;
+
+      // Generate the iCalendar data
+      const icalData = this.convertToICalendar({
+        ...event,
+        id: externalEventId,
+      });
+
+      let response;
+      try {
+        // Try using PUT method first (works better with some CalDAV servers like Fastmail)
+        response = await fetch(eventUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "text/calendar; charset=utf-8",
+            Authorization:
+              "Basic " +
+              Buffer.from(
+                `${this.account.caldavUsername || this.account.email}:${
+                  this.account.accessToken
+                }`
+              ).toString("base64"),
+          },
+          body: icalData,
+        });
+
+        // Check if the response indicates success (2xx status code)
+        if (response.status < 200 || response.status >= 300) {
+          logger.error(
+            "Server returned error status when updating event with PUT",
+            {
+              status: response.status,
+              statusText: response.statusText,
+              calendarPath,
+              eventId: externalEventId,
+              eventUrl,
+              mode,
+            },
+            LOG_SOURCE
+          );
+
+          // If PUT fails, fall back to the updateObject method
+          response = await client.updateObject({
+            url: eventUrl,
+            data: icalData,
+            headers: {
+              "Content-Type": "text/calendar; charset=utf-8",
+            },
+          });
+
+          // Check if the fallback method also failed
+          if (response.status < 200 || response.status >= 300) {
+            logger.error(
+              "Server returned error status when updating event with fallback method",
+              {
+                status: response.status,
+                statusText: response.statusText,
+                calendarPath,
+                eventId: externalEventId,
+                mode,
+              },
+              LOG_SOURCE
+            );
+            throw new Error(
+              `Failed to update event on server: ${
+                response.statusText || response.status
+              }`
+            );
+          }
+        }
+      } catch (updateError) {
+        logger.error(
+          "Failed to update event on CalDAV server",
+          {
+            error:
+              updateError instanceof Error
+                ? updateError.message
+                : "Unknown error",
+            stack:
+              updateError instanceof Error && updateError.stack
+                ? updateError.stack
+                : null,
+            calendarPath,
+            eventUrl,
+            mode,
+          },
+          LOG_SOURCE
+        );
+        throw updateError;
+      }
+
+      // If updating a single instance of a recurring event
+      if (mode === "single" && event.isRecurring) {
+        // Get the master event
+        const masterEvent = await this.prisma.calendarEvent.findFirst({
+          where: {
+            externalEventId: externalEventId.split("_")[0],
+            feedId: eventWithFeed.feedId,
+            isMaster: true,
+          },
+        });
+
+        if (masterEvent && masterEvent.recurrenceRule) {
+          // Create a RECURRENCE-ID for this instance
+          const recurrenceId = new ICAL.Property("recurrence-id");
+          recurrenceId.setValue(ICAL.Time.fromJSDate(event.start, false));
+          recurrenceId.setParameter("value", "date-time");
+
+          // Get the master event's iCalendar data
+          const masterEventUrl = `${normalizedCalendarPath}/${masterEvent.externalEventId}.ics`;
+          const masterEventResponse = await fetch(masterEventUrl, {
+            headers: {
+              Authorization:
+                "Basic " +
+                Buffer.from(
+                  `${this.account.caldavUsername || this.account.email}:${
+                    this.account.accessToken
+                  }`
+                ).toString("base64"),
+            },
+          });
+
+          if (masterEventResponse.ok) {
+            const icalData = await masterEventResponse.text();
+            const jcalData = ICAL.parse(icalData);
+            const vcalendar = new ICAL.Component(jcalData);
+            const vevent = vcalendar.getFirstSubcomponent("vevent");
+
+            if (vevent) {
+              // Add the RECURRENCE-ID to the event
+              vevent.addProperty(recurrenceId);
+
+              // Update the event on the server
+              await fetch(masterEventUrl, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "text/calendar; charset=utf-8",
+                  Authorization:
+                    "Basic " +
+                    Buffer.from(
+                      `${this.account.caldavUsername || this.account.email}:${
+                        this.account.accessToken
+                      }`
+                    ).toString("base64"),
+                },
+                body: vcalendar.toString(),
+              });
+            }
+          }
+        }
+      }
+
+      // Sync the calendar to get the updated event
+      const syncResult = await this.syncCalendar(
+        eventWithFeed.feedId,
+        calendarPath
+      );
+
+      // Find the updated event in the sync results
+      const updatedEvent = syncResult.added.find(
+        (e) => e.externalEventId === externalEventId
+      );
+
+      if (!updatedEvent) {
+        throw new Error("Updated event not found in sync results");
+      }
+
+      return updatedEvent;
+    } catch (error) {
+      logger.error(
+        "Failed to update CalDAV event",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          calendarPath,
+          eventId: externalEventId,
+          eventTitle: event.title,
+          mode,
+        },
+        LOG_SOURCE
+      );
+      throw error;
+    }
   }
 
   /**
@@ -700,7 +889,7 @@ export class CalDAVCalendarService {
         {
           error: error instanceof Error ? error.message : "Unknown error",
           calendarPath,
-          eventId: event.id,
+          eventId: externalEventId,
           mode,
         },
         LOG_SOURCE
@@ -1130,228 +1319,8 @@ export class CalDAVCalendarService {
     return createdEvents;
   }
 
-  /**
-   * Checks if a VEVENT component represents an all-day event
-   * @param vevent VEVENT component to check
-   * @returns true if the event is an all-day event
-   */
-  private isAllDayEvent(vevent: ICAL.Component): boolean {
-    try {
-      // Get the dtstart property
-      const dtstart = vevent.getFirstProperty("dtstart");
-      if (!dtstart) return false;
 
-      // Check if the value parameter is "date"
-      if (dtstart.getParameter("value") === "date") return true;
 
-      // Check if the jCal type is "date"
-      if (dtstart.jCal && dtstart.jCal[2] === "date") return true;
-
-      // Check for a duration of P1D which is common for all-day events
-      const duration = vevent.getFirstProperty("duration");
-      if (duration) {
-        const durationValue = duration.getFirstValue();
-        if (typeof durationValue === "string" && durationValue === "P1D") {
-          return true;
-        }
-      }
-
-      return false;
-    } catch (error) {
-      logger.warn(
-        "Error checking if event is all-day",
-        {
-          error: error instanceof Error ? error.message : "Unknown error",
-        },
-        LOG_SOURCE
-      );
-      return false;
-    }
-  }
-
-  /**
-   * Converts a VEVENT component to a CalendarEvent
-   * @param vevent VEVENT component
-   * @param vcalendar Parent VCALENDAR component
-   * @returns Converted calendar event
-   */
-  private convertVEventToCalendarEvent(vevent: ICAL.Component): CalendarEvent {
-    try {
-      // Extract event properties
-      const uidValue = vevent.getFirstPropertyValue("uid");
-      const uid = uidValue ? String(uidValue) : crypto.randomUUID();
-      const summary = vevent.getFirstPropertyValue("summary");
-      const description = vevent.getFirstPropertyValue("description");
-      const location = vevent.getFirstPropertyValue("location");
-
-      // Get start and end times
-      const dtstart = vevent.getFirstProperty("dtstart");
-      const dtend =
-        vevent.getFirstProperty("dtend") || vevent.getFirstProperty("duration");
-
-      if (!dtstart) {
-        throw new Error("Event is missing start time");
-      }
-
-      // Use the helper function to check if this is an all-day event
-      const isAllDay = this.isAllDayEvent(vevent);
-
-      // Convert to JavaScript Date objects
-      const dtstartValue = dtstart.getFirstValue();
-
-      // Handle ICAL.js types properly by using type assertion
-      // ICAL.Time objects have toJSDate() but TypeScript doesn't know this
-      const startDate =
-        typeof dtstartValue === "object" && dtstartValue !== null
-          ? (dtstartValue as unknown as { toJSDate(): Date }).toJSDate()
-          : new Date();
-
-      let endDate: Date;
-
-      if (dtend) {
-        const dtendValue = dtend.getFirstValue();
-
-        // Check if it's a duration instead of a date
-        if (dtend.name === "duration") {
-          // If it's a duration, calculate end time by adding duration to start time
-          const duration = dtendValue;
-          // Create a new date object to avoid modifying the original
-          endDate = new Date(startDate.getTime());
-
-          // If duration has toSeconds method (ICAL.Duration), use it
-          if (
-            typeof duration === "object" &&
-            duration !== null &&
-            "toSeconds" in duration
-          ) {
-            endDate = new Date(
-              startDate.getTime() + duration.toSeconds() * 1000
-            );
-          } else if (typeof duration === "string") {
-            // Try to parse ISO duration format (e.g., PT1H30M)
-            const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-            if (match) {
-              const hours = parseInt(match[1] || "0", 10);
-              const minutes = parseInt(match[2] || "0", 10);
-              const seconds = parseInt(match[3] || "0", 10);
-              const durationMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
-              endDate = new Date(startDate.getTime() + durationMs);
-            } else {
-              // Default to 1 hour if we can't parse
-              endDate = new Date(startDate.getTime() + 3600000);
-            }
-          } else {
-            // Default to 1 hour if we can't determine duration
-            endDate = new Date(startDate.getTime() + 3600000);
-          }
-        } else {
-          // Handle regular end date/time
-          if (typeof dtendValue === "object" && dtendValue !== null) {
-            // Check if it has toJSDate method
-            if (
-              "toJSDate" in dtendValue &&
-              typeof dtendValue.toJSDate === "function"
-            ) {
-              endDate = dtendValue.toJSDate();
-            } else {
-              // Try to convert to date if it has a toString method
-              try {
-                const dateStr = dtendValue.toString();
-                const parsedDate = new Date(dateStr);
-                endDate = isNaN(parsedDate.getTime())
-                  ? new Date(startDate.getTime() + 3600000) // Default to 1 hour later if invalid
-                  : parsedDate;
-              } catch {
-                // Default to 1 hour after start if conversion fails
-                endDate = new Date(startDate.getTime() + 3600000);
-              }
-            }
-          } else if (typeof dtendValue === "string") {
-            // Try to parse string date
-            try {
-              const parsedDate = new Date(dtendValue);
-              endDate = isNaN(parsedDate.getTime())
-                ? new Date(startDate.getTime() + 3600000) // Default to 1 hour later if invalid
-                : parsedDate;
-            } catch {
-              // Default to 1 hour after start if parsing fails
-              endDate = new Date(startDate.getTime() + 3600000);
-            }
-          } else {
-            // Default to 1 hour after start for unknown types
-            endDate = new Date(startDate.getTime() + 3600000);
-          }
-        }
-      } else {
-        // If no end time or duration, default to 1 hour after start
-        endDate = new Date(startDate.getTime() + 3600000);
-      }
-
-      // Check for recurrence
-      const rrule = vevent.getFirstPropertyValue("rrule");
-      const isRecurring = !!rrule;
-
-      // Get recurrence-id if this is an exception
-      const recurrenceId = vevent.getFirstPropertyValue("recurrence-id");
-      const isInstance = !!recurrenceId;
-
-      // Only master events should be marked as recurring
-      const isMaster = isRecurring && !isInstance;
-
-      // Convert iCalendar recurrence rule to RRule string format if present
-      const recurrenceRuleString = isRecurring
-        ? convertICalRRuleToRRuleString(rrule as unknown as ICalRRule)
-        : null;
-
-      // Create a partial CalendarEvent object
-      return {
-        id: uid,
-        feedId: "", // This would need to be set when saving to the database
-        externalEventId: uid,
-        title: summary ? String(summary) : "Untitled Event",
-        description: description ? String(description) : null,
-        start: startDate,
-        end: endDate,
-        location: location ? String(location) : null,
-        isRecurring: isMaster, // Only master events are recurring
-        recurrenceRule: recurrenceRuleString,
-        allDay: isAllDay,
-        status: null,
-        sequence: null,
-        created: null,
-        lastModified: null,
-        organizer: null,
-        attendees: null,
-        createdAt: newDate(),
-        updatedAt: newDate(),
-        isMaster: isMaster,
-        masterEventId: isInstance ? uid.split("_")[0] : null,
-        recurringEventId: isInstance ? uid : null,
-      } as CalendarEvent;
-    } catch (error) {
-      logger.error(
-        "Failed to convert VEVENT to CalendarEvent",
-        {
-          error: error instanceof Error ? error.message : "Unknown error",
-        },
-        LOG_SOURCE
-      );
-
-      // Return a minimal event as fallback
-      return {
-        id: crypto.randomUUID(),
-        feedId: "",
-        title: "Error parsing event",
-        start: newDate(),
-        end: newDate(),
-        createdAt: newDate(),
-        updatedAt: newDate(),
-        allDay: false,
-        isRecurring: false,
-        isMaster: false,
-      } as CalendarEvent;
-    }
-  }
 
   /**
    * Extract key properties from a VEVENT component
