@@ -1,8 +1,5 @@
 import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import AzureADProvider from "next-auth/providers/azure-ad";
-import { getGoogleCredentials, getOutlookCredentials } from "@/lib/auth";
-import { MICROSOFT_GRAPH_SCOPES } from "@/lib/outlook";
+import { getAuthOptions } from "@/lib/auth/auth-options";
 
 declare module "next-auth" {
   interface Session {
@@ -14,6 +11,7 @@ declare module "next-auth" {
       name?: string;
       email?: string;
       image?: string;
+      role?: string;
     };
   }
 }
@@ -23,70 +21,12 @@ declare module "next-auth/jwt" {
     accessToken?: string;
     refreshToken?: string;
     expiresAt?: number;
+    role?: string;
   }
 }
 
-const googleCredentials = await getGoogleCredentials();
-const outlookCredentials = await getOutlookCredentials();
+// Create a NextAuth handler with the auth options
+const handler = NextAuth(await getAuthOptions());
 
-const handler = NextAuth({
-  providers: [
-    GoogleProvider({
-      clientId: googleCredentials.clientId,
-      clientSecret: googleCredentials.clientSecret,
-      authorization: {
-        params: {
-          scope:
-            "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events",
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
-        },
-      },
-    }),
-    AzureADProvider({
-      clientId: outlookCredentials.clientId,
-      clientSecret: outlookCredentials.clientSecret,
-      tenantId: outlookCredentials.tenantId,
-      authorization: {
-        params: {
-          scope: MICROSOFT_GRAPH_SCOPES.join(" "),
-        },
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, account, profile }) {
-      if (account && profile) {
-        return {
-          ...token,
-          accessToken: account.access_token,
-          refreshToken: account.refresh_token,
-          expiresAt: account.expires_at,
-          provider: account.provider,
-        };
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      return {
-        ...session,
-        accessToken: token.accessToken,
-        refreshToken: token.refreshToken,
-        expiresAt: token.expiresAt,
-        provider: token.provider,
-      };
-    },
-  },
-  pages: {
-    signIn: "/",
-    error: "/",
-  },
-  debug: true,
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60,
-  },
-});
-
+// Export the handler for both GET and POST requests
 export { handler as GET, handler as POST };

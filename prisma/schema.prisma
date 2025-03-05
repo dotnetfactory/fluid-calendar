@@ -368,6 +368,7 @@ model SystemSettings {
   logLevel            String   @default("none") // none, debug, info, warn, error
   logRetention        Json? // Retention periods per log level
   logDestination      String   @default("db") // db, file, both
+  publicSignup        Boolean  @default(false) // Whether public signup is enabled
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }

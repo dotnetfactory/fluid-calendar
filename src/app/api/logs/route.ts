@@ -1,12 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { newDate, subDays } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { Prisma } from "@prisma/client";
+import { requireAdmin } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "LogsAPI";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  // Check if user is admin
+  const authResponse = await requireAdmin(request);
+  if (authResponse) return authResponse;
+
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
@@ -91,7 +96,11 @@ export async function GET(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
+  // Check if user is admin
+  const authResponse = await requireAdmin(request);
+  if (authResponse) return authResponse;
+
   try {
     const { searchParams } = new URL(request.url);
     const olderThan = searchParams.get("olderThan"); // days

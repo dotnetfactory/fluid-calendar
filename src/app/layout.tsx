@@ -14,6 +14,7 @@ import { ShortcutsModal } from "@/components/ui/shortcuts-modal";
 import { useShortcutsStore } from "@/store/shortcuts";
 import { usePathname } from "next/navigation";
 import { SetupCheck } from "@/components/setup/SetupCheck";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -86,6 +87,7 @@ export default function RootLayout({
                 />
                 <AppNav />
                 <main className="flex-1 relative">{children}</main>
+                <Toaster />
               </DndProvider>
             </PrivacyProvider>
           </ThemeProvider>

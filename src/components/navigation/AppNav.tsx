@@ -9,6 +9,7 @@ import { RiKeyboardLine } from "react-icons/ri";
 import { useShortcutsStore } from "@/store/shortcuts";
 import { PrivacyToggle } from "./PrivacyToggle";
 import { ThemeToggle } from "./ThemeToggle";
+import { UserMenu } from "./UserMenu";
 
 interface AppNavProps {
   className?: string;
@@ -70,6 +71,7 @@ export function AppNav({ className }: AppNavProps) {
                 ?
               </kbd>
             </button>
+            <UserMenu />
           </div>
         </div>
       </div>

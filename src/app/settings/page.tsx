@@ -8,8 +8,10 @@ import { AutoScheduleSettings } from "@/components/settings/AutoScheduleSettings
 import { SystemSettings } from "@/components/settings/SystemSettings";
 import { OutlookTaskSettings } from "@/components/settings/OutlookTaskSettings";
 import { LogViewer } from "@/components/settings/LogViewer";
+import { UserManagement } from "@/components/settings/UserManagement";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { useAdmin } from "@/hooks/use-admin";
 
 type SettingsTab =
   | "accounts"
@@ -18,23 +20,33 @@ type SettingsTab =
   | "auto-schedule"
   | "system"
   | "outlook-tasks"
-  | "logs";
+  | "logs"
+  | "user-management";
 
 export default function SettingsPage() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const tabs = useMemo(
-    () =>
-      [
-        { id: "accounts", label: "Accounts" },
-        { id: "user", label: "User" },
-        { id: "calendar", label: "Calendar" },
-        { id: "auto-schedule", label: "Auto-Schedule" },
-        { id: "outlook-tasks", label: "Outlook Tasks" },
-        { id: "system", label: "System" },
-        { id: "logs", label: "Logs" },
-      ] as const,
-    []
-  );
+  const { isAdmin } = useAdmin();
+
+  const tabs = useMemo(() => {
+    const baseTabs = [
+      { id: "accounts", label: "Accounts" },
+      { id: "user", label: "User" },
+      { id: "calendar", label: "Calendar" },
+      { id: "auto-schedule", label: "Auto-Schedule" },
+      { id: "outlook-tasks", label: "Outlook Tasks" },
+    ] as const;
+
+    // Only add admin tabs if the user is an admin
+    const adminTabs = isAdmin
+      ? ([
+          { id: "system", label: "System" },
+          { id: "logs", label: "Logs" },
+          { id: "user-management", label: "User Management" },
+        ] as const)
+      : ([] as const);
+
+    return [...baseTabs, ...adminTabs];
+  }, [isAdmin]);
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("accounts");
 
@@ -83,6 +95,8 @@ export default function SettingsPage() {
         return <SystemSettings />;
       case "logs":
         return <LogViewer />;
+      case "user-management":
+        return <UserManagement />;
       default:
         return null;
     }
