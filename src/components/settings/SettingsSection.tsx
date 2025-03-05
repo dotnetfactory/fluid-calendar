@@ -1,9 +1,21 @@
-import { ReactNode } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
 interface SettingsSectionProps {
   title: string;
   description: string;
-  children: ReactNode;
+  children: React.ReactNode;
+}
+
+interface SettingRowProps {
+  label: string;
+  description: React.ReactNode;
+  children: React.ReactNode;
 }
 
 export function SettingsSection({
@@ -12,34 +24,24 @@ export function SettingsSection({
   children,
 }: SettingsSectionProps) {
   return (
-    <div className="py-6">
-      <div className="mb-5">
-        <h3 className="text-lg font-medium leading-6 text-gray-900">{title}</h3>
-        {description && (
-          <p className="mt-1 text-sm text-gray-500">{description}</p>
-        )}
-      </div>
-      <div className="mt-6 space-y-6">{children}</div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">{children}</CardContent>
+    </Card>
   );
-}
-
-interface SettingRowProps {
-  label: string;
-  description: ReactNode;
-  children: ReactNode;
 }
 
 export function SettingRow({ label, description, children }: SettingRowProps) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start">
-      <div className="w-full sm:w-1/3">
-        <label className="text-sm font-medium text-gray-900">{label}</label>
-        {description && (
-          <div className="mt-1 text-sm text-gray-500">{description}</div>
-        )}
+    <div className="flex flex-col space-y-6 md:flex-row md:space-y-0 md:space-x-6 md:items-start">
+      <div className="flex-1 space-y-1">
+        <div className="text-sm font-medium leading-none">{label}</div>
+        <div className="text-sm text-muted-foreground">{description}</div>
       </div>
-      <div className="mt-2 sm:mt-0 sm:ml-4 sm:w-2/3">{children}</div>
+      <div className="flex-1">{children}</div>
     </div>
   );
 }

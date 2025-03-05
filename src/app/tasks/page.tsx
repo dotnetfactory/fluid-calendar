@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useTaskModalStore } from "@/store/taskModal";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function TasksPage() {
   const {
@@ -202,7 +203,7 @@ export default function TasksPage() {
         {loading && (
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
             <div className="bg-background rounded-lg p-4 shadow-lg border">
-              <span className="text-sm text-muted-foreground">Loading...</span>
+            <LoadingSpinner size="lg" />
             </div>
           </div>
         )}

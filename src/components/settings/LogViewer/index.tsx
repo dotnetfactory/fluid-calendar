@@ -4,6 +4,9 @@ import { LogFilters } from "./LogFilters";
 import { LogSettings } from "./LogSettings";
 import { logger } from "@/lib/logger";
 import { useLogViewStore } from "@/store/logview";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Trash2 } from "lucide-react";
 
 const LOG_SOURCE = "LogViewer";
 
@@ -93,16 +96,18 @@ export function LogViewer() {
   }, [fetchSources, fetchLogs]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">System Logs</h2>
-        <button
+        <h2 className="text-2xl font-bold tracking-tight">System Logs</h2>
+        <Button
+          variant="destructive"
           onClick={handleCleanup}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
           disabled={loading}
+          size="sm"
         >
+          <Trash2 className="h-4 w-4 mr-2" />
           Cleanup Expired Logs
-        </button>
+        </Button>
       </div>
 
       <LogSettings />
@@ -114,7 +119,9 @@ export function LogViewer() {
       />
 
       {error && (
-        <div className="p-4 bg-red-100 text-red-700 rounded">{error}</div>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       <LogTable

@@ -5,6 +5,13 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   parseWorkDays,
   parseSelectedCalendars,
   stringifyWorkDays,
@@ -68,14 +75,14 @@ export function AutoScheduleSettings() {
               <Label className="flex items-center gap-2">
                 <span
                   className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: feed.color || "#E5E7EB" }}
+                  style={{ backgroundColor: feed.color || "var(--muted)" }}
                 />
                 {feed.name}
               </Label>
             </div>
           ))}
           {feeds.length === 0 && (
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               No calendars found. Please add calendars in the Calendar Settings.
             </div>
           )}
@@ -90,39 +97,47 @@ export function AutoScheduleSettings() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Start Time</Label>
-              <select
-                value={autoSchedule.workHourStart}
-                onChange={(e) =>
+              <Select
+                value={autoSchedule.workHourStart.toString()}
+                onValueChange={(value) =>
                   updateAutoScheduleSettings({
-                    workHourStart: parseInt(e.target.value),
+                    workHourStart: parseInt(value),
                   })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               >
-                {timeOptions.map((time) => (
-                  <option key={time.value} value={time.value}>
-                    {time.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time.value} value={time.value.toString()}>
+                      {time.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>End Time</Label>
-              <select
-                value={autoSchedule.workHourEnd}
-                onChange={(e) =>
+              <Select
+                value={autoSchedule.workHourEnd.toString()}
+                onValueChange={(value) =>
                   updateAutoScheduleSettings({
-                    workHourEnd: parseInt(e.target.value),
+                    workHourEnd: parseInt(value),
                   })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               >
-                {timeOptions.map((time) => (
-                  <option key={time.value} value={time.value}>
-                    {time.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time.value} value={time.value.toString()}>
+                      {time.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -130,7 +145,7 @@ export function AutoScheduleSettings() {
             <Label>Working Days</Label>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {workingDays.map((day) => (
-                <label key={day.value} className="flex items-center space-x-2">
+                <div key={day.value} className="flex items-center space-x-2">
                   <Switch
                     checked={workDays.includes(day.value)}
                     onCheckedChange={(checked) => {
@@ -142,8 +157,8 @@ export function AutoScheduleSettings() {
                       });
                     }}
                   />
-                  <span className="text-sm">{day.label}</span>
-                </label>
+                  <Label className="text-sm">{day.label}</Label>
+                </div>
               ))}
             </div>
           </div>
@@ -158,126 +173,139 @@ export function AutoScheduleSettings() {
           <div className="space-y-2">
             <Label>High Energy Hours</Label>
             <div className="grid grid-cols-2 gap-4">
-              <select
-                value={autoSchedule.highEnergyStart ?? ""}
-                onChange={(e) =>
+              <Select
+                value={autoSchedule.highEnergyStart?.toString() || "none"}
+                onValueChange={(value) =>
                   updateAutoScheduleSettings({
-                    highEnergyStart: e.target.value
-                      ? parseInt(e.target.value)
-                      : null,
+                    highEnergyStart: value === "none" ? null : parseInt(value),
                   })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               >
-                <option value="">Not Set</option>
-                {timeOptions.map((time) => (
-                  <option key={time.value} value={time.value}>
-                    {time.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={autoSchedule.highEnergyEnd ?? ""}
-                onChange={(e) =>
+                <SelectTrigger>
+                  <SelectValue placeholder="Not Set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not Set</SelectItem>
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time.value} value={time.value.toString()}>
+                      {time.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={autoSchedule.highEnergyEnd?.toString() || "none"}
+                onValueChange={(value) =>
                   updateAutoScheduleSettings({
-                    highEnergyEnd: e.target.value
-                      ? parseInt(e.target.value)
-                      : null,
+                    highEnergyEnd: value === "none" ? null : parseInt(value),
                   })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               >
-                <option value="">Not Set</option>
-                {timeOptions.map((time) => (
-                  <option key={time.value} value={time.value}>
-                    {time.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Not Set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not Set</SelectItem>
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time.value} value={time.value.toString()}>
+                      {time.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>Medium Energy Hours</Label>
             <div className="grid grid-cols-2 gap-4">
-              <select
-                value={autoSchedule.mediumEnergyStart ?? ""}
-                onChange={(e) =>
+              <Select
+                value={autoSchedule.mediumEnergyStart?.toString() || "none"}
+                onValueChange={(value) =>
                   updateAutoScheduleSettings({
-                    mediumEnergyStart: e.target.value
-                      ? parseInt(e.target.value)
-                      : null,
+                    mediumEnergyStart:
+                      value === "none" ? null : parseInt(value),
                   })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               >
-                <option value="">Not Set</option>
-                {timeOptions.map((time) => (
-                  <option key={time.value} value={time.value}>
-                    {time.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={autoSchedule.mediumEnergyEnd ?? ""}
-                onChange={(e) =>
+                <SelectTrigger>
+                  <SelectValue placeholder="Not Set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not Set</SelectItem>
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time.value} value={time.value.toString()}>
+                      {time.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={autoSchedule.mediumEnergyEnd?.toString() || "none"}
+                onValueChange={(value) =>
                   updateAutoScheduleSettings({
-                    mediumEnergyEnd: e.target.value
-                      ? parseInt(e.target.value)
-                      : null,
+                    mediumEnergyEnd: value === "none" ? null : parseInt(value),
                   })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               >
-                <option value="">Not Set</option>
-                {timeOptions.map((time) => (
-                  <option key={time.value} value={time.value}>
-                    {time.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Not Set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not Set</SelectItem>
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time.value} value={time.value.toString()}>
+                      {time.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>Low Energy Hours</Label>
             <div className="grid grid-cols-2 gap-4">
-              <select
-                value={autoSchedule.lowEnergyStart ?? ""}
-                onChange={(e) =>
+              <Select
+                value={autoSchedule.lowEnergyStart?.toString() || "none"}
+                onValueChange={(value) =>
                   updateAutoScheduleSettings({
-                    lowEnergyStart: e.target.value
-                      ? parseInt(e.target.value)
-                      : null,
+                    lowEnergyStart: value === "none" ? null : parseInt(value),
                   })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               >
-                <option value="">Not Set</option>
-                {timeOptions.map((time) => (
-                  <option key={time.value} value={time.value}>
-                    {time.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={autoSchedule.lowEnergyEnd ?? ""}
-                onChange={(e) =>
+                <SelectTrigger>
+                  <SelectValue placeholder="Not Set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not Set</SelectItem>
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time.value} value={time.value.toString()}>
+                      {time.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={autoSchedule.lowEnergyEnd?.toString() || "none"}
+                onValueChange={(value) =>
                   updateAutoScheduleSettings({
-                    lowEnergyEnd: e.target.value
-                      ? parseInt(e.target.value)
-                      : null,
+                    lowEnergyEnd: value === "none" ? null : parseInt(value),
                   })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               >
-                <option value="">Not Set</option>
-                {timeOptions.map((time) => (
-                  <option key={time.value} value={time.value}>
-                    {time.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Not Set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not Set</SelectItem>
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time.value} value={time.value.toString()}>
+                      {time.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>

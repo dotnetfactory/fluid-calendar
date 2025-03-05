@@ -67,7 +67,7 @@ export function AccountManager() {
             Manage your connected calendar accounts
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           {showGoogleCredentialsWarning && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -90,7 +90,7 @@ export function AccountManager() {
             </Alert>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => handleConnect("GOOGLE")}
               disabled={showGoogleCredentialsWarning}
@@ -109,58 +109,71 @@ export function AccountManager() {
           </div>
 
           {showCalDAVForm && (
-            <div className="mt-4">
-              <CalDAVAccountForm
-                onSuccess={handleCalDAVSuccess}
-                onCancel={() => setShowCalDAVForm(false)}
-              />
-            </div>
+            <Card>
+              <CardContent className="pt-6">
+                <CalDAVAccountForm
+                  onSuccess={handleCalDAVSuccess}
+                  onCancel={() => setShowCalDAVForm(false)}
+                />
+              </CardContent>
+            </Card>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-4">
             {accounts.map((account) => (
-              <div key={account.id} className="space-y-2">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={
-                        account.provider === "GOOGLE"
-                          ? "default"
-                          : account.provider === "OUTLOOK"
-                          ? "secondary"
-                          : "outline"
-                      }
-                    >
-                      {account.provider}
-                    </Badge>
-                    <span>{account.email}</span>
-                    <Badge variant="outline">
-                      {account.calendars.length} calendars
-                    </Badge>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => toggleAvailableCalendars(account.id)}
-                    >
-                      {showAvailableFor === account.id ? "Hide" : "Show"}{" "}
-                      Available Calendars
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleRemove(account.id)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
+              <div key={account.id} className="space-y-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant={
+                            account.provider === "GOOGLE"
+                              ? "default"
+                              : account.provider === "OUTLOOK"
+                              ? "secondary"
+                              : "outline"
+                          }
+                          className="capitalize"
+                        >
+                          {account.provider.toLowerCase()}
+                        </Badge>
+                        <span className="text-sm font-medium">
+                          {account.email}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {account.calendars.length} calendars
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleAvailableCalendars(account.id)}
+                        >
+                          {showAvailableFor === account.id ? "Hide" : "Show"}{" "}
+                          Calendars
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemove(account.id)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
                 {showAvailableFor === account.id && (
-                  <AvailableCalendars
-                    accountId={account.id}
-                    provider={account.provider}
-                  />
+                  <Card>
+                    <CardContent className="pt-6">
+                      <AvailableCalendars
+                        accountId={account.id}
+                        provider={account.provider}
+                      />
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             ))}

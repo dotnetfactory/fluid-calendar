@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AvailableCalendar {
   id: string;
@@ -120,33 +121,45 @@ export function AvailableCalendars({ accountId, provider }: Props) {
 
   if (isLoading) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        Loading available calendars...
+      <div className="space-y-2">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="flex items-center justify-between p-4 rounded-md border bg-card"
+          >
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-16" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-8 w-16" />
+          </div>
+        ))}
       </div>
     );
   }
 
   if (calendars.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500">
+      <div className="text-center text-muted-foreground py-4">
         No available calendars found
       </div>
     );
   }
 
   return (
-    <div className="border rounded-lg p-4 space-y-4 bg-gray-50">
+    <div className="space-y-4">
       <div className="space-y-2">
         {calendars.map((calendar) => (
           <div
             key={calendar.id}
-            className="flex items-center justify-between p-4 bg-white border rounded-lg"
+            className="flex items-center justify-between p-4 rounded-md border bg-card"
           >
             <div className="flex items-center gap-2">
-              <Badge variant="outline">
-                {calendar.accessRole || (calendar.canEdit ? "owner" : "reader")}
+              <Badge variant="outline" className="capitalize">
+                {calendar.accessRole?.toLowerCase() ||
+                  (calendar.canEdit ? "owner" : "reader")}
               </Badge>
-              <span>{calendar.name}</span>
+              <span className="text-sm">{calendar.name}</span>
             </div>
             <Button
               size="sm"

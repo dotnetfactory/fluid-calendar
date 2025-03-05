@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { LogMetadata } from "@/lib/logger/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Copy, ChevronUp } from "lucide-react";
 
 interface LogMetadataViewProps {
   metadata: LogMetadata | null;
@@ -9,7 +12,7 @@ export function LogMetadataView({ metadata }: LogMetadataViewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!metadata || Object.keys(metadata).length === 0) {
-    return <span className="text-gray-500">-</span>;
+    return <span className="text-muted-foreground">-</span>;
   }
 
   const handleCopy = () => {
@@ -25,32 +28,39 @@ export function LogMetadataView({ metadata }: LogMetadataViewProps) {
     <div className="relative">
       {!isExpanded ? (
         <div
-          className="cursor-pointer text-sm text-gray-600 hover:text-gray-900"
+          className="cursor-pointer text-sm text-muted-foreground hover:text-foreground"
           onClick={() => setIsExpanded(true)}
         >
           {truncatedView()}
         </div>
       ) : (
-        <div className="relative bg-gray-50 p-3 rounded-md shadow-sm">
-          <div className="absolute right-2 top-2 space-x-2">
-            <button
-              onClick={handleCopy}
-              className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded"
-              title="Copy to clipboard"
-            >
-              Copy
-            </button>
-            <button
-              onClick={() => setIsExpanded(false)}
-              className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded"
-            >
-              Collapse
-            </button>
-          </div>
-          <pre className="text-sm text-gray-800 whitespace-pre-wrap pt-8">
-            {JSON.stringify(metadata, null, 2)}
-          </pre>
-        </div>
+        <Card className="relative">
+          <CardContent className="p-3 pt-8">
+            <div className="absolute right-2 top-2 flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopy}
+                className="h-7 px-2"
+              >
+                <Copy className="h-3 w-3" />
+                <span className="sr-only">Copy to clipboard</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExpanded(false)}
+                className="h-7 px-2"
+              >
+                <ChevronUp className="h-3 w-3" />
+                <span className="sr-only">Collapse</span>
+              </Button>
+            </div>
+            <pre className="text-sm whitespace-pre-wrap">
+              {JSON.stringify(metadata, null, 2)}
+            </pre>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

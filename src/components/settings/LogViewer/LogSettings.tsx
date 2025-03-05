@@ -1,6 +1,25 @@
 import { useState, useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { LogSettings as LogSettingsType } from "@/lib/logger/types";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const LOG_SOURCE = "LogSettings";
 
@@ -100,128 +119,116 @@ export function LogSettings() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-24">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
+      <Card className="min-h-[400px] flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow space-y-6">
-      <div>
-        <h3 className="text-lg font-medium text-gray-900">Log Settings</h3>
-        <p className="mt-1 text-sm text-gray-500">
+    <Card>
+      <CardHeader>
+        <CardTitle>Log Settings</CardTitle>
+        <CardDescription>
           Configure how logs are stored and managed in the system.
-        </p>
-      </div>
+        </CardDescription>
+      </CardHeader>
 
-      {error && (
-        <div className="p-4 bg-red-100 text-red-700 rounded">{error}</div>
-      )}
+      <CardContent className="space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      {saved && (
-        <div className="p-4 bg-green-100 text-green-700 rounded">
-          Settings saved successfully!
+        {saved && (
+          <Alert>
+            <AlertDescription>Settings saved successfully!</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="logLevel">Log Level</Label>
+            <Select
+              value={settings.logLevel}
+              onValueChange={(value) =>
+                setSettings({
+                  ...settings,
+                  logLevel: value as LogSettingsType["logLevel"],
+                })
+              }
+            >
+              <SelectTrigger id="logLevel">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="error">Error</SelectItem>
+                <SelectItem value="warn">Warning</SelectItem>
+                <SelectItem value="info">Info</SelectItem>
+                <SelectItem value="debug">Debug</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="logDestination">Log Destination</Label>
+            <Select
+              value={settings.logDestination}
+              onValueChange={(value) =>
+                setSettings({
+                  ...settings,
+                  logDestination: value as LogSettingsType["logDestination"],
+                })
+              }
+            >
+              <SelectTrigger id="logDestination">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="db">Database Only</SelectItem>
+                <SelectItem value="file">File Only</SelectItem>
+                <SelectItem value="both">Both Database and File</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      )}
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div>
-          <label
-            htmlFor="logLevel"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Log Level
-          </label>
-          <select
-            id="logLevel"
-            value={settings.logLevel}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                logLevel: e.target.value as LogSettingsType["logLevel"],
-              })
-            }
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-          >
-            <option value="none">None</option>
-            <option value="error">Error</option>
-            <option value="warn">Warning</option>
-            <option value="info">Info</option>
-            <option value="debug">Debug</option>
-          </select>
+        <div className="space-y-4">
+          <Label className="text-base">Retention Periods (Days)</Label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(settings.logRetention).map(([level, days]) => (
+              <div key={level} className="space-y-2">
+                <Label htmlFor={`retention-${level}`} className="capitalize">
+                  {level}
+                </Label>
+                <Input
+                  type="number"
+                  id={`retention-${level}`}
+                  value={days}
+                  min={1}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      logRetention: {
+                        ...settings.logRetention,
+                        [level]: parseInt(e.target.value) || 1,
+                      },
+                    })
+                  }
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div>
-          <label
-            htmlFor="logDestination"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Log Destination
-          </label>
-          <select
-            id="logDestination"
-            value={settings.logDestination}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                logDestination: e.target
-                  .value as LogSettingsType["logDestination"],
-              })
-            }
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-          >
-            <option value="db">Database Only</option>
-            <option value="file">File Only</option>
-            <option value="both">Both Database and File</option>
-          </select>
+        <div className="flex justify-end pt-4">
+          <Button onClick={handleSave} disabled={loading}>
+            {loading ? "Saving..." : "Save Settings"}
+          </Button>
         </div>
-      </div>
-
-      <div>
-        <h4 className="text-sm font-medium text-gray-900">
-          Retention Periods (Days)
-        </h4>
-        <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Object.entries(settings.logRetention).map(([level, days]) => (
-            <div key={level}>
-              <label
-                htmlFor={`retention-${level}`}
-                className="block text-sm font-medium text-gray-700 capitalize"
-              >
-                {level}
-              </label>
-              <input
-                type="number"
-                id={`retention-${level}`}
-                value={days}
-                min={1}
-                onChange={(e) =>
-                  setSettings({
-                    ...settings,
-                    logRetention: {
-                      ...settings.logRetention,
-                      [level]: parseInt(e.target.value) || 1,
-                    },
-                  })
-                }
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={loading}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-        >
-          {loading ? "Saving..." : "Save Settings"}
-        </button>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

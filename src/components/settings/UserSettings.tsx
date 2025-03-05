@@ -3,6 +3,13 @@ import { SettingsSection, SettingRow } from "./SettingsSection";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { TimeFormat, WeekStartDay } from "@/types/settings";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function UserSettings() {
   const { data: session } = useSession();
@@ -55,7 +62,9 @@ export function UserSettings() {
             )}
             <div>
               <div className="font-medium">{session.user.name}</div>
-              <div className="text-sm text-gray-500">{session.user.email}</div>
+              <div className="text-sm text-muted-foreground">
+                {session.user.email}
+              </div>
             </div>
           </div>
         </SettingRow>
@@ -65,55 +74,67 @@ export function UserSettings() {
         label="Time Format"
         description="Choose how times are displayed"
       >
-        <select
+        <Select
           value={user.timeFormat}
-          onChange={(e) =>
-            updateUserSettings({ timeFormat: e.target.value as TimeFormat })
+          onValueChange={(value) =>
+            updateUserSettings({ timeFormat: value as TimeFormat })
           }
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
         >
-          {timeFormats.map((format) => (
-            <option key={format.value} value={format.value}>
-              {format.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {timeFormats.map((format) => (
+              <SelectItem key={format.value} value={format.value}>
+                {format.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </SettingRow>
 
       <SettingRow
         label="Week Starts On"
         description="Choose which day your week starts on"
       >
-        <select
+        <Select
           value={user.weekStartDay}
-          onChange={(e) =>
-            updateUserSettings({ weekStartDay: e.target.value as WeekStartDay })
+          onValueChange={(value) =>
+            updateUserSettings({ weekStartDay: value as WeekStartDay })
           }
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
         >
-          {weekStarts.map((day) => (
-            <option key={day.value} value={day.value}>
-              {day.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {weekStarts.map((day) => (
+              <SelectItem key={day.value} value={day.value}>
+                {day.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </SettingRow>
 
       <SettingRow
         label="Time Zone"
         description="Your current time zone setting"
       >
-        <select
+        <Select
           value={user.timeZone}
-          onChange={(e) => updateUserSettings({ timeZone: e.target.value })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          onValueChange={(value) => updateUserSettings({ timeZone: value })}
         >
-          {timeZones.map((zone) => (
-            <option key={zone} value={zone}>
-              {zone.replace("_", " ")}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {timeZones.map((zone) => (
+              <SelectItem key={zone} value={zone}>
+                {zone.replace("_", " ")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </SettingRow>
     </SettingsSection>
   );

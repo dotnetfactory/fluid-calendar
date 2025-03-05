@@ -2,6 +2,16 @@ import { useSettingsStore } from "@/store/settings";
 import { useCalendarStore } from "@/store/calendar";
 import { SettingsSection, SettingRow } from "./SettingsSection";
 import { useEffect } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function CalendarSettings() {
   const { calendar, updateCalendarSettings } = useSettingsStore();
@@ -31,22 +41,28 @@ export function CalendarSettings() {
         label="Default Calendar"
         description="Choose which calendar new events are added to by default"
       >
-        <select
-          value={calendar.defaultCalendarId || ""}
-          onChange={(e) =>
-            updateCalendarSettings({ defaultCalendarId: e.target.value })
+        <Select
+          value={calendar.defaultCalendarId || "none"}
+          onValueChange={(value) =>
+            updateCalendarSettings({
+              defaultCalendarId: value === "none" ? "" : value,
+            })
           }
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
         >
-          <option value="">Select a default calendar</option>
-          {feeds
-            .filter((feed) => feed.enabled)
-            .map((feed) => (
-              <option key={feed.id} value={feed.id}>
-                {feed.name}
-              </option>
-            ))}
-        </select>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a default calendar" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Select a default calendar</SelectItem>
+            {feeds
+              .filter((feed) => feed.enabled)
+              .map((feed) => (
+                <SelectItem key={feed.id} value={feed.id}>
+                  {feed.name}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
       </SettingRow>
 
       <SettingRow
@@ -54,29 +70,26 @@ export function CalendarSettings() {
         description="Set your working hours for better calendar visualization"
       >
         <div className="space-y-4">
-          <label className="flex items-center">
-            <input
-              type="checkbox"
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="show-working-hours"
               checked={calendar.workingHours.enabled}
-              onChange={(e) =>
+              onCheckedChange={(checked) =>
                 updateCalendarSettings({
                   workingHours: {
                     ...calendar.workingHours,
-                    enabled: e.target.checked,
+                    enabled: checked as boolean,
                   },
                 })
               }
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            <span className="ml-2 text-sm">Show working hours</span>
-          </label>
+            <Label htmlFor="show-working-hours">Show working hours</Label>
+          </div>
 
           <div className="flex space-x-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Start Time
-              </label>
-              <input
+              <Label>Start Time</Label>
+              <Input
                 type="time"
                 value={calendar.workingHours.start}
                 onChange={(e) =>
@@ -87,14 +100,11 @@ export function CalendarSettings() {
                     },
                   })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               />
             </div>
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">
-                End Time
-              </label>
-              <input
+              <Label>End Time</Label>
+              <Input
                 type="time"
                 value={calendar.workingHours.end}
                 onChange={(e) =>
@@ -105,23 +115,20 @@ export function CalendarSettings() {
                     },
                   })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Working Days
-            </label>
+            <Label>Working Days</Label>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {workingDays.map((day) => (
-                <label key={day.value} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
+                <div key={day.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`day-${day.value}`}
                     checked={calendar.workingHours.days.includes(day.value)}
-                    onChange={(e) => {
-                      const days = e.target.checked
+                    onCheckedChange={(checked) => {
+                      const days = checked
                         ? [...calendar.workingHours.days, day.value]
                         : calendar.workingHours.days.filter(
                             (d) => d !== day.value
@@ -133,10 +140,11 @@ export function CalendarSettings() {
                         },
                       });
                     }}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm">{day.label}</span>
-                </label>
+                  <Label htmlFor={`day-${day.value}`} className="text-sm">
+                    {day.label}
+                  </Label>
+                </div>
               ))}
             </div>
           </div>

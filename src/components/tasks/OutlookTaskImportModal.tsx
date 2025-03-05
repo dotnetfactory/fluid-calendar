@@ -1,9 +1,25 @@
 import { useState, useEffect } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
-import { IoClose } from "react-icons/io5";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useProjectStore } from "@/store/project";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface OutlookTaskList {
   id: string;
@@ -112,7 +128,10 @@ export function OutlookTaskImportModal({
           body: JSON.stringify({
             accountId,
             listId,
-            projectId: projectMappings[listId].projectId,
+            projectId:
+              projectMappings[listId].projectId === "new"
+                ? ""
+                : projectMappings[listId].projectId,
             isAutoScheduled: projectMappings[listId].isAutoScheduled,
             options: {
               includeCompleted,
@@ -165,18 +184,15 @@ export function OutlookTaskImportModal({
   // If we have results, show the completion state
   if (importResults) {
     return (
-      <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg z-[10000]">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <Dialog.Title className="text-lg font-semibold">
-                  Import Complete
-                </Dialog.Title>
-              </div>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Import Complete</DialogTitle>
+          </DialogHeader>
 
-              <div className="bg-green-50 text-green-700 p-4 rounded-md">
+          <div className="space-y-4">
+            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+              <AlertDescription>
                 <h3 className="font-medium mb-2">
                   Import completed successfully:
                 </h3>
@@ -184,215 +200,206 @@ export function OutlookTaskImportModal({
                   <li>{importResults.imported} tasks imported</li>
                   <li>{importResults.skipped} tasks skipped</li>
                   {importResults.failed > 0 && (
-                    <li className="text-orange-700">
+                    <li className="text-orange-700 dark:text-orange-400">
                       {importResults.failed} tasks failed
-                      <button
+                      <Button
+                        variant="link"
                         onClick={() => setShowFailureDetails(true)}
-                        className="ml-2 text-sm underline hover:text-orange-800"
+                        className="px-2 h-auto text-orange-700 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300"
                       >
                         View Details
-                      </button>
+                      </Button>
                     </li>
                   )}
                 </ul>
-              </div>
+              </AlertDescription>
+            </Alert>
 
-              {showFailureDetails && importResults.failedTasks && (
-                <div className="mt-4 max-h-60 overflow-y-auto">
-                  <h4 className="font-medium mb-2 text-gray-900">
-                    Failed Tasks:
-                  </h4>
-                  <div className="space-y-2">
-                    {importResults.failedTasks.map((task, index) => (
-                      <div key={index} className="bg-orange-50 p-3 rounded-md">
-                        <div className="font-medium text-orange-800">
+            {showFailureDetails && importResults.failedTasks && (
+              <div className="mt-4 max-h-60 overflow-y-auto">
+                <h4 className="font-medium mb-2">Failed Tasks:</h4>
+                <div className="space-y-2">
+                  {importResults.failedTasks.map((task, index) => (
+                    <Card
+                      key={index}
+                      className="bg-orange-50 dark:bg-orange-950"
+                    >
+                      <CardContent className="p-3">
+                        <div className="font-medium text-orange-800 dark:text-orange-300">
                           {task.name}
                         </div>
-                        <div className="text-sm text-orange-700">
+                        <div className="text-sm text-orange-700 dark:text-orange-400">
                           List: {task.listName}
                         </div>
-                        <div className="text-sm text-orange-700">
+                        <div className="text-sm text-orange-700 dark:text-orange-400">
                           Error: {task.error}
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              )}
-
-              <div className="flex justify-end pt-4">
-                <button
-                  onClick={onClose}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  Close
-                </button>
               </div>
+            )}
+
+            <div className="flex justify-end pt-4">
+              <Button onClick={onClose}>Close</Button>
             </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+          </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg z-[10000]">
-          {(isLoading || importInProgress) && <LoadingOverlay />}
-          <div className="flex items-center justify-between mb-4">
-            <Dialog.Title className="text-lg font-semibold">
-              Import Outlook Tasks
-            </Dialog.Title>
-            <Dialog.Close className="rounded-full p-1.5 hover:bg-gray-100">
-              <IoClose className="h-5 w-5" />
-            </Dialog.Close>
-          </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md">
+        {(isLoading || importInProgress) && <LoadingOverlay />}
+        <DialogHeader>
+          <DialogTitle>Import Outlook Tasks</DialogTitle>
+        </DialogHeader>
 
-          <div className="space-y-4">
-            {error && (
-              <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm">
-                {error}
-              </div>
-            )}
+        <div className="space-y-4 max-h-[calc(80vh-8rem)] overflow-y-auto pr-4 -mr-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Select Task Lists
-              </label>
-              <div className="mt-2 space-y-2">
-                {taskLists.map((list) => (
-                  <div key={list.id} className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      id={list.id}
-                      checked={selectedLists.has(list.id)}
-                      onChange={(e) => {
-                        const newSelected = new Set(selectedLists);
-                        if (e.target.checked) {
-                          newSelected.add(list.id);
-                          // Initialize default mapping when list is selected
-                          if (!projectMappings[list.id]) {
-                            setProjectMappings({
-                              ...projectMappings,
-                              [list.id]: {
-                                projectId: "",
-                                isAutoScheduled: true,
-                              },
-                            });
-                          }
-                        } else {
-                          newSelected.delete(list.id);
-                        }
-                        setSelectedLists(newSelected);
-                      }}
-                      className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div className="flex-1">
-                      <label
-                        htmlFor={list.id}
-                        className="block text-sm font-medium text-gray-900"
-                      >
-                        {list.name}
-                        {list.isDefaultFolder && (
-                          <span className="ml-2 text-xs text-gray-500">
-                            (Default)
-                          </span>
-                        )}
-                      </label>
-                      {selectedLists.has(list.id) && (
-                        <div className="mt-1 space-y-2">
-                          <select
-                            value={projectMappings[list.id]?.projectId || ""}
-                            onChange={(e) =>
+          <div>
+            <Label className="text-sm font-medium">Select Task Lists</Label>
+            <div className="mt-2 space-y-2">
+              {taskLists.map((list) => (
+                <Card key={list.id}>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id={list.id}
+                        checked={selectedLists.has(list.id)}
+                        onCheckedChange={(checked) => {
+                          const newSelected = new Set(selectedLists);
+                          if (checked) {
+                            newSelected.add(list.id);
+                            if (!projectMappings[list.id]) {
                               setProjectMappings({
                                 ...projectMappings,
                                 [list.id]: {
-                                  ...projectMappings[list.id],
-                                  projectId: e.target.value,
-                                  isAutoScheduled:
-                                    projectMappings[list.id]?.isAutoScheduled ??
-                                    true,
+                                  projectId: "new",
+                                  isAutoScheduled: true,
                                 },
-                              })
+                              });
                             }
-                            className="block w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
-                          >
-                            <option value="">Create New Project</option>
-                            {projects
-                              .filter((p) => p.status === "active")
-                              .map((project) => (
-                                <option key={project.id} value={project.id}>
-                                  {project.name}
-                                </option>
-                              ))}
-                          </select>
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-600">
-                              Auto-schedule tasks from this list
-                            </div>
-                            <Switch
-                              checked={
-                                projectMappings[list.id]?.isAutoScheduled ??
-                                true
+                          } else {
+                            newSelected.delete(list.id);
+                          }
+                          setSelectedLists(newSelected);
+                        }}
+                      />
+                      <div className="flex-1">
+                        <Label
+                          htmlFor={list.id}
+                          className="text-sm font-medium"
+                        >
+                          {list.name}
+                          {list.isDefaultFolder && (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              (Default)
+                            </span>
+                          )}
+                        </Label>
+                        {selectedLists.has(list.id) && (
+                          <div className="mt-3 space-y-3">
+                            <Select
+                              value={
+                                projectMappings[list.id]?.projectId || "new"
                               }
-                              onCheckedChange={(checked) =>
+                              onValueChange={(value) =>
                                 setProjectMappings({
                                   ...projectMappings,
                                   [list.id]: {
                                     ...projectMappings[list.id],
-                                    isAutoScheduled: checked,
+                                    projectId: value,
+                                    isAutoScheduled:
+                                      projectMappings[list.id]
+                                        ?.isAutoScheduled ?? true,
                                   },
                                 })
                               }
-                            />
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a project" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="new">
+                                  Create New Project
+                                </SelectItem>
+                                {projects
+                                  .filter((p) => p.status === "active")
+                                  .map((project) => (
+                                    <SelectItem
+                                      key={project.id}
+                                      value={project.id}
+                                    >
+                                      {project.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm text-muted-foreground">
+                                Auto-schedule tasks from this list
+                              </div>
+                              <Switch
+                                checked={
+                                  projectMappings[list.id]?.isAutoScheduled ??
+                                  true
+                                }
+                                onCheckedChange={(checked) =>
+                                  setProjectMappings({
+                                    ...projectMappings,
+                                    [list.id]: {
+                                      ...projectMappings[list.id],
+                                      isAutoScheduled: checked,
+                                    },
+                                  })
+                                }
+                              />
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Include Completed Tasks
-                </label>
-                <p className="text-sm text-gray-500">
-                  Import tasks that are already completed
-                </p>
-              </div>
-              <Switch
-                checked={includeCompleted}
-                onCheckedChange={setIncludeCompleted}
-              />
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-4 border-t">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleImport}
-                disabled={
-                  isLoading || importInProgress || selectedLists.size === 0
-                }
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {importInProgress ? "Importing..." : "Import Tasks"}
-              </button>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+
+          <div className="flex items-center justify-between pt-2 border-t">
+            <div>
+              <Label>Include Completed Tasks</Label>
+              <p className="text-sm text-muted-foreground">
+                Import tasks that are already completed
+              </p>
+            </div>
+            <Switch
+              checked={includeCompleted}
+              onCheckedChange={setIncludeCompleted}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3 pt-4 border-t">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleImport}
+            disabled={isLoading || importInProgress || selectedLists.size === 0}
+          >
+            {importInProgress ? "Importing..." : "Import Tasks"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

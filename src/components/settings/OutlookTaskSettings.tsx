@@ -4,6 +4,16 @@ import { useSettingsStore } from "@/store/settings";
 import { useProjectStore } from "@/store/project";
 import { OutlookTaskImportModal } from "../tasks/OutlookTaskImportModal";
 import { format, newDate } from "@/lib/date-utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface OutlookTaskList {
   id: string;
@@ -90,7 +100,7 @@ export function OutlookTaskSettings() {
           label="No Outlook Accounts"
           description="Connect an Outlook account to import tasks"
         >
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-muted-foreground">
             Go to the Accounts tab to connect your Outlook account.
           </div>
         </SettingRow>
@@ -100,18 +110,24 @@ export function OutlookTaskSettings() {
             label="Select Account"
             description="Choose which Outlook account to manage"
           >
-            <select
-              value={selectedAccount || ""}
-              onChange={(e) => setSelectedAccount(e.target.value || null)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            <Select
+              value={selectedAccount || "none"}
+              onValueChange={(value) =>
+                setSelectedAccount(value === "none" ? null : value)
+              }
             >
-              <option value="">Select an account</option>
-              {outlookAccounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.email}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Select an account" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Select an account</SelectItem>
+                {outlookAccounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </SettingRow>
 
           {selectedAccount && (
@@ -122,74 +138,71 @@ export function OutlookTaskSettings() {
               >
                 <div className="space-y-4">
                   {error && (
-                    <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm">
-                      {error}
-                    </div>
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
                   )}
 
                   {isLoading ? (
-                    <div className="text-sm text-gray-500">Loading...</div>
+                    <div className="text-sm text-muted-foreground">
+                      Loading...
+                    </div>
                   ) : taskLists.length === 0 ? (
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-muted-foreground">
                       No task lists found in this account.
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {taskLists.map((list) => (
-                        <div
-                          key={list.id}
-                          className="flex items-start justify-between p-3 bg-gray-50 rounded-md"
-                        >
-                          <div>
-                            <div className="font-medium text-sm">
-                              {list.name}
-                              {list.isDefaultFolder && (
-                                <span className="ml-2 text-xs text-gray-500">
-                                  (Default)
-                                </span>
+                        <Card key={list.id}>
+                          <CardContent className="pt-6 flex items-start justify-between">
+                            <div>
+                              <div className="font-medium text-sm">
+                                {list.name}
+                                {list.isDefaultFolder && (
+                                  <span className="ml-2 text-xs text-muted-foreground">
+                                    (Default)
+                                  </span>
+                                )}
+                              </div>
+                              {list.projectMapping ? (
+                                <div className="mt-1 text-sm">
+                                  <span className="text-muted-foreground">
+                                    Mapped to project:
+                                  </span>{" "}
+                                  <span>{list.projectMapping.projectName}</span>
+                                  <div className="text-xs text-muted-foreground">
+                                    Last imported:{" "}
+                                    {format(
+                                      newDate(list.projectMapping.lastImported),
+                                      "PPp"
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mt-1 text-sm text-muted-foreground">
+                                  Not mapped to any project
+                                </div>
                               )}
                             </div>
-                            {list.projectMapping ? (
-                              <div className="mt-1 text-sm">
-                                <span className="text-gray-500">
-                                  Mapped to project:
-                                </span>{" "}
-                                <span className="text-gray-900">
-                                  {list.projectMapping.projectName}
-                                </span>
-                                <div className="text-xs text-gray-500">
-                                  Last imported:{" "}
-                                  {format(
-                                    newDate(list.projectMapping.lastImported),
-                                    "PPp"
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="mt-1 text-sm text-gray-500">
-                                Not mapped to any project
-                              </div>
+                            {list.projectMapping && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleRemoveMapping(list.id)}
+                              >
+                                Remove Mapping
+                              </Button>
                             )}
-                          </div>
-                          {list.projectMapping && (
-                            <button
-                              onClick={() => handleRemoveMapping(list.id)}
-                              className="text-sm text-red-600 hover:text-red-700"
-                            >
-                              Remove Mapping
-                            </button>
-                          )}
-                        </div>
+                          </CardContent>
+                        </Card>
                       ))}
                     </div>
                   )}
 
-                  <button
-                    onClick={() => setShowImportModal(true)}
-                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
+                  <Button onClick={() => setShowImportModal(true)}>
                     Import Tasks
-                  </button>
+                  </Button>
                 </div>
               </SettingRow>
             </>

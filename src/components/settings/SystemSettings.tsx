@@ -1,6 +1,18 @@
 import { useSettingsStore } from "@/store/settings";
 import { SettingsSection, SettingRow } from "./SettingsSection";
 import { useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { logger } from "@/lib/logger";
+
+const LOG_SOURCE = "SystemSettings";
 
 export function SystemSettings() {
   const { system, updateSystemSettings } = useSettingsStore();
@@ -19,7 +31,13 @@ export function SystemSettings() {
           logLevel: data.logLevel,
         });
       })
-      .catch(console.error);
+      .catch((error) => {
+        logger.error(
+          "Failed to load system settings",
+          { error: error instanceof Error ? error.message : "Unknown error" },
+          LOG_SOURCE
+        );
+      });
   }, [updateSystemSettings]);
 
   const handleUpdate = async (updates: Partial<typeof system>) => {
@@ -32,7 +50,11 @@ export function SystemSettings() {
       const data = await response.json();
       updateSystemSettings(data);
     } catch (error) {
-      console.error("Failed to update system settings:", error);
+      logger.error(
+        "Failed to update system settings",
+        { error: error instanceof Error ? error.message : "Unknown error" },
+        LOG_SOURCE
+      );
     }
   };
 
@@ -50,14 +72,14 @@ export function SystemSettings() {
             </div>
             <div>
               To get these credentials:
-              <ol className="list-decimal ml-4 mt-1">
+              <ol className="list-decimal ml-4 mt-1 space-y-1 text-muted-foreground">
                 <li>
                   Go to the{" "}
                   <a
                     href="https://console.cloud.google.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-primary hover:underline"
                   >
                     Google Cloud Console
                   </a>
@@ -77,31 +99,25 @@ export function SystemSettings() {
         }
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Google Client ID
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label>Google Client ID</Label>
+            <Input
               type="text"
               value={system.googleClientId || ""}
               onChange={(e) => handleUpdate({ googleClientId: e.target.value })}
               placeholder="your-client-id.apps.googleusercontent.com"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Google Client Secret
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label>Google Client Secret</Label>
+            <Input
               type="password"
               value={system.googleClientSecret || ""}
               onChange={(e) =>
                 handleUpdate({ googleClientSecret: e.target.value })
               }
               placeholder="Enter your client secret"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
           </div>
         </div>
@@ -117,14 +133,14 @@ export function SystemSettings() {
             </div>
             <div>
               To get these credentials:
-              <ol className="list-decimal ml-4 mt-1">
+              <ol className="list-decimal ml-4 mt-1 space-y-1 text-muted-foreground">
                 <li>
                   Go to the{" "}
                   <a
                     href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-primary hover:underline"
                   >
                     Azure Portal
                   </a>
@@ -146,50 +162,41 @@ export function SystemSettings() {
         }
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Outlook Client ID
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label>Outlook Client ID</Label>
+            <Input
               type="text"
               value={system.outlookClientId || ""}
               onChange={(e) =>
                 handleUpdate({ outlookClientId: e.target.value })
               }
               placeholder="your-client-id"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Outlook Client Secret
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label>Outlook Client Secret</Label>
+            <Input
               type="password"
               value={system.outlookClientSecret || ""}
               onChange={(e) =>
                 handleUpdate({ outlookClientSecret: e.target.value })
               }
               placeholder="Enter your client secret"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Tenant ID (Optional)
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label>Tenant ID (Optional)</Label>
+            <Input
               type="text"
               value={system.outlookTenantId || ""}
               onChange={(e) =>
                 handleUpdate({ outlookTenantId: e.target.value })
               }
               placeholder="common"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Leave empty to allow any Microsoft account (recommended)
             </p>
           </div>
@@ -200,16 +207,23 @@ export function SystemSettings() {
         label="Logging"
         description="Configure application logging level"
       >
-        <select
-          value={system.logLevel || "none"}
-          onChange={(e) =>
-            handleUpdate({ logLevel: e.target.value as "none" | "debug" })
-          }
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-        >
-          <option value="none">None</option>
-          <option value="debug">Debug</option>
-        </select>
+        <div className="space-y-2">
+          <Label>Log Level</Label>
+          <Select
+            value={system.logLevel || "none"}
+            onValueChange={(value) =>
+              handleUpdate({ logLevel: value as "none" | "debug" })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="debug">Debug</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </SettingRow>
     </SettingsSection>
   );
