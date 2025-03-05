@@ -70,12 +70,12 @@ export function Calendar() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 bg-white">
+      <main className="flex-1 flex flex-col min-w-0 bg-background">
         {/* Header */}
-        <header className="h-16 border-b border-gray-200 flex items-center px-4 flex-none">
+        <header className="h-16 border-b border-border flex items-center px-4 flex-none">
           <button
             onClick={() => setSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-muted rounded-lg text-foreground"
           >
             <HiMenu className="w-5 h-5" />
           </button>
@@ -83,14 +83,14 @@ export function Calendar() {
           <div className="ml-4 flex items-center gap-4">
             <button
               onClick={() => setDate(newDate())}
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+              className="px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-lg"
             >
               Today
             </button>
 
             <button
               onClick={handleAutoSchedule}
-              className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
+              className="px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg"
             >
               Auto Schedule
             </button>
@@ -98,21 +98,23 @@ export function Calendar() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handlePrevWeek}
-                className="p-1.5 hover:bg-gray-100 rounded-lg"
+                className="p-1.5 hover:bg-muted rounded-lg text-foreground"
                 data-testid="calendar-prev-week"
               >
                 <IoChevronBack className="w-5 h-5" />
               </button>
               <button
                 onClick={handleNextWeek}
-                className="p-1.5 hover:bg-gray-100 rounded-lg"
+                className="p-1.5 hover:bg-muted rounded-lg text-foreground"
                 data-testid="calendar-next-week"
               >
                 <IoChevronForward className="w-5 h-5" />
               </button>
             </div>
 
-            <h1 className="text-xl font-semibold">{formatDate(currentDate)}</h1>
+            <h1 className="text-xl font-semibold text-foreground">
+              {formatDate(currentDate)}
+            </h1>
           </div>
 
           {/* View Switching Buttons */}
@@ -122,8 +124,8 @@ export function Calendar() {
               className={cn(
                 "px-3 py-1.5 text-sm font-medium rounded-lg",
                 view === "day"
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-100"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
             >
               Day
@@ -133,8 +135,8 @@ export function Calendar() {
               className={cn(
                 "px-3 py-1.5 text-sm font-medium rounded-lg",
                 view === "week"
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-100"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
             >
               Week
@@ -144,8 +146,8 @@ export function Calendar() {
               className={cn(
                 "px-3 py-1.5 text-sm font-medium rounded-lg",
                 view === "month"
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-100"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
             >
               Month
@@ -155,8 +157,8 @@ export function Calendar() {
               className={cn(
                 "px-3 py-1.5 text-sm font-medium rounded-lg",
                 view === "multiMonth"
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-100"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
             >
               Year

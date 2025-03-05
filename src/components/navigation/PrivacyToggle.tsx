@@ -18,8 +18,8 @@ export function PrivacyToggle({ className }: PrivacyToggleProps) {
       className={cn(
         "privacy-mode-toggle flex items-center gap-1 px-2 py-1.5 text-xs rounded-md",
         isPrivacyModeActive
-          ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-          : "text-gray-400 hover:text-gray-600 hover:bg-gray-50",
+          ? "bg-warning/10 text-warning-foreground"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted",
         className
       )}
       title={

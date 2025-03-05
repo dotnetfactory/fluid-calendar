@@ -1,15 +1,31 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { CalendarEvent } from "@/types/calendar";
 import { useCalendarStore } from "@/store/calendar";
 import { useSettingsStore } from "@/store/settings";
-import { IoClose } from "react-icons/io5";
 import { cn } from "@/lib/utils";
 import { formatToLocalISOString, newDate } from "@/lib/date-utils";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 interface EventModalProps {
   isOpen: boolean;
@@ -21,7 +37,7 @@ interface EventModalProps {
 
 // Google Calendar recurrence rules
 const FREQUENCIES = {
-  NONE: "",
+  NONE: "NONE",
   DAILY: "DAILY",
   WEEKLY: "WEEKLY",
   MONTHLY: "MONTHLY",
@@ -43,14 +59,14 @@ const WEEKDAYS = {
 
 // Helper function to parse recurrence rule
 function parseRecurrenceRule(rule?: string) {
-  if (!rule) return { freq: "", interval: 1, byDay: [] };
+  if (!rule) return { freq: FREQUENCIES.NONE, interval: 1, byDay: [] };
 
   // Remove RRULE: prefix and any array wrapper
   rule = rule.replace(/^\[?"?RRULE:/i, "").replace(/"?\]?$/, "");
 
   const parts = rule.split(";");
   const result = {
-    freq: "",
+    freq: FREQUENCIES.NONE as Frequency,
     interval: 1,
     byDay: [] as string[],
   };
@@ -59,7 +75,7 @@ function parseRecurrenceRule(rule?: string) {
     const [key, value] = part.split("=");
     switch (key) {
       case "FREQ":
-        result.freq = value;
+        result.freq = value as Frequency;
         break;
       case "INTERVAL":
         result.interval = parseInt(value, 10);
@@ -75,7 +91,7 @@ function parseRecurrenceRule(rule?: string) {
 
 // Helper function to build recurrence rule
 function buildRecurrenceRule(freq: string, interval: number, byDay: string[]) {
-  if (!freq) return "";
+  if (freq === FREQUENCIES.NONE) return "";
 
   const parts = [];
 
@@ -131,9 +147,7 @@ export function EventModal({
       : newDate(Date.now() + 3600000)
   );
   const [selectedFeedId, setSelectedFeedId] = useState<string>(
-    event?.feedId ||
-      calendar.defaultCalendarId ||
-      ""
+    event?.feedId || calendar.defaultCalendarId || ""
   );
   const [isAllDay, setIsAllDay] = useState(event?.allDay || false);
   const [isRecurring, setIsRecurring] = useState(event?.isRecurring || false);
@@ -162,11 +176,7 @@ export function EventModal({
           ? newDate(defaultEndDate)
           : newDate(Date.now() + 3600000)
       );
-      setSelectedFeedId(
-        event?.feedId ||
-          calendar.defaultCalendarId ||
-          ""
-      );
+      setSelectedFeedId(event?.feedId || calendar.defaultCalendarId || "");
       setIsAllDay(event?.allDay || false);
       setIsRecurring(event?.isRecurring || false);
       const { freq, interval, byDay } = parseRecurrenceRule(
@@ -265,96 +275,79 @@ export function EventModal({
     }
   };
 
-  // Render the recurrence options
+  // Helper function to render recurrence options
   const renderRecurrenceOptions = () => {
     if (!isRecurring) return null;
 
     return (
       <div className="space-y-4">
-        <div>
-          <label
-            htmlFor="recurrence-freq"
-            className="block text-sm font-medium text-gray-700"
+        <div className="space-y-2">
+          <Label htmlFor="recurrence-freq">Repeats</Label>
+          <Select
+            value={recurrenceFreq || FREQUENCIES.WEEKLY}
+            onValueChange={(value) =>
+              setRecurrenceFreq(value === FREQUENCIES.NONE ? "" : value)
+            }
           >
-            Repeats
-          </label>
-          <select
-            id="recurrence-freq"
-            data-testid="recurrence-freq"
-            value={recurrenceFreq}
-            onChange={(e) => setRecurrenceFreq(e.target.value)}
-            className={cn(
-              "mt-1 block w-full rounded-md border-gray-300",
-              "shadow-sm focus:border-blue-500 focus:ring-blue-500",
-              "text-sm"
-            )}
-          >
-            <option value="">Select frequency</option>
-            <option value={FREQUENCIES.DAILY}>Daily</option>
-            <option value={FREQUENCIES.WEEKLY}>Weekly</option>
-            <option value={FREQUENCIES.MONTHLY}>Monthly</option>
-            <option value={FREQUENCIES.YEARLY}>Yearly</option>
-          </select>
+            <SelectTrigger id="recurrence-freq" data-testid="recurrence-freq">
+              <SelectValue placeholder="Select frequency" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={FREQUENCIES.DAILY}>Daily</SelectItem>
+              <SelectItem value={FREQUENCIES.WEEKLY}>Weekly</SelectItem>
+              <SelectItem value={FREQUENCIES.MONTHLY}>Monthly</SelectItem>
+              <SelectItem value={FREQUENCIES.YEARLY}>Yearly</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <div>
-          <label
-            htmlFor="recurrence-interval"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Repeat every
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              id="recurrence-interval"
-              min="1"
-              value={recurrenceInterval}
-              onChange={(e) =>
-                setRecurrenceInterval(Math.max(1, parseInt(e.target.value, 10)))
-              }
-              className={cn(
-                "mt-1 block w-20 rounded-md border-gray-300",
-                "shadow-sm focus:border-blue-500 focus:ring-blue-500",
-                "text-sm"
-              )}
-            />
-            <span className="text-sm text-gray-600">
-              {recurrenceFreq.toLowerCase()}
-              {recurrenceInterval > 1 ? "s" : ""}
-            </span>
-          </div>
-        </div>
-
-        {recurrenceFreq === FREQUENCIES.WEEKLY && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Repeat on
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(WEEKDAYS).map(([key, label]) => (
-                <label key={key} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={recurrenceByDay.includes(key)}
-                    onChange={(e) => {
-                      setRecurrenceByDay(
-                        e.target.checked
-                          ? [...recurrenceByDay, key]
-                          : recurrenceByDay.filter((d) => d !== key)
-                      );
-                    }}
-                    className={cn(
-                      "rounded border-gray-300 text-blue-600",
-                      "focus:ring-blue-500 focus:ring-offset-0",
-                      "h-4 w-4"
-                    )}
-                  />
-                  <span className="text-sm text-gray-700">{label}</span>
-                </label>
-              ))}
+        {recurrenceFreq && recurrenceFreq !== FREQUENCIES.NONE && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="recurrence-interval">Repeat every</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  id="recurrence-interval"
+                  min="1"
+                  value={recurrenceInterval}
+                  onChange={(e) =>
+                    setRecurrenceInterval(
+                      Math.max(1, parseInt(e.target.value, 10))
+                    )
+                  }
+                  className="w-20"
+                />
+                <span className="text-sm text-muted-foreground">
+                  {recurrenceFreq.toLowerCase()}
+                  {recurrenceInterval > 1 ? "s" : ""}
+                </span>
+              </div>
             </div>
-          </div>
+
+            {recurrenceFreq === FREQUENCIES.WEEKLY && (
+              <div className="space-y-2">
+                <Label>Repeat on</Label>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(WEEKDAYS).map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={recurrenceByDay.includes(key)}
+                        onCheckedChange={(checked) => {
+                          setRecurrenceByDay(
+                            checked
+                              ? [...recurrenceByDay, key]
+                              : recurrenceByDay.filter((d) => d !== key)
+                          );
+                        }}
+                      />
+                      <span className="text-sm">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     );
@@ -362,335 +355,231 @@ export function EventModal({
 
   return (
     <>
-      <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" />
-          <Dialog.Content
-            className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg z-[10000]"
-            data-testid="event-modal"
-          >
-            {isSubmitting && <LoadingOverlay />}
-            <div className="flex items-center justify-between mb-4">
-              <Dialog.Title className="text-lg font-semibold">
-                {event?.id ? "Edit Event" : "New Event"}
-              </Dialog.Title>
-              <Dialog.Close className="rounded-full p-1.5 hover:bg-gray-100">
-                <IoClose className="h-5 w-5" />
-              </Dialog.Close>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="max-w-[500px] p-0">
+          {isSubmitting && <LoadingOverlay />}
+          <DialogHeader className="px-6 pt-6 pb-4 space-y-1.5">
+            <DialogTitle>{event?.id ? "Edit Event" : "New Event"}</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                type="text"
+                id="title"
+                ref={titleInputRef}
+                data-testid="event-title-input"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="event-title"
+                required
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="title"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Title
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  ref={titleInputRef}
-                  data-testid="event-title-input"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className={cn(
-                    "mt-1 block w-full rounded-md border-gray-300",
-                    "shadow-sm focus:border-blue-500 focus:ring-blue-500",
-                    "text-sm",
-                    "event-title"
-                  )}
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="calendar"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Calendar
-                </label>
-                <select
-                  id="calendar"
-                  data-testid="calendar-select"
-                  value={selectedFeedId}
-                  onChange={(e) => setSelectedFeedId(e.target.value)}
-                  className={cn(
-                    "mt-1 block w-full rounded-md border-gray-300",
-                    "shadow-sm focus:border-blue-500 focus:ring-blue-500",
-                    "text-sm"
-                  )}
-                  required
-                  disabled={!!event?.id}
-                >
-                  <option value="">Select a calendar</option>
+            <div className="space-y-2">
+              <Label htmlFor="calendar">Calendar</Label>
+              <Select
+                value={selectedFeedId}
+                onValueChange={(value) => setSelectedFeedId(value)}
+                disabled={!!event?.id}
+              >
+                <SelectTrigger id="calendar" data-testid="calendar-select">
+                  <SelectValue placeholder="Select a calendar" />
+                </SelectTrigger>
+                <SelectContent>
                   {feeds
                     .filter((feed) => feed.enabled)
                     .map((feed) => (
-                      <option key={feed.id} value={feed.id}>
+                      <SelectItem key={feed.id} value={feed.id}>
                         {feed.name} {feed.type === "GOOGLE" ? "(Google)" : ""}
-                      </option>
+                      </SelectItem>
                     ))}
-                </select>
-              </div>
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 min-w-0">
-                  <label
-                    htmlFor="start"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Start
-                  </label>
-                  <input
-                    type="datetime-local"
-                    id="start"
-                    data-testid="event-start-date"
-                    value={formatToLocalISOString(startDate)}
-                    onChange={(e) => setStartDate(newDate(e.target.value))}
-                    className={cn(
-                      "mt-1 block w-full rounded-md border-gray-300",
-                      "shadow-sm focus:border-blue-500 focus:ring-blue-500",
-                      "text-sm",
-                      "[&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-100",
-                      "[&::-webkit-datetime-edit-fields-wrapper]:p-1",
-                      "min-w-0"
-                    )}
-                    required
-                  />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <label
-                    htmlFor="end"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    End
-                  </label>
-                  <input
-                    type="datetime-local"
-                    id="end"
-                    data-testid="event-end-date"
-                    value={formatToLocalISOString(endDate)}
-                    onChange={(e) => setEndDate(newDate(e.target.value))}
-                    className={cn(
-                      "mt-1 block w-full rounded-md border-gray-300",
-                      "shadow-sm focus:border-blue-500 focus:ring-blue-500",
-                      "text-sm",
-                      "[&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-100",
-                      "[&::-webkit-datetime-edit-fields-wrapper]:p-1",
-                      "min-w-0"
-                    )}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={isAllDay}
-                    onChange={(e) => setIsAllDay(e.target.checked)}
-                    className={cn(
-                      "rounded border-gray-300 text-blue-600",
-                      "focus:ring-blue-500 focus:ring-offset-0",
-                      "h-4 w-4"
-                    )}
-                  />
-                  <span className="text-sm text-gray-700">All day</span>
-                </label>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="location"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Location
-                </label>
-                <input
-                  type="text"
-                  id="location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start">Start</Label>
+                <Input
+                  type="datetime-local"
+                  id="start"
+                  data-testid="event-start-date"
+                  value={formatToLocalISOString(startDate)}
+                  onChange={(e) => setStartDate(newDate(e.target.value))}
                   className={cn(
-                    "mt-1 block w-full rounded-md border-gray-300",
-                    "shadow-sm focus:border-blue-500 focus:ring-blue-500",
-                    "text-sm",
-                    "event-location"
+                    "cursor-pointer px-3 py-2",
+                    "[&::-webkit-calendar-picker-indicator]:ml-auto",
+                    "[&::-webkit-calendar-picker-indicator]:mr-1",
+                    "[&::-webkit-calendar-picker-indicator]:cursor-pointer",
+                    "[&::-webkit-calendar-picker-indicator]:rounded-md",
+                    "[&::-webkit-calendar-picker-indicator]:hover:bg-accent",
+                    "[&::-webkit-calendar-picker-indicator]:dark:invert",
+                    "[&::-webkit-datetime-edit]:text-foreground",
+                    "[&::-webkit-datetime-edit-fields-wrapper]:p-0"
                   )}
+                  required
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  data-testid="event-description-input"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
+              <div className="space-y-2">
+                <Label htmlFor="end">End</Label>
+                <Input
+                  type="datetime-local"
+                  id="end"
+                  data-testid="event-end-date"
+                  value={formatToLocalISOString(endDate)}
+                  onChange={(e) => setEndDate(newDate(e.target.value))}
                   className={cn(
-                    "mt-1 block w-full rounded-md border-gray-300",
-                    "shadow-sm focus:border-blue-500 focus:ring-blue-500",
-                    "text-sm resize-none",
-                    "event-description"
+                    "cursor-pointer px-3 py-2",
+                    "[&::-webkit-calendar-picker-indicator]:ml-auto",
+                    "[&::-webkit-calendar-picker-indicator]:mr-1",
+                    "[&::-webkit-calendar-picker-indicator]:cursor-pointer",
+                    "[&::-webkit-calendar-picker-indicator]:rounded-md",
+                    "[&::-webkit-calendar-picker-indicator]:hover:bg-accent",
+                    "[&::-webkit-calendar-picker-indicator]:dark:invert",
+                    "[&::-webkit-datetime-edit]:text-foreground",
+                    "[&::-webkit-datetime-edit-fields-wrapper]:p-0"
                   )}
+                  required
                 />
               </div>
+            </div>
 
-              <div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={isRecurring}
-                    onChange={(e) => {
-                      setIsRecurring(e.target.checked);
-                      if (e.target.checked && !recurrenceFreq) {
-                        setRecurrenceFreq(FREQUENCIES.WEEKLY);
-                        // Get the current weekday in RRule format (MO, TU, etc.)
-                        const weekdayNum = startDate.getDay(); // Use startDate instead of current date
-                        const weekdays = [
-                          "SU",
-                          "MO",
-                          "TU",
-                          "WE",
-                          "TH",
-                          "FR",
-                          "SA",
-                        ];
-                        const weekday = weekdays[weekdayNum];
-                        console.log("Setting initial weekday from startDate:", {
-                          weekdayNum,
-                          weekday,
-                          startDate: startDate.toISOString(),
-                        });
-                        setRecurrenceByDay([weekday]);
-                      }
-                    }}
-                    data-testid="recurring-event-checkbox"
-                    className={cn(
-                      "rounded border-gray-300 text-blue-600",
-                      "focus:ring-blue-500 focus:ring-offset-0",
-                      "h-4 w-4"
-                    )}
-                  />
-                  <span className="text-sm text-gray-700">Recurring event</span>
-                </label>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="all-day"
+                checked={isAllDay}
+                onCheckedChange={(checked) => setIsAllDay(checked as boolean)}
+              />
+              <Label htmlFor="all-day" className="text-sm">
+                All day
+              </Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                type="text"
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="event-location"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                data-testid="event-description-input"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="event-description resize-none"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="recurring"
+                checked={isRecurring}
+                onCheckedChange={(checked) => {
+                  const isChecked = checked as boolean;
+                  setIsRecurring(isChecked);
+                  if (
+                    isChecked &&
+                    (recurrenceFreq === FREQUENCIES.NONE || !recurrenceFreq)
+                  ) {
+                    setRecurrenceFreq(FREQUENCIES.WEEKLY);
+                    const weekdayNum = startDate.getDay();
+                    const weekdays = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+                    const weekday = weekdays[weekdayNum];
+                    setRecurrenceByDay([weekday]);
+                  }
+                }}
+                data-testid="recurring-event-checkbox"
+              />
+              <Label htmlFor="recurring" className="text-sm">
+                Recurring event
+              </Label>
+            </div>
+
+            {renderRecurrenceOptions()}
+
+            <div className="flex justify-between items-center pt-4">
+              {event?.id ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDelete}
+                  data-testid="delete-event-button"
+                >
+                  Delete
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" data-testid="save-event-button">
+                  {event?.id ? "Update" : "Create"}
+                </Button>
               </div>
-
-              {renderRecurrenceOptions()}
-
-              <div className="flex justify-between items-center pt-4">
-                {event?.id ? (
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    data-testid="delete-event-button"
-                    className={cn(
-                      "rounded-md px-4 py-2 text-sm font-medium",
-                      "text-red-600 hover:bg-red-50",
-                      "focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                    )}
-                  >
-                    Delete
-                  </button>
-                ) : (
-                  <div />
-                )}
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className={cn(
-                      "rounded-md px-4 py-2 text-sm font-medium",
-                      "text-gray-700 hover:bg-gray-100",
-                      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    )}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    data-testid="save-event-button"
-                    className={cn(
-                      "rounded-md px-4 py-2 text-sm font-medium",
-                      "bg-blue-600 text-white hover:bg-blue-700",
-                      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    )}
-                  >
-                    {event?.id ? "Update" : "Create"}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Recurring Event Edit Mode Dialog */}
       <AlertDialog.Root
         open={showRecurrenceDialog}
         onOpenChange={(open) => {
           setShowRecurrenceDialog(open);
-          if (!open) onClose(); // Close both dialogs when canceling
+          if (!open) onClose();
         }}
       >
         <AlertDialog.Portal>
-          <AlertDialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10001]" />
-          <AlertDialog.Content className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg z-[10002]">
+          <AlertDialog.Overlay className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[10001]" />
+          <AlertDialog.Content className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background p-6 shadow-lg z-[10002] border">
             <AlertDialog.Title className="text-lg font-semibold mb-4">
               Edit Recurring Event
             </AlertDialog.Title>
-            <AlertDialog.Description className="text-sm text-gray-600 mb-6">
+            <AlertDialog.Description className="text-sm text-muted-foreground mb-6">
               Would you like to edit this event or the entire series?
             </AlertDialog.Description>
             <div className="flex justify-end gap-3">
-              <AlertDialog.Cancel
-                className={cn(
-                  "rounded-md px-4 py-2 text-sm font-medium",
-                  "text-gray-700 hover:bg-gray-100",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                )}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRecurrenceDialog(false);
+                  onClose();
+                }}
                 data-testid="edit-cancel-button"
               >
                 Cancel
-              </AlertDialog.Cancel>
-              <button
+              </Button>
+              <Button
                 onClick={() => {
                   setEditMode("single");
                   setShowRecurrenceDialog(false);
                 }}
-                className={cn(
-                  "rounded-md px-4 py-2 text-sm font-medium",
-                  "bg-blue-600 text-white hover:bg-blue-700",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                )}
                 data-testid="edit-single-event-button"
               >
                 This Event
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => {
                   setEditMode("series");
                   setShowRecurrenceDialog(false);
                 }}
-                className={cn(
-                  "rounded-md px-4 py-2 text-sm font-medium",
-                  "bg-blue-600 text-white hover:bg-blue-700",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                )}
                 data-testid="edit-series-button"
               >
                 Entire Series
-              </button>
+              </Button>
             </div>
           </AlertDialog.Content>
         </AlertDialog.Portal>

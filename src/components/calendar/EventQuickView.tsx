@@ -39,10 +39,10 @@ interface EventQuickViewProps {
 
 //TODO: move to utils
 const priorityColors = {
-  [Priority.HIGH]: "text-red-600",
-  [Priority.MEDIUM]: "text-orange-600",
-  [Priority.LOW]: "text-blue-600",
-  [Priority.NONE]: "text-gray-600",
+  [Priority.HIGH]: "text-destructive dark:text-destructive",
+  [Priority.MEDIUM]: "text-warning dark:text-warning",
+  [Priority.LOW]: "text-primary dark:text-primary",
+  [Priority.NONE]: "text-muted-foreground",
 };
 
 export function EventQuickView({
@@ -58,14 +58,14 @@ export function EventQuickView({
     switch (status?.toUpperCase()) {
       case "ACCEPTED":
       case TaskStatus.COMPLETED:
-        return "text-green-600";
+        return "text-green-600 dark:text-green-400";
       case "TENTATIVE":
       case TaskStatus.IN_PROGRESS:
-        return "text-yellow-600";
+        return "text-warning dark:text-warning";
       case "DECLINED":
-        return "text-red-600";
+        return "text-destructive dark:text-destructive";
       default:
-        return "text-gray-600";
+        return "text-muted-foreground";
     }
   };
 
@@ -81,7 +81,7 @@ export function EventQuickView({
     <Popover.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Popover.Portal>
         <Popover.Content
-          className="rounded-lg bg-white shadow-lg border border-gray-200 w-80 p-4 z-[10000]"
+          className="rounded-lg bg-background shadow-lg border border-border w-80 p-4 z-[10000]"
           style={{
             position: "fixed",
             left: position.x,
@@ -94,19 +94,19 @@ export function EventQuickView({
         >
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-medium text-gray-900 flex items-center gap-2 event-title">
+              <h3 className="font-medium text-foreground flex items-center gap-2 event-title">
                 {item.title}
                 {isTask ? (
                   <>
                     {taskItem?.isRecurring && (
                       <IoRepeat
-                        className="h-4 w-4 text-blue-500"
+                        className="h-4 w-4 text-primary"
                         title="Recurring task"
                       />
                     )}
                     {taskItem?.scheduleLocked && (
                       <IoLockClosedOutline
-                        className="h-4 w-4 text-orange-500"
+                        className="h-4 w-4 text-warning"
                         title="Schedule locked"
                       />
                     )}
@@ -114,7 +114,7 @@ export function EventQuickView({
                 ) : (
                   eventItem?.isRecurring && (
                     <IoRepeat
-                      className="h-4 w-4 text-blue-500"
+                      className="h-4 w-4 text-primary"
                       title="Recurring event"
                     />
                   )
@@ -123,14 +123,14 @@ export function EventQuickView({
               <div className="flex items-center gap-1">
                 <button
                   onClick={onEdit}
-                  className="p-1.5 text-gray-400 hover:text-blue-600 rounded-md hover:bg-gray-100"
+                  className="p-1.5 text-muted-foreground hover:text-primary rounded-md hover:bg-muted"
                   title="Edit"
                 >
                   <HiPencil className="h-4 w-4" />
                 </button>
                 <button
                   onClick={onDelete}
-                  className="p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-gray-100"
+                  className="p-1.5 text-muted-foreground hover:text-destructive rounded-md hover:bg-muted"
                   title="Delete"
                 >
                   <HiTrash className="h-4 w-4" />
@@ -139,7 +139,7 @@ export function EventQuickView({
             </div>
 
             {!isTask && eventItem && (
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <IoTimeOutline className="h-4 w-4 flex-shrink-0" />
                   <span>
@@ -184,7 +184,7 @@ export function EventQuickView({
                   </div>
                 )}
                 {eventItem.description && (
-                  <div className="text-xs mt-2 text-gray-500 line-clamp-2 event-description">
+                  <div className="text-xs mt-2 text-muted-foreground line-clamp-2 event-description">
                     {eventItem.description}
                   </div>
                 )}
@@ -192,13 +192,16 @@ export function EventQuickView({
             )}
 
             {isTask && taskItem && (
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <IoTimeOutline className="h-4 w-4 flex-shrink-0" />
                     {taskItem.dueDate ? (
                       <span
-                        className={cn(isOverdue && "text-red-600 font-medium")}
+                        className={cn(
+                          isOverdue &&
+                            "text-destructive dark:text-destructive font-medium"
+                        )}
                       >
                         Due {format(newDate(taskItem.dueDate), "PPp")}
                         {isOverdue && " (OVERDUE)"}
@@ -209,11 +212,11 @@ export function EventQuickView({
                   </div>
                   <span
                     className={cn("text-xs px-2 py-0.5 rounded-full", {
-                      "bg-green-100 text-green-800":
+                      "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100":
                         taskItem.status === TaskStatus.COMPLETED,
-                      "bg-yellow-100 text-yellow-800":
+                      "bg-warning/10 text-warning":
                         taskItem.status === TaskStatus.IN_PROGRESS,
-                      "bg-gray-100 text-gray-800":
+                      "bg-muted text-muted-foreground":
                         taskItem.status === TaskStatus.TODO,
                     })}
                   >
@@ -249,7 +252,7 @@ export function EventQuickView({
                           {format(newDate(taskItem.scheduledEnd), "p")}
                         </div>
                         {taskItem.scheduleScore !== undefined && (
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             Confidence:{" "}
                             {Math.round((taskItem.scheduleScore ?? 0) * 100)}%
                           </div>
@@ -265,8 +268,9 @@ export function EventQuickView({
                       className="px-2 py-0.5 rounded text-xs"
                       style={{
                         backgroundColor:
-                          (taskItem.project.color || "#3b82f6") + "20",
-                        color: taskItem.project.color || "#3b82f6",
+                          (taskItem.project.color || "hsl(var(--primary))") +
+                          "20",
+                        color: taskItem.project.color || "hsl(var(--primary))",
                       }}
                     >
                       {taskItem.project.name}
@@ -288,8 +292,9 @@ export function EventQuickView({
                         key={tag.id}
                         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs"
                         style={{
-                          backgroundColor: (tag.color || "#3b82f6") + "20",
-                          color: tag.color || "#3b82f6",
+                          backgroundColor:
+                            (tag.color || "hsl(var(--primary))") + "20",
+                          color: tag.color || "hsl(var(--primary))",
                         }}
                       >
                         {tag.name}
@@ -299,7 +304,7 @@ export function EventQuickView({
                 )}
 
                 {taskItem.description && (
-                  <div className="text-xs mt-2 text-gray-500 line-clamp-2 task-description">
+                  <div className="text-xs mt-2 text-muted-foreground line-clamp-2 task-description">
                     {taskItem.description}
                   </div>
                 )}

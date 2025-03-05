@@ -6,6 +6,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { PrivacyProvider } from "@/components/providers/PrivacyProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AppNav } from "@/components/navigation/AppNav";
 import { DndProvider } from "@/components/dnd/DndProvider";
 import { CommandPalette } from "@/components/ui/command-palette";
@@ -68,20 +69,22 @@ export default function RootLayout({
         )}
       >
         <SessionProvider>
-          <PrivacyProvider>
-            <DndProvider>
-              <CommandPalette
-                open={commandPaletteOpen}
-                onOpenChange={setCommandPaletteOpen}
-              />
-              <ShortcutsModal
-                isOpen={shortcutsOpen}
-                onClose={() => setShortcutsOpen(false)}
-              />
-              <AppNav />
-              <main className="flex-1 relative">{children}</main>
-            </DndProvider>
-          </PrivacyProvider>
+          <ThemeProvider>
+            <PrivacyProvider>
+              <DndProvider>
+                <CommandPalette
+                  open={commandPaletteOpen}
+                  onOpenChange={setCommandPaletteOpen}
+                />
+                <ShortcutsModal
+                  isOpen={shortcutsOpen}
+                  onClose={() => setShortcutsOpen(false)}
+                />
+                <AppNav />
+                <main className="flex-1 relative">{children}</main>
+              </DndProvider>
+            </PrivacyProvider>
+          </ThemeProvider>
         </SessionProvider>
       </body>
     </html>

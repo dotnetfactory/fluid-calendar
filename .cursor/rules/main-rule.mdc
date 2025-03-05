@@ -1,18 +1,17 @@
 ---
-description: send this with every request so the AI knows what to do.
+description: send this with every request so the AI knows what to do
 globs: 
 alwaysApply: true
 ---
-
-# Your rule content
-
 - this is a locally running web app with 1 user and no authenitaction is needed
 - this app will be a clone of the Motion app for calendar and task management
 - user can add a google calendar, by clicking add calendar, get the google auth screen, authorizes the app full access to the calendar
 - then i should get redirected to the app with my google calendars showing in the sidebar and created in the database.
-- we will be adding support for outlook calendars in the future
+- we also support outlook and caldav
 - since this is a local app, we will be using postgres
 - this app is built with nextjs, tailwind, prisma, sqltie, shadcn
 - it uses fullcalendar package
 - when adding an external calendar like google or outlook, we still need to sync the data in our database so we are always working with our local data
 - the google auth needs to handle refreshing tokens so when the token expires an hour later, we can get a new one and continue syncing.
+- use shadcn whenever possible, the correct command to use is `npx shadcn@latest add`
+- make minimal changes and don't change or break existing logic and only apply the changes requested.

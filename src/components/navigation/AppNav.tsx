@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { RiKeyboardLine } from "react-icons/ri";
 import { useShortcutsStore } from "@/store/shortcuts";
 import { PrivacyToggle } from "./PrivacyToggle";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface AppNavProps {
   className?: string;
@@ -27,7 +28,7 @@ export function AppNav({ className }: AppNavProps) {
   return (
     <nav
       className={cn(
-        "h-16 bg-white border-b border-gray-200 flex-none z-10",
+        "h-16 bg-background border-b border-border flex-none z-10",
         className
       )}
     >
@@ -45,8 +46,8 @@ export function AppNav({ className }: AppNavProps) {
                   className={cn(
                     "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md",
                     isActive
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-900 hover:bg-gray-50"
+                      ? "bg-primary/10 text-primary"
+                      : "text-foreground hover:bg-muted"
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -56,15 +57,16 @@ export function AppNav({ className }: AppNavProps) {
             })}
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <PrivacyToggle />
             <button
               onClick={() => setShortcutsOpen(true)}
-              className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-50"
+              className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
               title="View Keyboard Shortcuts (Press ?)"
             >
               <RiKeyboardLine className="h-4 w-4" />
               <span className="hidden sm:inline">Shortcuts</span>
-              <kbd className="hidden sm:inline ml-1 text-xs bg-gray-50 px-1 py-0.5 rounded">
+              <kbd className="hidden sm:inline ml-1 text-xs bg-muted px-1 py-0.5 rounded">
                 ?
               </kbd>
             </button>
