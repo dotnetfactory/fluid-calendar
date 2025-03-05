@@ -72,6 +72,14 @@ export interface AutoScheduleSettings {
   groupByProject: boolean;
 }
 
+// Define a type for log retention periods
+export interface LogRetention {
+  debug?: number; // days
+  info?: number; // days
+  warn?: number; // days
+  error?: number; // days
+}
+
 export interface SystemSettings {
   googleClientId?: string;
   googleClientSecret?: string;
@@ -79,6 +87,8 @@ export interface SystemSettings {
   outlookClientSecret?: string;
   outlookTenantId?: string;
   logLevel: "none" | "debug";
+  logRetention?: LogRetention; // Retention periods per log level
+  logDestination?: string; // "db", "file", or "both"
 }
 
 export interface Settings {

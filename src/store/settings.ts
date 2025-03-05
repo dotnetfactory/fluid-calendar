@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Settings } from "@/types/settings";
+import { logger } from "@/lib/logger";
+
+const LOG_SOURCE = "SettingsStore";
 
 interface ConnectedAccount {
   id: string;
@@ -11,6 +14,10 @@ interface ConnectedAccount {
 
 interface SettingsStore extends Settings {
   accounts: ConnectedAccount[];
+  initialized: boolean;
+
+  // Actions
+  initializeSettings: () => Promise<void>;
   updateUserSettings: (settings: Partial<Settings["user"]>) => void;
   updateCalendarSettings: (settings: Partial<Settings["calendar"]>) => void;
   updateNotificationSettings: (
@@ -99,6 +106,8 @@ const defaultSettings: Settings & { accounts: ConnectedAccount[] } = {
     outlookClientSecret: undefined,
     outlookTenantId: undefined,
     logLevel: "none",
+    logRetention: undefined,
+    logDestination: "db",
   },
   accounts: [],
 };
@@ -107,34 +116,201 @@ export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set, get) => ({
       ...defaultSettings,
+      initialized: false,
       updateUserSettings: (settings) =>
-        set((state) => ({
-          user: { ...state.user, ...settings },
-        })),
+        set((state) => {
+          // Update local state
+          const newSettings = { ...state.user, ...settings };
+
+          // Save to database
+          fetch("/api/user-settings", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(newSettings),
+          }).catch((error) => {
+            logger.error(
+              "Failed to save user settings to database",
+              {
+                error: error instanceof Error ? error.message : "Unknown error",
+              },
+              LOG_SOURCE
+            );
+          });
+
+          return { user: newSettings };
+        }),
       updateCalendarSettings: (settings) =>
-        set((state) => ({
-          calendar: { ...state.calendar, ...settings },
-        })),
+        set((state) => {
+          // Update local state
+          const newSettings = { ...state.calendar, ...settings };
+
+          // Save to database
+          fetch("/api/calendar-settings", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              defaultCalendarId: newSettings.defaultCalendarId,
+              workingHoursEnabled: newSettings.workingHours.enabled,
+              workingHoursStart: newSettings.workingHours.start,
+              workingHoursEnd: newSettings.workingHours.end,
+              workingHoursDays: JSON.stringify(newSettings.workingHours.days),
+              defaultDuration: newSettings.eventDefaults.defaultDuration,
+              defaultColor: newSettings.eventDefaults.defaultColor,
+              defaultReminder: newSettings.eventDefaults.defaultReminder,
+              refreshInterval: newSettings.refreshInterval,
+            }),
+          }).catch((error) => {
+            logger.error(
+              "Failed to save calendar settings to database",
+              {
+                error: error instanceof Error ? error.message : "Unknown error",
+              },
+              LOG_SOURCE
+            );
+          });
+
+          return { calendar: newSettings };
+        }),
       updateNotificationSettings: (settings) =>
-        set((state) => ({
-          notifications: { ...state.notifications, ...settings },
-        })),
+        set((state) => {
+          // Update local state
+          const newSettings = { ...state.notifications, ...settings };
+
+          // Save to database
+          fetch("/api/notification-settings", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              emailNotifications: newSettings.emailNotifications,
+              eventInvites: newSettings.notifyFor.eventInvites,
+              eventUpdates: newSettings.notifyFor.eventUpdates,
+              eventCancellations: newSettings.notifyFor.eventCancellations,
+              eventReminders: newSettings.notifyFor.eventReminders,
+              defaultReminderTiming: JSON.stringify(
+                newSettings.defaultReminderTiming
+              ),
+            }),
+          }).catch((error) => {
+            logger.error(
+              "Failed to save notification settings to database",
+              {
+                error: error instanceof Error ? error.message : "Unknown error",
+              },
+              LOG_SOURCE
+            );
+          });
+
+          return { notifications: newSettings };
+        }),
       updateIntegrationSettings: (settings) =>
-        set((state) => ({
-          integrations: { ...state.integrations, ...settings },
-        })),
+        set((state) => {
+          // Update local state
+          const newSettings = { ...state.integrations, ...settings };
+
+          // Save to database
+          fetch("/api/integration-settings", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              googleCalendarEnabled: newSettings.googleCalendar.enabled,
+              googleCalendarAutoSync: newSettings.googleCalendar.autoSync,
+              googleCalendarInterval: newSettings.googleCalendar.syncInterval,
+              outlookCalendarEnabled: newSettings.outlookCalendar.enabled,
+              outlookCalendarAutoSync: newSettings.outlookCalendar.autoSync,
+              outlookCalendarInterval: newSettings.outlookCalendar.syncInterval,
+            }),
+          }).catch((error) => {
+            logger.error(
+              "Failed to save integration settings to database",
+              {
+                error: error instanceof Error ? error.message : "Unknown error",
+              },
+              LOG_SOURCE
+            );
+          });
+
+          return { integrations: newSettings };
+        }),
       updateDataSettings: (settings) =>
-        set((state) => ({
-          data: { ...state.data, ...settings },
-        })),
+        set((state) => {
+          // Update local state
+          const newSettings = { ...state.data, ...settings };
+
+          // Save to database
+          fetch("/api/data-settings", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(newSettings),
+          }).catch((error) => {
+            logger.error(
+              "Failed to save data settings to database",
+              {
+                error: error instanceof Error ? error.message : "Unknown error",
+              },
+              LOG_SOURCE
+            );
+          });
+
+          return { data: newSettings };
+        }),
       updateAutoScheduleSettings: (settings) =>
-        set((state) => ({
-          autoSchedule: { ...state.autoSchedule, ...settings },
-        })),
+        set((state) => {
+          // Update local state
+          const newSettings = { ...state.autoSchedule, ...settings };
+
+          // Save to database
+          fetch("/api/auto-schedule-settings", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(newSettings),
+          }).catch((error) => {
+            logger.error(
+              "Failed to save auto schedule settings to database",
+              {
+                error: error instanceof Error ? error.message : "Unknown error",
+              },
+              LOG_SOURCE
+            );
+          });
+
+          return { autoSchedule: newSettings };
+        }),
       updateSystemSettings: (settings) =>
-        set((state) => ({
-          system: { ...state.system, ...settings },
-        })),
+        set((state) => {
+          // Update local state
+          const newSettings = { ...state.system, ...settings };
+
+          // Save to database
+          fetch("/api/system-settings", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(newSettings),
+          }).catch((error) => {
+            logger.error(
+              "Failed to save system settings to database",
+              {
+                error: error instanceof Error ? error.message : "Unknown error",
+              },
+              LOG_SOURCE
+            );
+          });
+
+          return { system: newSettings };
+        }),
       setAccounts: (accounts) =>
         set(() => ({
           accounts,
@@ -152,7 +328,14 @@ export const useSettingsStore = create<SettingsStore>()(
           // Refresh accounts after removal
           await get().refreshAccounts();
         } catch (error) {
-          console.error("Failed to remove account:", error);
+          logger.error(
+            "Failed to remove account",
+            {
+              error: error instanceof Error ? error.message : "Unknown error",
+              accountId,
+            },
+            LOG_SOURCE
+          );
           throw error;
         }
       },
@@ -162,8 +345,129 @@ export const useSettingsStore = create<SettingsStore>()(
           const accounts = await response.json();
           set({ accounts });
         } catch (error) {
-          console.error("Failed to refresh accounts:", error);
+          logger.error(
+            "Failed to refresh accounts",
+            { error: error instanceof Error ? error.message : "Unknown error" },
+            LOG_SOURCE
+          );
           throw error;
+        }
+      },
+      initializeSettings: async () => {
+        try {
+          // Load all settings from the database
+          const [
+            userSettings,
+            calendarSettings,
+            notificationSettings,
+            integrationSettings,
+            dataSettings,
+            autoScheduleSettings,
+            systemSettings,
+            accounts,
+          ] = await Promise.all([
+            fetch("/api/user-settings").then((res) => res.json()),
+            fetch("/api/calendar-settings").then((res) => res.json()),
+            fetch("/api/notification-settings").then((res) => res.json()),
+            fetch("/api/integration-settings").then((res) => res.json()),
+            fetch("/api/data-settings").then((res) => res.json()),
+            fetch("/api/auto-schedule-settings").then((res) => res.json()),
+            fetch("/api/system-settings").then((res) => res.json()),
+            fetch("/api/accounts").then((res) => res.json()),
+          ]);
+
+          // Set initialized flag
+          set({ initialized: true, accounts });
+
+          // Update all settings
+          get().updateUserSettings({
+            theme: userSettings.theme,
+            defaultView: userSettings.defaultView,
+            timeZone: userSettings.timeZone,
+            weekStartDay: userSettings.weekStartDay,
+            timeFormat: userSettings.timeFormat,
+          });
+
+          // More updates will be added here
+          get().updateCalendarSettings({
+            defaultCalendarId: calendarSettings.defaultCalendarId,
+            workingHours: {
+              enabled: calendarSettings.workingHoursEnabled,
+              start: calendarSettings.workingHoursStart,
+              end: calendarSettings.workingHoursEnd,
+              days: JSON.parse(calendarSettings.workingHoursDays),
+            },
+            eventDefaults: {
+              defaultDuration: calendarSettings.defaultDuration,
+              defaultColor: calendarSettings.defaultColor,
+              defaultReminder: calendarSettings.defaultReminder,
+            },
+            refreshInterval: calendarSettings.refreshInterval,
+          });
+
+          get().updateNotificationSettings({
+            emailNotifications: notificationSettings.emailNotifications,
+            notifyFor: {
+              eventInvites: notificationSettings.eventInvites,
+              eventUpdates: notificationSettings.eventUpdates,
+              eventCancellations: notificationSettings.eventCancellations,
+              eventReminders: notificationSettings.eventReminders,
+            },
+            defaultReminderTiming: JSON.parse(
+              notificationSettings.defaultReminderTiming
+            ),
+          });
+
+          get().updateIntegrationSettings({
+            googleCalendar: {
+              enabled: integrationSettings.googleCalendarEnabled,
+              autoSync: integrationSettings.googleCalendarAutoSync,
+              syncInterval: integrationSettings.googleCalendarInterval,
+            },
+            outlookCalendar: {
+              enabled: integrationSettings.outlookCalendarEnabled,
+              autoSync: integrationSettings.outlookCalendarAutoSync,
+              syncInterval: integrationSettings.outlookCalendarInterval,
+            },
+          });
+
+          get().updateDataSettings({
+            autoBackup: dataSettings.autoBackup,
+            backupInterval: dataSettings.backupInterval,
+            retainDataFor: dataSettings.retainDataFor,
+          });
+
+          get().updateAutoScheduleSettings({
+            workDays: autoScheduleSettings.workDays,
+            workHourStart: autoScheduleSettings.workHourStart,
+            workHourEnd: autoScheduleSettings.workHourEnd,
+            selectedCalendars: autoScheduleSettings.selectedCalendars,
+            bufferMinutes: autoScheduleSettings.bufferMinutes,
+            highEnergyStart: autoScheduleSettings.highEnergyStart,
+            highEnergyEnd: autoScheduleSettings.highEnergyEnd,
+            mediumEnergyStart: autoScheduleSettings.mediumEnergyStart,
+            mediumEnergyEnd: autoScheduleSettings.mediumEnergyEnd,
+            lowEnergyStart: autoScheduleSettings.lowEnergyStart,
+            lowEnergyEnd: autoScheduleSettings.lowEnergyEnd,
+            groupByProject: autoScheduleSettings.groupByProject,
+          });
+
+          get().updateSystemSettings({
+            googleClientId: systemSettings.googleClientId,
+            googleClientSecret: systemSettings.googleClientSecret,
+            outlookClientId: systemSettings.outlookClientId,
+            outlookClientSecret: systemSettings.outlookClientSecret,
+            outlookTenantId: systemSettings.outlookTenantId,
+            logLevel: systemSettings.logLevel as "none" | "debug",
+            logRetention: systemSettings.logRetention,
+            logDestination: systemSettings.logDestination,
+          });
+        } catch (error) {
+          logger.error(
+            "Failed to initialize settings from database",
+            { error: error instanceof Error ? error.message : "Unknown error" },
+            LOG_SOURCE
+          );
         }
       },
     }),

@@ -24,7 +24,12 @@ model ConnectedAccount {
   caldavUrl      String? // Base URL for CalDAV server
   caldavUsername String? // Username for Basic Auth
 
+  // User relationship
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
   @@unique([provider, email])
+  @@index([userId])
 }
 
 model Account {
@@ -60,10 +65,20 @@ model User {
   email                String?               @unique
   emailVerified        DateTime?
   image                String?
+  role                 String                @default("user") // Possible values: "user", "admin"
   accounts             Account[]
   sessions             Session[]
   calendars            CalendarFeed[]
   autoScheduleSettings AutoScheduleSettings?
+  userSettings         UserSettings?
+  calendarSettings     CalendarSettings?
+  notificationSettings NotificationSettings?
+  integrationSettings  IntegrationSettings?
+  dataSettings         DataSettings?
+  tasks                Task[]
+  projects             Project[]
+  connectedAccounts    ConnectedAccount[]
+  tags                 Tag[]
 }
 
 model VerificationToken {
@@ -146,11 +161,16 @@ model Project {
   tasks           Task[]
   outlookMappings OutlookTaskListMapping[]
 
+  // User relationship
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
+  @@index([userId])
 }
 
 model Task {
@@ -189,6 +209,10 @@ model Task {
   source         String?
   lastSyncedAt   DateTime?
 
+  // User relationship
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -206,6 +230,7 @@ model Task {
   @@index([externalTaskId])
   @@index([source])
   @@index([postponedUntil])
+  @@index([userId])
 }
 
 model Tag {
@@ -214,7 +239,12 @@ model Tag {
   color String?
   tasks Task[]
 
+  // User relationship
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
   @@index([name])
+  @@index([userId])
 }
 
 model AutoScheduleSettings {
@@ -245,6 +275,85 @@ model AutoScheduleSettings {
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model UserSettings {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme        String   @default("system") // "light", "dark", "system"
+  defaultView  String   @default("week") // "day", "week", "month", "agenda"
+  timeZone     String
+  weekStartDay String   @default("sunday") // "monday", "sunday"
+  timeFormat   String   @default("12h") // "12h", "24h"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model CalendarSettings {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultCalendarId   String?
+  workingHoursEnabled Boolean  @default(true)
+  workingHoursStart   String   @default("09:00") // HH:mm format
+  workingHoursEnd     String   @default("17:00") // HH:mm format
+  workingHoursDays    String   @default("[1,2,3,4,5]") // JSON string of numbers 0-6
+  defaultDuration     Int      @default(60) // minutes
+  defaultColor        String   @default("#3b82f6")
+  defaultReminder     Int      @default(30) // minutes
+  refreshInterval     Int      @default(5) // minutes
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model NotificationSettings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailNotifications    Boolean  @default(true)
+  eventInvites          Boolean  @default(true)
+  eventUpdates          Boolean  @default(true)
+  eventCancellations    Boolean  @default(true)
+  eventReminders        Boolean  @default(true)
+  defaultReminderTiming String   @default("[30]") // JSON string of minutes before event
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model IntegrationSettings {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googleCalendarEnabled   Boolean  @default(true)
+  googleCalendarAutoSync  Boolean  @default(true)
+  googleCalendarInterval  Int      @default(5) // minutes
+  outlookCalendarEnabled  Boolean  @default(true)
+  outlookCalendarAutoSync Boolean  @default(true)
+  outlookCalendarInterval Int      @default(5) // minutes
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model DataSettings {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  autoBackup     Boolean  @default(true)
+  backupInterval Int      @default(7) // days
+  retainDataFor  Int      @default(365) // days
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([userId])
 }

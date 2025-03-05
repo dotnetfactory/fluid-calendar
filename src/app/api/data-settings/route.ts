@@ -1,30 +1,32 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { getCurrentUserId } from "@/lib/auth/current-user";
 
-const LOG_SOURCE = "SystemSettingsAPI";
+const LOG_SOURCE = "DataSettingsAPI";
 
 export async function GET() {
   try {
-    // Get the first (and only) system settings record, or create it if it doesn't exist
-    const settings = await prisma.systemSettings.upsert({
-      where: { id: "1" },
+    const userId = await getCurrentUserId();
+
+    // Get the data settings or create default ones if they don't exist
+    const settings = await prisma.dataSettings.upsert({
+      where: { userId },
       update: {},
       create: {
-        id: "1",
-        logLevel: "none",
+        userId,
       },
     });
 
     return NextResponse.json(settings);
   } catch (error) {
     logger.error(
-      "Failed to fetch system settings",
+      "Failed to fetch data settings",
       { error: error instanceof Error ? error.message : "Unknown error" },
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Failed to fetch system settings" },
+      { error: "Failed to fetch data settings" },
       { status: 500 }
     );
   }
@@ -32,12 +34,14 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
+    const userId = await getCurrentUserId();
     const updates = await request.json();
-    const settings = await prisma.systemSettings.upsert({
-      where: { id: "1" },
+
+    const settings = await prisma.dataSettings.upsert({
+      where: { userId },
       update: updates,
       create: {
-        id: "1",
+        userId,
         ...updates,
       },
     });
@@ -45,12 +49,12 @@ export async function PATCH(request: Request) {
     return NextResponse.json(settings);
   } catch (error) {
     logger.error(
-      "Failed to update system settings",
+      "Failed to update data settings",
       { error: error instanceof Error ? error.message : "Unknown error" },
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Failed to update system settings" },
+      { error: "Failed to update data settings" },
       { status: 500 }
     );
   }
