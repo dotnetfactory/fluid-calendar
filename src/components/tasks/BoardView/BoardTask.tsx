@@ -12,6 +12,7 @@ import {
   newDateFromYMD,
   newDate,
 } from "@/lib/date-utils";
+import { cn } from "@/lib/utils";
 
 interface BoardTaskProps {
   task: Task;
@@ -20,15 +21,17 @@ interface BoardTaskProps {
 }
 
 const energyLevelColors = {
-  high: "bg-red-100 text-red-800",
-  medium: "bg-orange-100 text-orange-800",
-  low: "bg-green-100 text-green-800",
+  high: "bg-red-500/20 text-red-700 dark:text-red-400",
+  medium: "bg-orange-500/20 text-orange-700 dark:text-orange-400",
+  low: "bg-green-500/20 text-green-700 dark:text-green-400",
 };
 
 const timePreferenceColors = {
-  [TimePreference.MORNING]: "bg-sky-100 text-sky-800",
-  [TimePreference.AFTERNOON]: "bg-amber-100 text-amber-800",
-  [TimePreference.EVENING]: "bg-indigo-100 text-indigo-800",
+  [TimePreference.MORNING]: "bg-sky-500/20 text-sky-700 dark:text-sky-400",
+  [TimePreference.AFTERNOON]:
+    "bg-amber-500/20 text-amber-700 dark:text-amber-400",
+  [TimePreference.EVENING]:
+    "bg-indigo-500/20 text-indigo-700 dark:text-indigo-400",
 };
 
 // Helper function to format enum values for display
@@ -85,139 +88,144 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
     : undefined;
 
   return (
-    <div
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      style={style}
-      className={`bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-grab p-3 ${
-        isDragging ? "opacity-50" : ""
-      }`}
-    >
-      <div className="space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
-            {task.isAutoScheduled && (
-              <div
-                className="flex items-center gap-1 text-blue-600"
-                title="Auto-scheduled"
-              >
-                <HiClock className="h-4 w-4" />
-                {task.scheduleLocked && (
-                  <HiLockClosed className="h-3 w-3" title="Schedule locked" />
-                )}
-              </div>
-            )}
-            <h3 className="text-sm font-medium text-gray-900 task-title">
-              {task.title}
-            </h3>
-          </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(task);
-              }}
-              className="p-1 text-gray-400 hover:text-blue-600 rounded-md hover:bg-gray-100"
-              title="Edit task"
-            >
-              <HiPencil className="h-4 w-4" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(task.id);
-              }}
-              className="p-1 text-gray-400 hover:text-red-600 rounded-md hover:bg-gray-100"
-              title="Delete task"
-            >
-              <HiTrash className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        {task.description && (
-          <p className="text-xs text-gray-500 line-clamp-2 task-description">
-            {task.description}
-          </p>
+    <div className="relative group">
+      <div
+        ref={setNodeRef}
+        {...attributes}
+        {...listeners}
+        style={style}
+        className={cn(
+          "bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-grab p-3",
+          isDragging && "opacity-50"
         )}
-
-        {task.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {task.tags.map((tag) => (
-              <span
-                key={tag.id}
-                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs"
-                style={{
-                  backgroundColor: tag.color || "#E5E7EB",
-                  color: "#1F2937",
-                }}
-              >
-                {tag.name}
-              </span>
-            ))}
+      >
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <div className="flex items-center gap-2">
+              {task.isAutoScheduled && (
+                <div
+                  className="flex items-center gap-1 text-primary"
+                  title="Auto-scheduled"
+                >
+                  <HiClock className="h-4 w-4" />
+                  {task.scheduleLocked && (
+                    <HiLockClosed className="h-3 w-3" title="Schedule locked" />
+                  )}
+                </div>
+              )}
+              <h3 className="text-sm font-medium task-title">{task.title}</h3>
+            </div>
           </div>
-        )}
 
-        <div className="flex items-center gap-2 flex-wrap text-xs">
-          {task.energyLevel && (
-            <span
-              className={`px-2 py-1 rounded-full ${
-                energyLevelColors[task.energyLevel]
-              }`}
-            >
-              {formatEnumValue(task.energyLevel)}
-            </span>
+          {task.description && (
+            <p className="text-xs text-muted-foreground line-clamp-2 task-description">
+              {task.description}
+            </p>
           )}
 
-          {task.preferredTime && (
-            <span
-              className={`px-2 py-1 rounded-full ${
-                timePreferenceColors[task.preferredTime]
-              }`}
-            >
-              {formatEnumValue(task.preferredTime)}
-            </span>
-          )}
-
-          {task.duration && (
-            <span className="text-gray-500">{task.duration}m</span>
-          )}
-
-          {task.dueDate && (
-            <span
-              className={`${
-                formatContextualDate(newDate(task.dueDate)).isOverdue
-                  ? "text-red-600"
-                  : "text-gray-500"
-              }`}
-            >
-              {formatContextualDate(newDate(task.dueDate)).text}
-            </span>
-          )}
-
-          {task.project && (
-            <div className="flex items-center gap-1">
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: task.project.color || "#E5E7EB" }}
-              />
-              <span className="text-gray-500">{task.project.name}</span>
+          {task.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {task.tags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-xs"
+                  style={{
+                    backgroundColor: `${tag.color}20` || "var(--muted)",
+                    color: tag.color || "var(--muted-foreground)",
+                  }}
+                >
+                  {tag.name}
+                </span>
+              ))}
             </div>
           )}
 
-          {task.isAutoScheduled && task.scheduledStart && task.scheduledEnd && (
-            <span className="text-blue-600">
-              {format(newDate(task.scheduledStart), "p")} -{" "}
-              {format(newDate(task.scheduledEnd), "p")}
-              {task.scheduleScore && (
-                <span className="ml-1 text-blue-500">
-                  ({Math.round(task.scheduleScore * 100)}%)
+          <div className="flex items-center gap-2 flex-wrap text-xs">
+            {task.energyLevel && (
+              <span
+                className={cn(
+                  "px-2 py-1 rounded-full",
+                  energyLevelColors[task.energyLevel]
+                )}
+              >
+                {formatEnumValue(task.energyLevel)}
+              </span>
+            )}
+
+            {task.preferredTime && (
+              <span
+                className={cn(
+                  "px-2 py-1 rounded-full",
+                  timePreferenceColors[task.preferredTime]
+                )}
+              >
+                {formatEnumValue(task.preferredTime)}
+              </span>
+            )}
+
+            {task.duration && (
+              <span className="text-muted-foreground">{task.duration}m</span>
+            )}
+
+            {task.dueDate && (
+              <span
+                className={cn(
+                  formatContextualDate(newDate(task.dueDate)).isOverdue
+                    ? "text-destructive"
+                    : "text-muted-foreground"
+                )}
+              >
+                {formatContextualDate(newDate(task.dueDate)).text}
+              </span>
+            )}
+
+            {task.project && (
+              <div className="flex items-center gap-1">
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{
+                    backgroundColor: task.project.color || "var(--muted)",
+                  }}
+                />
+                <span className="text-muted-foreground">
+                  {task.project.name}
+                </span>
+              </div>
+            )}
+
+            {task.isAutoScheduled &&
+              task.scheduledStart &&
+              task.scheduledEnd && (
+                <span className="text-primary">
+                  {format(newDate(task.scheduledStart), "p")} -{" "}
+                  {format(newDate(task.scheduledEnd), "p")}
+                  {task.scheduleScore && (
+                    <span className="ml-1 text-primary/70">
+                      ({Math.round(task.scheduleScore * 100)}%)
+                    </span>
+                  )}
                 </span>
               )}
-            </span>
-          )}
+          </div>
         </div>
+      </div>
+      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          type="button"
+          onClick={() => onEdit(task)}
+          className="p-1 text-muted-foreground hover:text-primary rounded-md hover:bg-muted"
+          title="Edit task"
+        >
+          <HiPencil className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(task.id)}
+          className="p-1 text-muted-foreground hover:text-destructive rounded-md hover:bg-muted"
+          title="Delete task"
+        >
+          <HiTrash className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );

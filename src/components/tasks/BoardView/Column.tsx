@@ -3,6 +3,7 @@
 import { Task, TaskStatus } from "@/types/task";
 import { useDroppable } from "@dnd-kit/core";
 import { BoardTask } from "./BoardTask";
+import { cn } from "@/lib/utils";
 
 interface ColumnProps {
   status: TaskStatus;
@@ -12,15 +13,15 @@ interface ColumnProps {
 }
 
 const statusColors = {
-  [TaskStatus.TODO]: "bg-yellow-50 border-yellow-200",
-  [TaskStatus.IN_PROGRESS]: "bg-blue-50 border-blue-200",
-  [TaskStatus.COMPLETED]: "bg-green-50 border-green-200",
+  [TaskStatus.TODO]: "bg-yellow-500/10 border-yellow-500/20",
+  [TaskStatus.IN_PROGRESS]: "bg-blue-500/10 border-blue-500/20",
+  [TaskStatus.COMPLETED]: "bg-green-500/10 border-green-500/20",
 };
 
 const statusHeaderColors = {
-  [TaskStatus.TODO]: "bg-yellow-100 text-yellow-800",
-  [TaskStatus.IN_PROGRESS]: "bg-blue-100 text-blue-800",
-  [TaskStatus.COMPLETED]: "bg-green-100 text-green-800",
+  [TaskStatus.TODO]: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
+  [TaskStatus.IN_PROGRESS]: "bg-blue-500/20 text-blue-700 dark:text-blue-400",
+  [TaskStatus.COMPLETED]: "bg-green-500/20 text-green-700 dark:text-green-400",
 };
 
 // Helper function to format enum values for display
@@ -32,12 +33,7 @@ const formatEnumValue = (value: string) => {
     .join(" ");
 };
 
-export function Column({
-  status,
-  tasks,
-  onEdit,
-  onDelete,
-}: ColumnProps) {
+export function Column({ status, tasks, onEdit, onDelete }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
   });
@@ -45,19 +41,26 @@ export function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`flex-shrink-0 w-80 flex flex-col bg-white rounded-lg border ${
-        statusColors[status]
-      } ${isOver ? "ring-2 ring-blue-400" : ""}`}
+      className={cn(
+        "flex-shrink-0 w-80 flex flex-col bg-background rounded-lg border",
+        statusColors[status],
+        isOver && "ring-2 ring-ring"
+      )}
     >
-      <div className="p-2 border-b border-gray-200">
+      <div className="p-2 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span
-              className={`px-2.5 py-0.5 rounded-full text-sm font-medium ${statusHeaderColors[status]}`}
+              className={cn(
+                "px-2.5 py-0.5 rounded-full text-sm font-medium",
+                statusHeaderColors[status]
+              )}
             >
               {formatEnumValue(status)}
             </span>
-            <span className="text-sm text-gray-500">{tasks.length}</span>
+            <span className="text-sm text-muted-foreground">
+              {tasks.length}
+            </span>
           </div>
         </div>
       </div>

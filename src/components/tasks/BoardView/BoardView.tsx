@@ -5,7 +5,7 @@ import { useProjectStore } from "@/store/project";
 import { useTaskListViewSettings } from "@/store/taskListViewSettings";
 import { useMemo } from "react";
 import { Column } from "./Column";
-import { DndContext, DragEndEvent} from "@dnd-kit/core";
+import { DndContext, DragEndEvent } from "@dnd-kit/core";
 
 interface BoardViewProps {
   tasks: Task[];
@@ -95,7 +95,7 @@ export function BoardView({
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 p-4">
+    <div className="h-full flex flex-col bg-background p-4">
       <div className="flex-1 flex gap-4 overflow-auto">
         <DndContext onDragEnd={handleDragEnd}>
           {Object.values(TaskStatus).map((status) => (

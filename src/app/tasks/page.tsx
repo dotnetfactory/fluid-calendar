@@ -12,6 +12,8 @@ import { ProjectSidebar } from "@/components/projects/ProjectSidebar";
 import { BsListTask, BsKanban } from "react-icons/bs";
 import { cn } from "@/lib/utils";
 import { useTaskModalStore } from "@/store/taskModal";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function TasksPage() {
   const {
@@ -95,18 +97,18 @@ export default function TasksPage() {
     <div className="flex h-full">
       <ProjectSidebar />
       <div className="flex-1 flex flex-col min-w-0" data-task-page>
-        <div className="px-6 py-4 border-b">
+        <div className="px-6 py-4 border-b border-border">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
+              <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
                 <button
                   onClick={() => setViewMode("list")}
                   className={cn(
                     "p-2 rounded-md text-sm font-medium flex items-center gap-2",
                     viewMode === "list"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-900"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <BsListTask className="h-4 w-4" />
@@ -117,8 +119,8 @@ export default function TasksPage() {
                   className={cn(
                     "p-2 rounded-md text-sm font-medium flex items-center gap-2",
                     viewMode === "board"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-900"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <BsKanban className="h-4 w-4" />
@@ -127,7 +129,8 @@ export default function TasksPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => {
                   if (
                     confirm(
@@ -137,27 +140,25 @@ export default function TasksPage() {
                     scheduleAllTasks();
                   }
                 }}
-                className="px-4 py-2 rounded-md bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Auto Schedule
-              </button>
-              <button
+              </Button>
+              <Button
                 data-create-task-button
                 onClick={() => {
                   setSelectedTask(undefined);
                   setOpen(true);
                 }}
-                className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Create Task
-              </button>
+              </Button>
             </div>
           </div>
 
           {error && (
-            <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-md">
-              Error: {error.message}
-            </div>
+            <Alert variant="destructive" className="mt-4">
+              <AlertDescription>{error.message}</AlertDescription>
+            </Alert>
           )}
         </div>
 
@@ -199,8 +200,10 @@ export default function TasksPage() {
         />
 
         {loading && (
-          <div className="fixed inset-0 bg-black/30 flex items-center justify-center">
-            <div className="bg-white rounded-lg p-4">Loading...</div>
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+            <div className="bg-background rounded-lg p-4 shadow-lg border">
+              <span className="text-sm text-muted-foreground">Loading...</span>
+            </div>
           </div>
         )}
       </div>

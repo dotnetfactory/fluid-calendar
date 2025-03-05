@@ -28,12 +28,22 @@ import {
   HiClock,
   HiLockClosed,
 } from "react-icons/hi";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useTaskListViewSettings } from "@/store/taskListViewSettings";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useProjectStore } from "@/store/project";
 import { useDraggableTask } from "../dnd/useDragAndDrop";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 // Helper function to format enum values for display
 const formatEnumValue = (value: string) => {
@@ -43,29 +53,32 @@ const formatEnumValue = (value: string) => {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 };
+
 const statusColors = {
-  [TaskStatus.TODO]: "bg-yellow-100 text-yellow-800",
-  [TaskStatus.IN_PROGRESS]: "bg-blue-100 text-blue-800",
-  [TaskStatus.COMPLETED]: "bg-green-100 text-green-800",
+  [TaskStatus.TODO]: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
+  [TaskStatus.IN_PROGRESS]: "bg-blue-500/20 text-blue-700 dark:text-blue-400",
+  [TaskStatus.COMPLETED]: "bg-green-500/20 text-green-700 dark:text-green-400",
 };
 
 const energyLevelColors = {
-  high: "bg-red-100 text-red-800",
-  medium: "bg-orange-100 text-orange-800",
-  low: "bg-green-100 text-green-800",
+  high: "bg-red-500/20 text-red-700 dark:text-red-400",
+  medium: "bg-orange-500/20 text-orange-700 dark:text-orange-400",
+  low: "bg-green-500/20 text-green-700 dark:text-green-400",
 };
 
 const timePreferenceColors = {
-  [TimePreference.MORNING]: "bg-sky-100 text-sky-800",
-  [TimePreference.AFTERNOON]: "bg-amber-100 text-amber-800",
-  [TimePreference.EVENING]: "bg-indigo-100 text-indigo-800",
+  [TimePreference.MORNING]: "bg-sky-500/20 text-sky-700 dark:text-sky-400",
+  [TimePreference.AFTERNOON]:
+    "bg-amber-500/20 text-amber-700 dark:text-amber-400",
+  [TimePreference.EVENING]:
+    "bg-indigo-500/20 text-indigo-700 dark:text-indigo-400",
 };
 
 const priorityColors = {
-  [Priority.HIGH]: "bg-red-100 text-red-800",
-  [Priority.MEDIUM]: "bg-orange-100 text-orange-800",
-  [Priority.LOW]: "bg-blue-100 text-blue-800",
-  [Priority.NONE]: "bg-gray-100 text-gray-800",
+  [Priority.HIGH]: "bg-red-500/20 text-red-700 dark:text-red-400",
+  [Priority.MEDIUM]: "bg-orange-500/20 text-orange-700 dark:text-orange-400",
+  [Priority.LOW]: "bg-blue-500/20 text-blue-700 dark:text-blue-400",
+  [Priority.NONE]: "bg-muted text-muted-foreground",
 };
 
 interface TaskListProps {
@@ -95,12 +108,15 @@ function SortableHeader({
   return (
     <th
       scope="col"
-      className={`px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group ${className}`}
+      className={cn(
+        "px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer group",
+        className
+      )}
       onClick={() => onSort(column)}
     >
       <div className="flex items-center gap-1">
         {label}
-        <span className="text-gray-400">
+        <span className="text-muted-foreground/50">
           {currentSort === column ? (
             direction === "asc" ? (
               <HiChevronUp className="h-4 w-4" />
@@ -162,10 +178,10 @@ function StatusFilter({
 
   return (
     <div className="relative" ref={filterRef}>
-      <button
-        type="button"
+      <Button
+        variant="outline"
         onClick={() => setIsOpen(!isOpen)}
-        className="h-9 px-3 rounded-md border border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500 min-w-[140px] py-0 bg-white flex items-center justify-between gap-2"
+        className="h-9 px-3 min-w-[140px] justify-between"
       >
         <span className="truncate">
           {value.length === 0
@@ -175,39 +191,42 @@ function StatusFilter({
             : `${value.length} selected`}
         </span>
         <HiChevronDown
-          className={`h-4 w-4 text-gray-400 transition-transform ${
+          className={`h-4 w-4 text-muted-foreground transition-transform ${
             isOpen ? "rotate-180" : ""
           }`}
         />
-      </button>
+      </Button>
       {isOpen && (
-        <div className="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
-          <div className="px-3 py-1 border-b border-gray-200 flex justify-between">
-            <button
-              className="text-xs text-blue-600 hover:text-blue-700"
+        <div className="absolute left-0 mt-1 w-48 bg-background rounded-md shadow-lg border border-border py-1 z-50">
+          <div className="px-3 py-1 border-b border-border flex justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs h-auto p-0 hover:bg-transparent hover:text-primary"
               onClick={handleSelectAll}
             >
               Select All
-            </button>
-            <button
-              className="text-xs text-blue-600 hover:text-blue-700"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs h-auto p-0 hover:bg-transparent hover:text-primary"
               onClick={handleSelectNone}
             >
               Clear
-            </button>
+            </Button>
           </div>
           {Object.values(TaskStatus).map((status) => (
             <label
               key={status}
-              className="flex items-center px-3 py-1 hover:bg-gray-50 cursor-pointer"
+              className="flex items-center px-3 py-1.5 hover:bg-muted/50 cursor-pointer"
             >
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-3 w-3"
+              <Checkbox
                 checked={value.includes(status)}
-                onChange={() => handleChange(status)}
+                onCheckedChange={() => handleChange(status)}
+                className="h-3 w-3"
               />
-              <span className="ml-2 text-sm text-gray-700">
+              <span className="ml-2 text-sm text-foreground">
                 {formatEnumValue(status)}
               </span>
             </label>
@@ -265,7 +284,6 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
       e.preventDefault();
       e.stopPropagation();
     }
-    console.log("EditableCell handleSave:", { field, editValue });
     onSave({ ...task, [field]: editValue });
     setIsEditing(false);
   };
@@ -280,7 +298,6 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("EditableCell handleClick:", { field });
     setIsEditing(true);
   };
 
@@ -299,15 +316,15 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
     return (
       <div
         onClick={handleClick}
-        className="cursor-pointer hover:bg-gray-50 px-1 -mx-1 rounded"
+        className="cursor-pointer hover:bg-muted/50 px-1 -mx-1 rounded"
       >
         {field === "title" ? (
           <div>
-            <div className="text-sm font-medium text-gray-900 task-title">
+            <div className="text-sm font-medium text-foreground task-title">
               {value}
             </div>
             {task.description && (
-              <div className="text-xs text-gray-500 line-clamp-1 task-description">
+              <div className="text-xs text-muted-foreground line-clamp-1 task-description">
                 {task.description}
               </div>
             )}
@@ -318,8 +335,8 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
                     key={tag.id}
                     className="inline-flex items-center px-1.5 py-0.5 rounded text-xs"
                     style={{
-                      backgroundColor: tag.color || "#E5E7EB",
-                      color: "#1F2937",
+                      backgroundColor: `${tag.color}20` || "var(--muted)",
+                      color: tag.color || "var(--muted-foreground)",
                     }}
                   >
                     {tag.name}
@@ -333,7 +350,7 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
             className={`px-2 py-1 text-xs rounded-full ${
               value
                 ? energyLevelColors[value as EnergyLevel]
-                : "text-gray-400 border border-gray-200"
+                : "text-muted-foreground border border-border"
             }`}
           >
             {value ? formatEnumValue(value) : "Set energy"}
@@ -343,7 +360,7 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
             className={`px-2 py-1 text-xs rounded-full ${
               value
                 ? timePreferenceColors[value as TimePreference]
-                : "text-gray-400 border border-gray-200"
+                : "text-muted-foreground border border-border"
             }`}
           >
             {value ? formatEnumValue(value) : "Set time"}
@@ -353,14 +370,16 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
             className={`px-2 py-1 text-xs rounded-full ${
               value
                 ? priorityColors[value as Priority]
-                : "text-gray-400 border border-gray-200"
+                : "text-muted-foreground border border-border"
             }`}
           >
             {value ? formatEnumValue(value) : "Set priority"}
           </span>
         ) : field === "duration" ? (
           <span
-            className={`text-sm ${value ? "text-gray-500" : "text-gray-400"}`}
+            className={`text-sm ${
+              value ? "text-muted-foreground" : "text-muted-foreground/70"
+            }`}
           >
             {value ? `${value}m` : "Set duration"}
           </span>
@@ -369,16 +388,16 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
             className={`text-sm group flex items-center gap-1 ${
               value
                 ? formatContextualDate(newDate(value)).isOverdue
-                  ? "text-red-600"
-                  : "text-gray-500"
-                : "text-gray-400"
+                  ? "text-destructive"
+                  : "text-muted-foreground"
+                : "text-muted-foreground/70"
             }`}
           >
             {value ? (
               <>
                 {formatContextualDate(newDate(value)).text}
                 {formatContextualDate(newDate(value)).isOverdue && (
-                  <HiExclamation className="h-4 w-4 text-red-600" />
+                  <HiExclamation className="h-4 w-4 text-destructive" />
                 )}
               </>
             ) : (
@@ -391,14 +410,16 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
               <>
                 <div
                   className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: task.project.color || "#E5E7EB" }}
+                  style={{
+                    backgroundColor: task.project.color || "var(--muted)",
+                  }}
                 />
-                <span className="text-sm text-gray-900">
+                <span className="text-sm text-foreground">
                   {task.project.name}
                 </span>
               </>
             ) : (
-              <span className="text-sm text-gray-400">No project</span>
+              <span className="text-sm text-muted-foreground">No project</span>
             )}
           </div>
         ) : (
@@ -415,114 +436,87 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
       onClick={(e) => e.stopPropagation()}
     >
       {field === "title" ? (
-        <input
+        <Input
           type="text"
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onClick={(e) => e.stopPropagation()}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          className="h-8"
           autoFocus
         />
       ) : field === "energyLevel" ? (
-        <DropdownMenu.Root open={isEditing} onOpenChange={setIsEditing}>
-          <DropdownMenu.Trigger className="block rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm min-w-[140px] px-3 py-1.5 text-left">
-            {editValue ? formatEnumValue(editValue) : "No Energy Level"}
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-white rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-              <DropdownMenu.Item
-                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                onClick={() => {
-                  setEditValue(null);
-                  onSave({ ...task, [field]: null });
-                  setIsEditing(false);
-                }}
-              >
-                No Energy Level
-              </DropdownMenu.Item>
-              {Object.values(EnergyLevel).map((level) => (
-                <DropdownMenu.Item
-                  key={level}
-                  className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => {
-                    onSave({ ...task, [field]: level });
-                    setIsEditing(false);
-                  }}
-                >
-                  {formatEnumValue(level)}
-                </DropdownMenu.Item>
-              ))}
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+        <Select
+          value={editValue || "none"}
+          onValueChange={(value) => {
+            onSave({
+              ...task,
+              [field]: value !== "none" ? (value as EnergyLevel) : null,
+            });
+            setIsEditing(false);
+          }}
+        >
+          <SelectTrigger className="h-8 min-w-[140px]">
+            <SelectValue placeholder="No Energy Level" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No Energy Level</SelectItem>
+            {Object.values(EnergyLevel).map((level) => (
+              <SelectItem key={level} value={level}>
+                {formatEnumValue(level)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : field === "preferredTime" ? (
-        <DropdownMenu.Root open={isEditing} onOpenChange={setIsEditing}>
-          <DropdownMenu.Trigger className="block rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm min-w-[140px] px-3 py-1.5 text-left">
-            {editValue ? formatEnumValue(editValue) : "No Time Preference"}
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-white rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-              <DropdownMenu.Item
-                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                onClick={() => {
-                  setEditValue(null);
-                  onSave({ ...task, [field]: null });
-                  setIsEditing(false);
-                }}
-              >
-                No Time Preference
-              </DropdownMenu.Item>
-              {Object.values(TimePreference).map((time) => (
-                <DropdownMenu.Item
-                  key={time}
-                  className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => {
-                    onSave({ ...task, [field]: time });
-                    setIsEditing(false);
-                  }}
-                >
-                  {formatEnumValue(time)}
-                </DropdownMenu.Item>
-              ))}
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+        <Select
+          value={editValue || "none"}
+          onValueChange={(value) => {
+            onSave({
+              ...task,
+              [field]: value !== "none" ? (value as TimePreference) : null,
+            });
+            setIsEditing(false);
+          }}
+        >
+          <SelectTrigger className="h-8 min-w-[140px]">
+            <SelectValue placeholder="No Time Preference" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No Time Preference</SelectItem>
+            {Object.values(TimePreference).map((time) => (
+              <SelectItem key={time} value={time}>
+                {formatEnumValue(time)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : field === "priority" ? (
-        <DropdownMenu.Root open={isEditing} onOpenChange={setIsEditing}>
-          <DropdownMenu.Trigger className="block rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm min-w-[140px] px-3 py-1.5 text-left">
-            {editValue ? formatEnumValue(editValue) : "No Priority"}
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-white rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-              <DropdownMenu.Item
-                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                onClick={() => {
-                  setEditValue(null);
-                  onSave({ ...task, [field]: null });
-                  setIsEditing(false);
-                }}
-              >
-                No Priority
-              </DropdownMenu.Item>
-              {Object.values(Priority).map((priority) => (
-                <DropdownMenu.Item
-                  key={priority}
-                  className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => {
-                    onSave({ ...task, [field]: priority });
-                    setIsEditing(false);
-                  }}
-                >
-                  {formatEnumValue(priority)}
-                </DropdownMenu.Item>
-              ))}
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+        <Select
+          value={editValue || "none"}
+          onValueChange={(value) => {
+            onSave({
+              ...task,
+              [field]: value !== "none" ? (value as Priority) : null,
+            });
+            setIsEditing(false);
+          }}
+        >
+          <SelectTrigger className="h-8 min-w-[140px]">
+            <SelectValue placeholder="No Priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No Priority</SelectItem>
+            {Object.values(Priority).map((priority) => (
+              <SelectItem key={priority} value={priority}>
+                {formatEnumValue(priority)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : field === "duration" ? (
         <div className="flex items-center gap-1">
-          <input
+          <Input
             type="number"
             value={editValue || ""}
             onChange={(e) =>
@@ -530,8 +524,8 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
             }
             onKeyDown={handleKeyDown}
             onClick={(e) => e.stopPropagation()}
-            className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm max-w-[70px]"
-            placeholder="Duration in minutes"
+            className="h-8 w-20"
+            placeholder="Minutes"
             min="1"
             autoFocus
           />
@@ -563,77 +557,70 @@ function EditableCell({ task, field, value, onSave }: EditableCellProps) {
             onClickOutside={() => setIsEditing(false)}
             open={isEditing}
             onInputClick={() => {}}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            className="h-8 w-full"
             dateFormat="yyyy-MM-dd"
             isClearable
           />
         </div>
       ) : field === "projectId" ? (
-        <DropdownMenu.Root open={isEditing} onOpenChange={setIsEditing}>
-          <DropdownMenu.Trigger className="block rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm min-w-[140px] px-3 py-1.5 text-left">
-            {task.project ? (
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: task.project.color || "#E5E7EB" }}
-                />
-                <span>{task.project.name}</span>
-              </div>
-            ) : (
-              "No project"
-            )}
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-white rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-              <DropdownMenu.Item
-                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                onClick={() => {
-                  console.log("Setting project to null");
-                  onSave({ ...task, projectId: null });
-                  setIsEditing(false);
-                }}
-              >
-                No project
-              </DropdownMenu.Item>
-              {projects.map((project) => (
-                <DropdownMenu.Item
-                  key={project.id}
-                  className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => {
-                    console.log("Setting project to:", project.id);
-                    onSave({ ...task, projectId: project.id });
-                    setIsEditing(false);
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: project.color || "#E5E7EB" }}
-                    />
-                    <span>{project.name}</span>
-                  </div>
-                </DropdownMenu.Item>
-              ))}
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+        <Select
+          value={editValue || ""}
+          onValueChange={(value) => {
+            onSave({ ...task, projectId: value || null });
+            setIsEditing(false);
+          }}
+        >
+          <SelectTrigger className="h-8 min-w-[140px]">
+            <SelectValue>
+              {task.project ? (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{
+                      backgroundColor: task.project.color || "var(--muted)",
+                    }}
+                  />
+                  <span>{task.project.name}</span>
+                </div>
+              ) : (
+                "No project"
+              )}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">No project</SelectItem>
+            {projects.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: project.color || "var(--muted)" }}
+                  />
+                  <span>{project.name}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : null}
       {field === "title" && (
         <>
-          <button
-            type="button"
+          <Button
+            size="sm"
+            variant="ghost"
             onClick={handleSave}
-            className="p-1 text-green-600 hover:text-green-700"
+            className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-500/10"
           >
             <HiCheck className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
             onClick={handleCancel}
-            className="p-1 text-red-600 hover:text-red-700"
+            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
           >
             <HiX className="h-4 w-4" />
-          </button>
+          </Button>
         </>
       )}
     </div>
@@ -688,30 +675,42 @@ function TaskRow({
   const { draggableProps, isDragging } = useDraggableTask(task);
 
   return (
-    <tr className={`hover:bg-gray-50 ${isDragging ? "opacity-50" : ""}`}>
+    <tr className={`hover:bg-muted/50 ${isDragging ? "opacity-50" : ""}`}>
       <td className="w-8 px-3 py-2 whitespace-nowrap">
-        <div {...draggableProps} className="cursor-grab hover:text-gray-700">
-          <HiMenuAlt4 className="h-4 w-4 text-gray-400" />
+        <div {...draggableProps} className="cursor-grab hover:text-foreground">
+          <HiMenuAlt4 className="h-4 w-4 text-muted-foreground" />
         </div>
       </td>
       <td className="px-3 py-2 whitespace-nowrap">
         <div className="flex items-center gap-2">
-          <select
+          <Select
             value={task.status}
-            onChange={(e) =>
-              onStatusChange(task.id, e.target.value as TaskStatus)
+            onValueChange={(value) =>
+              onStatusChange(task.id, value as TaskStatus)
             }
-            className={`text-sm border rounded-md px-2 py-1 w-full min-w-[120px] ${
-              statusColors[task.status]
-            }`}
           >
-            {Object.values(TaskStatus).map((status) => (
-              <option key={status} value={status}>
-                {formatEnumValue(status)}
-              </option>
-            ))}
-          </select>
-          <button
+            <SelectTrigger
+              className={`h-8 w-[120px] ${statusColors[task.status]}`}
+            >
+              <SelectValue>{formatEnumValue(task.status)}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(TaskStatus).map((status) => (
+                <SelectItem key={status} value={status}>
+                  {formatEnumValue(status)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={cn(
+              "p-1 h-8 w-8",
+              task.status === TaskStatus.COMPLETED
+                ? "bg-green-500/20 text-green-700 dark:text-green-400 hover:bg-green-500/30"
+                : "text-muted-foreground hover:text-green-600 hover:bg-muted"
+            )}
             onClick={(e) => {
               e.stopPropagation();
               onStatusChange(
@@ -721,11 +720,6 @@ function TaskRow({
                   : TaskStatus.COMPLETED
               );
             }}
-            className={`p-1 rounded-md transition-colors ${
-              task.status === TaskStatus.COMPLETED
-                ? "bg-green-100 text-green-700"
-                : "hover:bg-gray-100 text-gray-400 hover:text-green-600"
-            }`}
             title={
               task.status === TaskStatus.COMPLETED
                 ? "Mark as todo"
@@ -733,14 +727,14 @@ function TaskRow({
             }
           >
             <HiCheck className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
       </td>
       <td className="px-3 py-2">
         <div className="flex items-center gap-2">
           {task.isRecurring && (
             <HiRefresh
-              className="h-4 w-4 text-blue-500 flex-shrink-0"
+              className="h-4 w-4 text-primary flex-shrink-0"
               title="Recurring task"
             />
           )}
@@ -776,7 +770,7 @@ function TaskRow({
           onSave={onInlineEdit}
         />
       </td>
-      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+      <td className="px-3 py-2 whitespace-nowrap text-sm text-muted-foreground">
         <EditableCell
           task={task}
           field="dueDate"
@@ -784,7 +778,7 @@ function TaskRow({
           onSave={onInlineEdit}
         />
       </td>
-      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+      <td className="px-3 py-2 whitespace-nowrap text-sm text-muted-foreground">
         <EditableCell
           task={task}
           field="duration"
@@ -805,21 +799,21 @@ function TaskRow({
           {task.isAutoScheduled ? (
             <div className="flex items-center gap-1">
               <HiClock
-                className="h-4 w-4 text-blue-600"
+                className="h-4 w-4 text-primary"
                 title="Auto-scheduled"
               />
               {task.scheduleLocked && (
                 <HiLockClosed
-                  className="h-3 w-3 text-blue-600"
+                  className="h-3 w-3 text-primary"
                   title="Schedule locked"
                 />
               )}
               {task.scheduledStart && task.scheduledEnd && (
-                <span className="text-sm text-blue-600">
+                <span className="text-sm text-primary">
                   {format(newDate(task.scheduledStart), "p")} -{" "}
                   {format(newDate(task.scheduledEnd), "p")}
                   {task.scheduleScore && (
-                    <span className="ml-1 text-blue-500">
+                    <span className="ml-1 text-primary/70">
                       ({Math.round(task.scheduleScore * 100)}%)
                     </span>
                   )}
@@ -827,32 +821,36 @@ function TaskRow({
               )}
             </div>
           ) : (
-            <span className="text-sm text-gray-400">Manual</span>
+            <span className="text-sm text-muted-foreground">Manual</span>
           )}
         </div>
       </td>
       <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
         <div className="flex items-center gap-1">
-          <button
+          <Button
+            size="sm"
+            variant="ghost"
+            className="p-1 h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
             onClick={(e) => {
               e.stopPropagation();
               onEdit(task);
             }}
-            className="p-1 text-gray-400 hover:text-blue-600 rounded-md hover:bg-gray-100"
             title="Edit task"
           >
             <HiPencil className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="p-1 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-muted"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(task.id);
             }}
-            className="p-1 text-gray-400 hover:text-red-600 rounded-md hover:bg-gray-100"
             title="Delete task"
           >
             <HiTrash className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </td>
     </tr>
@@ -994,80 +992,87 @@ export function TaskList({
           onChange={(value) => setFilters({ status: value })}
         />
 
-        <select
-          value={energyLevel?.[0] || ""}
-          onChange={(e) =>
+        <Select
+          value={energyLevel?.[0] || "none"}
+          onValueChange={(value) =>
             setFilters({
-              energyLevel: e.target.value
-                ? [e.target.value as EnergyLevel]
-                : undefined,
+              energyLevel:
+                value !== "none" ? [value as EnergyLevel] : undefined,
             })
           }
-          className="h-9 rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500 min-w-[140px] py-0"
         >
-          <option value="">All Energy</option>
-          {Object.values(EnergyLevel).map((level) => (
-            <option key={level} value={level}>
-              {formatEnumValue(level)}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="h-9 w-[140px]">
+            <SelectValue placeholder="All Energy" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">All Energy</SelectItem>
+            {Object.values(EnergyLevel).map((level) => (
+              <SelectItem key={level} value={level}>
+                {formatEnumValue(level)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <select
-          value={timePreference?.[0] || ""}
-          onChange={(e) =>
+        <Select
+          value={timePreference?.[0] || "none"}
+          onValueChange={(value) =>
             setFilters({
-              timePreference: e.target.value
-                ? [e.target.value as TimePreference]
-                : undefined,
+              timePreference:
+                value !== "none" ? [value as TimePreference] : undefined,
             })
           }
-          className="h-9 rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500 min-w-[140px] py-0"
         >
-          <option value="">All Times</option>
-          {Object.values(TimePreference).map((time) => (
-            <option key={time} value={time}>
-              {formatEnumValue(time)}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="h-9 w-[140px]">
+            <SelectValue placeholder="All Times" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">All Times</SelectItem>
+            {Object.values(TimePreference).map((time) => (
+              <SelectItem key={time} value={time}>
+                {formatEnumValue(time)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <div className="flex-1 flex gap-2">
-          <input
-            type="text"
+          <Input
             value={search || ""}
             onChange={(e) =>
               setFilters({ search: e.target.value || undefined })
             }
             placeholder="Search tasks..."
-            className="h-9 flex-1 min-w-[200px] rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500 py-0"
+            className="h-9"
           />
           {hasActiveFilters && (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={resetFilters}
-              className="h-9 px-3 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md border border-gray-300 flex items-center gap-1"
+              className="h-9"
             >
-              <HiX className="h-4 w-4" />
+              <HiX className="h-4 w-4 mr-1" />
               Clear Filters
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-white border border-gray-200 rounded-lg">
+      <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-background border rounded-lg">
         <div className="overflow-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted sticky top-0">
               <tr>
                 <th
                   scope="col"
-                  className="w-8 px-3 py-2 text-left text-xs font-medium text-gray-500"
+                  className="w-8 px-3 py-2 text-left text-xs font-medium text-muted-foreground"
                 >
                   {/* Drag handle column */}
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32"
+                  className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-32"
                 >
                   Status
                 </th>
@@ -1080,19 +1085,19 @@ export function TaskList({
                 />
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32"
+                  className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-32"
                 >
                   Priority
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32"
+                  className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-32"
                 >
                   Energy
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32"
+                  className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-32"
                 >
                   Time
                 </th>
@@ -1106,7 +1111,7 @@ export function TaskList({
                 />
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20"
+                  className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-20"
                 >
                   Duration
                 </th>
@@ -1120,7 +1125,7 @@ export function TaskList({
                 />
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                 >
                   Schedule
                 </th>
@@ -1129,7 +1134,7 @@ export function TaskList({
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-background divide-y divide-border">
               {sortedTasks.map((task) => (
                 <TaskRow
                   key={task.id}
@@ -1143,7 +1148,7 @@ export function TaskList({
             </tbody>
           </table>
           {sortedTasks.length === 0 && (
-            <div className="text-center py-8 text-gray-500 text-sm">
+            <div className="text-center py-8 text-muted-foreground text-sm">
               No tasks found. Try adjusting your filters or create a new task.
             </div>
           )}
