@@ -5,6 +5,37 @@ import { logger } from "@/lib/logger";
 const LOG_SOURCE = "APIAuth";
 
 /**
+ * Authenticates a request and returns the user ID if authenticated
+ * @param request The NextRequest object
+ * @param logSource The source for logging
+ * @returns An object with userId if authenticated, or a NextResponse if unauthorized
+ */
+export async function authenticateRequest(
+  request: NextRequest,
+  logSource: string
+) {
+  // Get the user token from the request
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  // If there's no token, return unauthorized
+  if (!token) {
+    logger.warn("Unauthorized access attempt to API", {}, logSource);
+    return { response: new NextResponse("Unauthorized", { status: 401 }) };
+  }
+
+  const userId = token.sub;
+  if (!userId) {
+    logger.warn("No user ID found in token", {}, logSource);
+    return { response: new NextResponse("Unauthorized", { status: 401 }) };
+  }
+
+  return { userId };
+}
+
+/**
  * Middleware to ensure a user is authenticated for API routes
  * @param req The Next.js request object
  * @returns A response if authentication fails, or null if authentication succeeds

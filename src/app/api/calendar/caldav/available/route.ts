@@ -6,7 +6,7 @@ import {
   loginToCalDAVServer,
   fetchCalDAVCalendars,
 } from "../utils";
-import { getToken } from "next-auth/jwt";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "CalDAVAvailable";
 
@@ -16,23 +16,12 @@ const LOG_SOURCE = "CalDAVAvailable";
  */
 export async function GET(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to CalDAV available calendars API",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get("accountId");

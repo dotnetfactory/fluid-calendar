@@ -5,7 +5,7 @@ import { TaskStatus } from "@/types/task";
 import { newDate } from "@/lib/date-utils";
 import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
 import { logger } from "@/lib/logger";
-import { getToken } from "next-auth/jwt";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "task-route";
 export async function GET(
@@ -13,19 +13,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn("Unauthorized access attempt to task API", {}, LOG_SOURCE);
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { id } = await params;
     const task = await prisma.task.findUnique({
@@ -62,19 +55,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn("Unauthorized access attempt to update task", {}, LOG_SOURCE);
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { id } = await params;
     const task = await prisma.task.findUnique({
@@ -225,19 +211,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn("Unauthorized access attempt to delete task", {}, LOG_SOURCE);
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { id } = await params;
     const task = await prisma.task.findUnique({

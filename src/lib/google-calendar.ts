@@ -6,12 +6,15 @@ import { newDate, newDateFromYMD } from "./date-utils";
 
 type GoogleEvent = calendar_v3.Schema$Event;
 
-export async function getGoogleCalendarClient(accountId: string) {
+export async function getGoogleCalendarClient(
+  accountId: string,
+  userId: string
+) {
   console.log("Creating Google Calendar client");
   const tokenManager = TokenManager.getInstance();
 
   // Get tokens for the account
-  let tokens = await tokenManager.getTokens(accountId);
+  let tokens = await tokenManager.getTokens(accountId, userId);
 
   if (!tokens) {
     throw new Error("No tokens found for account");
@@ -19,7 +22,7 @@ export async function getGoogleCalendarClient(accountId: string) {
 
   // Check if token is expired or about to expire (within 5 minutes)
   if (tokens.expiresAt.getTime() - Date.now() < 5 * 60 * 1000) {
-    tokens = await tokenManager.refreshGoogleTokens(accountId);
+    tokens = await tokenManager.refreshGoogleTokens(accountId, userId);
     if (!tokens) {
       throw new Error("Failed to refresh tokens");
     }
@@ -41,6 +44,7 @@ export async function getGoogleCalendarClient(accountId: string) {
 
 export async function createGoogleEvent(
   accountId: string,
+  userId: string,
   calendarId: string,
   event: {
     title: string;
@@ -53,7 +57,7 @@ export async function createGoogleEvent(
     recurrenceRule?: string;
   }
 ) {
-  const calendar = await getGoogleCalendarClient(accountId);
+  const calendar = await getGoogleCalendarClient(accountId, userId);
   const timeZone = useSettingsStore.getState().user.timeZone;
 
   // Format recurrence rule for Google Calendar
@@ -93,6 +97,7 @@ export async function createGoogleEvent(
 
 export async function updateGoogleEvent(
   accountId: string,
+  userId: string,
   calendarId: string,
   eventId: string,
   event: {
@@ -107,7 +112,7 @@ export async function updateGoogleEvent(
     mode?: "single" | "series";
   }
 ) {
-  const calendar = await getGoogleCalendarClient(accountId);
+  const calendar = await getGoogleCalendarClient(accountId, userId);
   const timeZone = useSettingsStore.getState().user.timeZone;
 
   try {
@@ -247,11 +252,12 @@ export async function updateGoogleEvent(
 
 export async function deleteGoogleEvent(
   accountId: string,
+  userId: string,
   calendarId: string,
   eventId: string,
   mode: "single" | "series" = "single"
 ) {
-  const calendar = await getGoogleCalendarClient(accountId);
+  const calendar = await getGoogleCalendarClient(accountId, userId);
 
   try {
     // Get the event to check if it's part of a series
@@ -299,12 +305,13 @@ export async function deleteGoogleEvent(
   }
 }
 
-export async function getGoogleEvent(
+export default async function getGoogleEvent(
   accountId: string,
+  userId: string,
   calendarId: string,
   eventId: string
 ) {
-  const googleCalendarClient = await getGoogleCalendarClient(accountId);
+  const googleCalendarClient = await getGoogleCalendarClient(accountId, userId);
 
   try {
     // Get the event
@@ -354,7 +361,11 @@ export async function getGoogleEvent(
         calendarId,
         eventId: masterEvent.id || "", // Ensure non-null string
         timeMin: newDateFromYMD(newDate().getFullYear(), 0, 1).toISOString(),
-        timeMax: newDateFromYMD(newDate().getFullYear() + 1, 0, 1).toISOString(),
+        timeMax: newDateFromYMD(
+          newDate().getFullYear() + 1,
+          0,
+          1
+        ).toISOString(),
       });
       if (instancesResponse && instancesResponse.data) {
         console.log("Found instances:", instancesResponse.data.items?.length);

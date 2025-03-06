@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getToken } from "next-auth/jwt";
 import { logger } from "@/lib/logger";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "tags-route";
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn("Unauthorized access attempt to tags API", {}, LOG_SOURCE);
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const tags = await prisma.tag.findMany({
       where: {
@@ -46,19 +39,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn("Unauthorized access attempt to create tag", {}, LOG_SOURCE);
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const body = await request.json();
     logger.debug("Received tag creation request", { body }, LOG_SOURCE);

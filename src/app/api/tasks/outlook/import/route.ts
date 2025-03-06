@@ -1,14 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOutlookClient } from "@/lib/outlook-calendar";
 import { OutlookTasksService } from "@/lib/outlook-tasks";
 import { logger } from "@/lib/logger";
 import { newDate } from "@/lib/date-utils";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "OutlookTasksImportAPI";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Authenticate the request
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
+    }
+
+    const userId = auth.userId;
+
     const body = await request.json();
     const { accountId, listId, projectId, options, isAutoScheduled } = body;
 
@@ -19,9 +28,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get the account
+    // Get the account and ensure it belongs to the current user
     const account = await prisma.connectedAccount.findUnique({
-      where: { id: accountId },
+      where: {
+        id: accountId,
+        userId,
+      },
     });
 
     if (!account || account.provider !== "OUTLOOK") {
@@ -32,7 +44,7 @@ export async function POST(request: Request) {
     }
 
     // Initialize service
-    const client = await getOutlookClient(accountId);
+    const client = await getOutlookClient(accountId, userId);
     const outlookService = new OutlookTasksService(client, accountId);
 
     // Get or create project if not provided
@@ -54,6 +66,7 @@ export async function POST(request: Request) {
           name: taskList.name,
           description: `Imported from Outlook task list: ${taskList.name}`,
           status: "active",
+          userId, // Associate with the current user
         },
       });
       targetProjectId = project.id;
@@ -69,6 +82,21 @@ export async function POST(request: Request) {
         },
       });
     } else {
+      // Verify the project belongs to the current user
+      const project = await prisma.project.findUnique({
+        where: {
+          id: targetProjectId,
+          userId,
+        },
+      });
+
+      if (!project) {
+        return NextResponse.json(
+          { error: "Project not found" },
+          { status: 404 }
+        );
+      }
+
       // Update existing mapping's isAutoScheduled setting
       await prisma.outlookTaskListMapping.update({
         where: { externalListId: listId },
@@ -83,7 +111,8 @@ export async function POST(request: Request) {
     const results = await outlookService.importTasksToProject(
       listId,
       targetProjectId,
-      options
+      options,
+      userId // Pass userId to ensure tasks are associated with the current user
     );
 
     // Get task list name for failed tasks

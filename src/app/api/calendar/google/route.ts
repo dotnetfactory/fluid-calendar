@@ -7,8 +7,7 @@ import { getGoogleCalendarClient } from "@/lib/google-calendar";
 import { createGoogleOAuthClient } from "@/lib/google";
 import { GaxiosError } from "gaxios";
 import { newDate, newDateFromYMD } from "@/lib/date-utils";
-import { getToken } from "next-auth/jwt";
-import { logger } from "@/lib/logger";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "GoogleCalendarAPI";
 
@@ -58,24 +57,12 @@ export async function GET(request: NextRequest) {
     if (!codeParam) {
       return NextResponse.json({ error: "No code provided" }, { status: 400 });
     }
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to Google calendar API",
-        {},
-        LOG_SOURCE
-      );
-      return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings?error=unauthorized`
-      );
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const oauth2Client = await createGoogleOAuthClient({
       redirectUrl: `${process.env.NEXTAUTH_URL}/api/calendar/google`,
@@ -168,23 +155,12 @@ export async function GET(request: NextRequest) {
 // Add a Google Calendar to sync
 export async function POST(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to Google calendar API",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { accountId, calendarId, name, color } = await request.json();
 
@@ -221,7 +197,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create calendar client
-    const calendar = await getGoogleCalendarClient(accountId);
+    const calendar = await getGoogleCalendarClient(accountId, userId);
 
     // Verify access to the calendar
     try {
@@ -245,6 +221,7 @@ export async function POST(request: NextRequest) {
         type: "GOOGLE",
         color,
         accountId,
+        userId,
       },
     });
 
@@ -435,23 +412,12 @@ export async function POST(request: NextRequest) {
 // Sync specific calendar
 export async function PUT(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to Google calendar API",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { feedId } = await request.json();
 
@@ -476,7 +442,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // Create calendar client using account ID
-    const googleCalendarClient = await getGoogleCalendarClient(feed.accountId);
+    const googleCalendarClient = await getGoogleCalendarClient(
+      feed.accountId,
+      userId
+    );
     console.log("Fetching events from Google Calendar:", feed.url);
 
     // Fetch events from Google Calendar

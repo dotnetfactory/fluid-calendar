@@ -1,30 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ProjectStatus } from "@/types/project";
-import { getToken } from "next-auth/jwt";
 import { logger } from "@/lib/logger";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "projects-route";
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to projects API",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.getAll("status") as ProjectStatus[];
@@ -67,23 +56,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to create project",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const json = await request.json();
     const project = await prisma.project.create({

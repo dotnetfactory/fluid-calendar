@@ -1,10 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import {
+import getGoogleEvent, {
   createGoogleEvent,
   updateGoogleEvent,
   deleteGoogleEvent,
-  getGoogleEvent,
 } from "@/lib/google-calendar";
 import { GaxiosError } from "gaxios";
 import { calendar_v3 } from "googleapis";
@@ -14,8 +13,8 @@ import {
   validateEvent,
 } from "@/lib/calendar-db";
 import { newDate } from "@/lib/date-utils";
-import { getToken } from "next-auth/jwt";
 import { logger } from "@/lib/logger";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "GoogleEventsAPI";
 
@@ -109,18 +108,12 @@ async function writeEventToDatabase(
 // Create a new event
 export async function POST(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { feedId, ...eventData } = await request.json();
 
@@ -143,7 +136,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create event in Google Calendar
-    const googleEvent = await createGoogleEvent(feed.accountId, feed.url, {
+    const googleEvent = await createGoogleEvent(feed.accountId, userId, feed.url, {
       title: eventData.title,
       description: eventData.description,
       location: eventData.location,
@@ -161,6 +154,7 @@ export async function POST(request: NextRequest) {
     // Sync the new event to our database
     const { event, instances } = await getGoogleEvent(
       feed.accountId,
+      userId,
       feed.url,
       googleEvent.id
     );
@@ -193,18 +187,12 @@ export async function POST(request: NextRequest) {
 // Update an event
 export async function PUT(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { eventId, mode, ...updates } = await request.json();
     if (!eventId) {
@@ -227,6 +215,7 @@ export async function PUT(request: NextRequest) {
     // Update in Google Calendar
     const googleEvent = await updateGoogleEvent(
       validatedEvent.feed.accountId,
+      userId,
       validatedEvent.feed.url,
       validatedEvent.externalEventId,
       {
@@ -247,6 +236,7 @@ export async function PUT(request: NextRequest) {
     // Get the updated event and its instances
     const { event: updatedEvent, instances } = await getGoogleEvent(
       validatedEvent.feed.accountId,
+      userId,
       validatedEvent.feed.url,
       googleEvent.id
     );
@@ -283,18 +273,12 @@ export async function PUT(request: NextRequest) {
 // Delete an event
 export async function DELETE(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { eventId, mode } = await request.json();
     if (!eventId) {

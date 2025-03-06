@@ -5,32 +5,19 @@ import { TokenManager } from "@/lib/token-manager";
 import { OutlookCalendarService } from "@/lib/outlook-calendar";
 import { prisma } from "@/lib/prisma";
 import { newDate } from "@/lib/date-utils";
-import { getToken } from "next-auth/jwt";
 import { logger } from "@/lib/logger";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "OutlookCalendarAPI";
 
 export async function GET(req: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: req,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to Outlook calendar API",
-        {},
-        LOG_SOURCE
-      );
-      return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings?error=unauthorized`
-      );
+    const auth = await authenticateRequest(req, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const searchParams = req.nextUrl.searchParams;
     const code = searchParams.get("code");

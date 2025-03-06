@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { getGoogleEvent } from "@/lib/google-calendar";
+import getGoogleEvent from "@/lib/google-calendar";
 import { prisma } from "@/lib/prisma";
 
 // Helper function to get Test Calendar information

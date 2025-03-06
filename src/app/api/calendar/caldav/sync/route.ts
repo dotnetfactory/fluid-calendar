@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { CalDAVCalendarService } from "@/lib/caldav-calendar";
 import { newDate } from "@/lib/date-utils";
-import { getToken } from "next-auth/jwt";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "CalDAVCalendarSyncAPI";
 
@@ -14,23 +14,12 @@ const LOG_SOURCE = "CalDAVCalendarSyncAPI";
  */
 export async function PUT(req: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: req,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to CalDAV sync API",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(req, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const body = await req.json();
     const { feedId } = body;
@@ -159,27 +148,16 @@ export async function PUT(req: NextRequest) {
  * POST /api/calendar/caldav/sync
  * Body: { accountId, calendarId, name, color }
  */
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: req,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to CalDAV sync API",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
-    const body = await req.json();
+    const body = await request.json();
     const { accountId, calendarId, name, color } = body;
 
     if (!accountId || !calendarId) {

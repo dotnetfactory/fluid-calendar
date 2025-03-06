@@ -14,7 +14,7 @@ import {
   validateEvent,
 } from "@/lib/calendar-db";
 import { newDate } from "@/lib/date-utils";
-import { getToken } from "next-auth/jwt";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "OutlookCalendarEventsAPI";
 
@@ -23,23 +23,12 @@ const LOG_SOURCE = "OutlookCalendarEventsAPI";
 // Create a new event
 export async function POST(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to Outlook events API",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { feedId, ...eventData } = await request.json();
 
@@ -62,16 +51,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create event in Outlook Calendar
-    const outlookEvent = await createOutlookEvent(feed.accountId, feed.url, {
-      title: eventData.title,
-      description: eventData.description,
-      location: eventData.location,
-      start: newDate(eventData.start),
-      end: newDate(eventData.end),
-      allDay: eventData.allDay,
-      isRecurring: eventData.isRecurring,
-      recurrenceRule: eventData.recurrenceRule,
-    });
+    const outlookEvent = await createOutlookEvent(
+      feed.accountId,
+      userId,
+      feed.url,
+      {
+        title: eventData.title,
+        description: eventData.description,
+        location: eventData.location,
+        start: newDate(eventData.start),
+        end: newDate(eventData.end),
+        allDay: eventData.allDay,
+        isRecurring: eventData.isRecurring,
+        recurrenceRule: eventData.recurrenceRule,
+      }
+    );
 
     if (!outlookEvent.id) {
       throw new Error("Failed to get event ID from Outlook Calendar");
@@ -79,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     //todo this slows down the event creation significantly, we should just create the event in the database
     // Get the Outlook client and sync the calendar
-    const client = await getOutlookClient(feed.accountId);
+    const client = await getOutlookClient(feed.accountId, userId);
     await syncOutlookCalendar(
       client,
       { id: feed.id, url: feed.url },
@@ -117,23 +111,12 @@ export async function POST(request: NextRequest) {
 // Update an event
 export async function PUT(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to update Outlook event",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { eventId, mode, ...updates } = await request.json();
     if (!eventId) {
@@ -156,6 +139,7 @@ export async function PUT(request: NextRequest) {
     // Update in Outlook Calendar
     const outlookEvent = await updateOutlookEvent(
       validatedEvent.feed.accountId,
+      userId,
       validatedEvent.feed.url,
       validatedEvent.externalEventId,
       {
@@ -181,7 +165,10 @@ export async function PUT(request: NextRequest) {
     });
 
     // Get the updated event and its instances
-    const client = await getOutlookClient(validatedEvent.feed.accountId);
+    const client = await getOutlookClient(
+      validatedEvent.feed.accountId,
+      userId
+    );
     await syncOutlookCalendar(
       client,
       { id: validatedEvent.feed.id, url: validatedEvent.feed.url },
@@ -212,23 +199,12 @@ export async function PUT(request: NextRequest) {
 // Delete an event
 export async function DELETE(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to delete Outlook event",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const { eventId, mode } = await request.json();
     if (!eventId) {

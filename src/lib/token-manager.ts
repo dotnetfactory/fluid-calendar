@@ -23,9 +23,9 @@ export class TokenManager {
     return TokenManager.instance;
   }
 
-  async getTokens(accountId: string): Promise<TokenInfo | null> {
+  async getTokens(accountId: string, userId: string): Promise<TokenInfo | null> {
     const account = await prisma.connectedAccount.findUnique({
-      where: { id: accountId },
+      where: { id: accountId, userId },
     });
 
     if (!account) {
@@ -39,9 +39,9 @@ export class TokenManager {
     };
   }
 
-  async refreshGoogleTokens(accountId: string): Promise<TokenInfo | null> {
+  async refreshGoogleTokens(accountId: string, userId: string): Promise<TokenInfo | null> {
     const account = await prisma.connectedAccount.findUnique({
-      where: { id: accountId },
+      where: { id: accountId, userId },
     });
 
     if (!account || !account.refreshToken) {
@@ -64,7 +64,7 @@ export class TokenManager {
 
       // Update tokens in database
       const updatedAccount = await prisma.connectedAccount.update({
-        where: { id: accountId },
+        where: { id: accountId, userId },
         data: {
           accessToken: response.credentials.access_token!,
           refreshToken:
@@ -121,9 +121,9 @@ export class TokenManager {
     return account.id;
   }
 
-  async refreshOutlookTokens(accountId: string): Promise<TokenInfo | null> {
+  async refreshOutlookTokens(accountId: string, userId: string): Promise<TokenInfo | null> {
     const account = await prisma.connectedAccount.findUnique({
-      where: { id: accountId },
+      where: { id: accountId, userId },
     });
 
     if (!account || !account.refreshToken) {
@@ -158,7 +158,7 @@ export class TokenManager {
 
       // Update tokens in database
       const updatedAccount = await prisma.connectedAccount.update({
-        where: { id: accountId },
+        where: { id: accountId, userId },
         data: {
           accessToken: data.access_token,
           refreshToken: data.refresh_token || account.refreshToken,
@@ -179,9 +179,9 @@ export class TokenManager {
 
   // For CalDAV, we don't need to refresh tokens as we store the password directly
   // This method is provided for consistency with other providers
-  async refreshCalDAVTokens(accountId: string): Promise<TokenInfo | null> {
+  async refreshCalDAVTokens(accountId: string, userId: string): Promise<TokenInfo | null> {
     const account = await prisma.connectedAccount.findUnique({
-      where: { id: accountId },
+      where: { id: accountId, userId },
     });
 
     if (!account) {

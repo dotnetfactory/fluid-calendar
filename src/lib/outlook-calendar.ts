@@ -97,9 +97,13 @@ export class OutlookCalendarService {
       if (!this.account.refreshToken) {
         throw new Error("No refresh token available");
       }
+      if (!this.account.userId) {
+        throw new Error("No user ID available");
+      }
 
       const tokens = await this.tokenManager.refreshOutlookTokens(
-        this.account.id
+        this.account.id,
+        this.account.userId
       );
 
       if (!tokens) {
@@ -345,18 +349,18 @@ export class OutlookCalendarService {
   }
 }
 
-export async function getOutlookClient(accountId: string) {
+export async function getOutlookClient(accountId: string, userId: string) {
   const tokenManager = TokenManager.getInstance();
 
   // Get tokens for the account
-  let tokens = await tokenManager.getTokens(accountId);
+  let tokens = await tokenManager.getTokens(accountId, userId);
   if (!tokens) {
     throw new Error("No tokens found for account");
   }
 
   // Check if token needs refresh
   if (tokens.expiresAt.getTime() - Date.now() < 5 * 60 * 1000) {
-    tokens = await tokenManager.refreshOutlookTokens(accountId);
+    tokens = await tokenManager.refreshOutlookTokens(accountId, userId);
     if (!tokens) {
       throw new Error("Failed to refresh tokens");
     }
@@ -370,8 +374,8 @@ export async function getOutlookClient(accountId: string) {
   });
 }
 
-export async function listOutlookCalendars(accountId: string) {
-  const client = await getOutlookClient(accountId);
+export async function listOutlookCalendars(accountId: string, userId: string) {
+  const client = await getOutlookClient(accountId, userId);
   try {
     const response = await client.api("/me/calendars").get();
     return response.value;
@@ -389,6 +393,7 @@ export async function listOutlookCalendars(accountId: string) {
 
 export async function createOutlookEvent(
   accountId: string,
+  userId: string,
   calendarId: string,
   event: {
     title: string;
@@ -401,7 +406,7 @@ export async function createOutlookEvent(
     recurrenceRule?: string;
   }
 ) {
-  const client = await getOutlookClient(accountId);
+  const client = await getOutlookClient(accountId, userId);
   const timeZone = useSettingsStore.getState().user.timeZone;
 
   // Convert RRule to Outlook recurrence pattern if present
@@ -445,10 +450,11 @@ export async function createOutlookEvent(
 
 export async function getOutlookEvent(
   accountId: string,
+  userId: string,
   calendarId: string,
   eventId: string
 ) {
-  const client = await getOutlookClient(accountId);
+  const client = await getOutlookClient(accountId, userId);
 
   try {
     const event = await client
@@ -515,6 +521,7 @@ export async function getOutlookEvent(
 
 export async function updateOutlookEvent(
   accountId: string,
+  userId: string,
   calendarId: string,
   eventId: string,
   event: {
@@ -529,7 +536,7 @@ export async function updateOutlookEvent(
     mode?: "single" | "series";
   }
 ) {
-  const client = await getOutlookClient(accountId);
+  const client = await getOutlookClient(accountId, userId);
   const timeZone = useSettingsStore.getState().user.timeZone;
 
   try {
@@ -593,11 +600,12 @@ export async function updateOutlookEvent(
 
 export async function deleteOutlookEvent(
   accountId: string,
+  userId: string,
   calendarId: string,
   eventId: string,
   mode: "single" | "series" = "single"
 ) {
-  const client = await getOutlookClient(accountId);
+  const client = await getOutlookClient(accountId, userId);
 
   try {
     // Get the event to check if it's part of a series

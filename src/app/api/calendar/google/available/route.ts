@@ -2,31 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getGoogleCalendarClient } from "@/lib/google-calendar";
 import { GaxiosError } from "gaxios";
-import { getToken } from "next-auth/jwt";
 import { logger } from "@/lib/logger";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "GoogleAvailableCalendarsAPI";
 
 // Get available (unconnected) calendars for an account
 export async function GET(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to Google available calendars API",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
     }
 
-    const userId = token.sub;
+    const userId = auth.userId;
 
     const url = new URL(request.url);
     const accountId = url.searchParams.get("accountId");
@@ -66,7 +55,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Create calendar client
-    const calendar = await getGoogleCalendarClient(accountId);
+    const calendar = await getGoogleCalendarClient(accountId, userId);
 
     // Get list of calendars
     const calendarList = await calendar.calendarList.list();

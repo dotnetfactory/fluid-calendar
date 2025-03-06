@@ -175,7 +175,8 @@ export class OutlookTasksService {
     options: {
       includeCompleted?: boolean;
       dateRange?: { start: Date; end: Date };
-    } = {}
+    } = {},
+    userId: string
   ) {
     try {
       const tasks = await this.getTasks(listId);
@@ -231,6 +232,7 @@ export class OutlookTasksService {
             scheduleLocked: false,
             source: "OUTLOOK",
             lastSyncedAt: newDate(),
+            userId,
           };
 
           // Handle recurrence if present
