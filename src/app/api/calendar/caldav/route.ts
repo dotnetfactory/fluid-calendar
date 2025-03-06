@@ -150,6 +150,7 @@ export async function POST(request: NextRequest) {
       const existingCalendar = await prisma.calendarFeed.findFirst({
         where: {
           url: calendarId,
+          userId,
         },
       });
 
@@ -185,6 +186,7 @@ export async function POST(request: NextRequest) {
           type: "CALDAV",
           url: calendarId,
           accountId,
+          userId,
           enabled: true,
           lastSync: formatISO(new Date()),
           syncToken: calendar.syncToken,
@@ -206,11 +208,11 @@ export async function POST(request: NextRequest) {
         );
 
         const caldavService = new CalDAVCalendarService(prisma, account);
-        await caldavService.syncCalendar(newCalendar.id, calendarId);
+        await caldavService.syncCalendar(newCalendar.id, calendarId, userId);
 
         // Update the last sync time
         await prisma.calendarFeed.update({
-          where: { id: newCalendar.id },
+          where: { id: newCalendar.id, userId },
           data: {
             lastSync: newDate(),
           },

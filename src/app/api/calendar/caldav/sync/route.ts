@@ -90,7 +90,7 @@ export async function PUT(req: NextRequest) {
 
     // Sync calendar
     try {
-      await caldavService.syncCalendar(feed.id, feed.url);
+      await caldavService.syncCalendar(feed.id, feed.url, userId);
     } catch (syncError) {
       logger.error(
         "Failed to sync CalDAV calendar",
@@ -113,7 +113,7 @@ export async function PUT(req: NextRequest) {
 
     // Update the feed's sync status
     await prisma.calendarFeed.update({
-      where: { id: feed.id },
+      where: { id: feed.id, userId },
       data: {
         lastSync: newDate(),
       },
@@ -188,6 +188,7 @@ export async function POST(request: NextRequest) {
         type: "CALDAV",
         url: calendarId,
         accountId,
+        userId,
       },
     });
 
@@ -204,6 +205,7 @@ export async function POST(request: NextRequest) {
         color: color || "#4285F4",
         enabled: true,
         accountId: account.id,
+        userId,
       },
     });
 
@@ -211,7 +213,7 @@ export async function POST(request: NextRequest) {
     const caldavService = new CalDAVCalendarService(prisma, account);
 
     try {
-      await caldavService.syncCalendar(feed.id, calendarId);
+      await caldavService.syncCalendar(feed.id, calendarId, userId);
     } catch (syncError) {
       logger.error(
         "Failed to perform initial sync of CalDAV calendar",

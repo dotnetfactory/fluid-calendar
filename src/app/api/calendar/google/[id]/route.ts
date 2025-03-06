@@ -43,7 +43,7 @@ export async function PATCH(
 
     // Update only local properties
     const updatedFeed = await prisma.calendarFeed.update({
-      where: { id },
+      where: { id, userId },
       data: {
         enabled: updates.enabled,
         color: updates.color,
@@ -93,7 +93,7 @@ export async function DELETE(
 
     // Delete the feed
     await prisma.calendarFeed.delete({
-      where: { id },
+      where: { id, userId },
     });
 
     return NextResponse.json({ success: true });

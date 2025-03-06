@@ -113,6 +113,7 @@ export async function GET(request: NextRequest) {
                 type: "GOOGLE",
                 url: cal.id,
                 accountId,
+                userId,
               },
             });
 
@@ -126,6 +127,7 @@ export async function GET(request: NextRequest) {
                   type: "GOOGLE",
                   color: cal.backgroundColor ?? undefined,
                   accountId,
+                  userId,
                 },
               });
             }
@@ -189,6 +191,7 @@ export async function POST(request: NextRequest) {
         type: "GOOGLE",
         url: calendarId,
         accountId,
+        userId,
       },
     });
 
@@ -552,7 +555,7 @@ export async function PUT(request: NextRequest) {
 
       // Update feed sync status
       await tx.calendarFeed.update({
-        where: { id: feedId },
+        where: { id: feedId, userId },
         data: {
           lastSync: newDate(),
           error: null,

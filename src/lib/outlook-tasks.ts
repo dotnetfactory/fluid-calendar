@@ -209,6 +209,7 @@ export class OutlookTasksService {
             where: {
               externalTaskId: task.id,
               source: "OUTLOOK",
+              userId,
             },
           });
 

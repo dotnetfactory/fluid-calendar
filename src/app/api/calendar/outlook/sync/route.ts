@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
         type: "OUTLOOK",
         url: calendarId,
         accountId,
+        userId,
       },
     });
 
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
         color: color || "#3b82f6",
         enabled: true,
         accountId: account.id,
+        userId,
       },
     });
 
@@ -166,7 +168,7 @@ export async function PUT(req: NextRequest) {
     // Update the feed's sync token
     if (nextSyncToken) {
       await prisma.calendarFeed.update({
-        where: { id: feed.id },
+        where: { id: feed.id, userId },
         data: {
           syncToken: nextSyncToken,
         },
@@ -175,7 +177,7 @@ export async function PUT(req: NextRequest) {
 
     // Update the feed's sync status
     await prisma.calendarFeed.update({
-      where: { id: feed.id },
+      where: { id: feed.id, userId },
       data: {
         lastSync: newDate(),
       },

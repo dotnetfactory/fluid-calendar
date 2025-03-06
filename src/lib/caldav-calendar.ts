@@ -447,7 +447,8 @@ export class CalDAVCalendarService {
    */
   async syncCalendar(
     feedId: string,
-    calendarPath: string
+    calendarPath: string,
+    userId: string
   ): Promise<SyncResult> {
     try {
       // Get the calendar feed from the database
@@ -456,6 +457,7 @@ export class CalDAVCalendarService {
           url: calendarPath,
           accountId: this.account.id,
           type: "CALDAV",
+          userId,
         },
       });
 
@@ -488,7 +490,7 @@ export class CalDAVCalendarService {
       const result = await this.createAllEvents(events, feed.id);
       // Update the feed's last sync time
       await this.prisma.calendarFeed.update({
-        where: { id: feed.id },
+        where: { id: feed.id, userId },
         data: {
           lastSync: newDate(),
         },
@@ -521,7 +523,8 @@ export class CalDAVCalendarService {
     calendarPath: string,
     externalEventId: string,
     event: CalendarEventInput,
-    mode: "single" | "series"
+    mode: "single" | "series",
+    userId: string
   ): Promise<CalendarEvent> {
     try {
       // Get the CalDAV client
@@ -689,7 +692,8 @@ export class CalDAVCalendarService {
       // Sync the calendar to get the updated event
       const syncResult = await this.syncCalendar(
         eventWithFeed.feedId,
-        calendarPath
+        calendarPath,
+        userId
       );
 
       // Find the updated event in the sync results
@@ -728,7 +732,8 @@ export class CalDAVCalendarService {
     event: CalendarEventWithFeed,
     calendarPath: string,
     externalEventId: string,
-    mode: "single" | "series"
+    mode: "single" | "series",
+    userId: string
   ): Promise<void> {
     try {
       // Get the CalDAV client
@@ -881,7 +886,7 @@ export class CalDAVCalendarService {
       }
 
       // Sync the calendar to update our local database
-      await this.syncCalendar(event.feedId, calendarPath);
+      await this.syncCalendar(event.feedId, calendarPath, userId);
     } catch (error) {
       logger.error(
         "Failed to delete CalDAV event",
@@ -997,7 +1002,8 @@ export class CalDAVCalendarService {
    */
   async createEvent(
     calendarPath: string,
-    event: CalendarEventInput
+    event: CalendarEventInput,
+    userId: string
   ): Promise<CalendarEvent> {
     try {
       // Generate a unique ID for the event if not provided
@@ -1109,6 +1115,7 @@ export class CalDAVCalendarService {
           url: calendarPath,
           accountId: this.account.id,
           type: "CALDAV",
+          userId,
         },
       });
 
@@ -1117,7 +1124,7 @@ export class CalDAVCalendarService {
       }
 
       // Sync the calendar to get the newly created event
-      const syncResult = await this.syncCalendar(feed.id, calendarPath);
+      const syncResult = await this.syncCalendar(feed.id, calendarPath, userId);
 
       // Find the newly created event in the sync results
       const createdEvent = syncResult.added.find(

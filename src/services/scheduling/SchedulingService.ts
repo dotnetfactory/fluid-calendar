@@ -110,7 +110,7 @@ export class SchedulingService {
     return manager;
   }
 
-  async scheduleMultipleTasks(tasks: Task[]): Promise<Task[]> {
+  async scheduleMultipleTasks(tasks: Task[], userId: string): Promise<Task[]> {
     const overallStart = this.startMetric("scheduleMultipleTasks", {
       totalTasks: tasks.length,
     });
@@ -151,7 +151,8 @@ export class SchedulingService {
           const slots = await timeSlotManager.findAvailableSlots(
             task,
             now,
-            addDays(now, window.days)
+            addDays(now, window.days),
+            userId
           );
           if (slots.length > 0) {
             bestScore = Math.max(bestScore, slots[0].score);
@@ -199,7 +200,8 @@ export class SchedulingService {
 
       const scheduledTask = await this.scheduleTask(
         taskWithDuration,
-        timeSlotManager
+        timeSlotManager,
+        userId
       );
       if (scheduledTask) {
         updatedTasks.push(scheduledTask);
@@ -217,6 +219,7 @@ export class SchedulingService {
         id: {
           in: tasks.map((t) => t.id),
         },
+        userId,
       },
     });
     this.endMetric("fetchFinalTasks", finalFetchStart);
@@ -229,7 +232,8 @@ export class SchedulingService {
 
   private async scheduleTask(
     task: Task,
-    timeSlotManager: TimeSlotManager
+    timeSlotManager: TimeSlotManager,
+    userId: string
   ): Promise<Task | null> {
     const taskStart = this.startMetric("scheduleTask", {
       taskId: task.id,
@@ -253,7 +257,8 @@ export class SchedulingService {
       const availableSlots = await timeSlotManager.findAvailableSlots(
         task,
         now,
-        endDate
+        endDate,
+        userId
       );
 
       if (availableSlots.length > 0) {
@@ -274,6 +279,7 @@ export class SchedulingService {
             isAutoScheduled: true,
             duration: task.duration || DEFAULT_TASK_DURATION,
             scheduleScore: bestSlot.score,
+            userId,
           },
         });
 

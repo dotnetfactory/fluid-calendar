@@ -65,7 +65,8 @@ export class CalendarServiceImpl implements CalendarService {
   async findConflicts(
     slot: TimeSlot,
     selectedCalendarIds: string[],
-    excludeTaskId?: string
+    userId: string,
+    excludeTaskId?: string,
   ): Promise<Conflict[]> {
     const conflicts: Conflict[] = [];
 
@@ -105,6 +106,7 @@ export class CalendarServiceImpl implements CalendarService {
         scheduledStart: { not: null },
         scheduledEnd: { not: null },
         id: excludeTaskId ? { not: excludeTaskId } : undefined,
+        userId,
       },
     });
 
@@ -197,6 +199,7 @@ export class CalendarServiceImpl implements CalendarService {
   async findBatchConflicts(
     slots: { slot: TimeSlot; taskId: string }[],
     selectedCalendarIds: string[],
+    userId: string,
     excludeTaskId?: string
   ): Promise<BatchConflictCheck[]> {
     // Get the earliest start and latest end times from all slots
@@ -223,6 +226,7 @@ export class CalendarServiceImpl implements CalendarService {
         scheduledStart: { not: null },
         scheduledEnd: { not: null },
         id: excludeTaskId ? { not: excludeTaskId } : undefined,
+        userId,
       },
     });
 

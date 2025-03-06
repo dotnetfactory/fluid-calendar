@@ -23,17 +23,18 @@ export interface TimeSlotManager {
   findAvailableSlots(
     task: Task,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId: string
   ): Promise<TimeSlot[]>;
 
-  isSlotAvailable(slot: TimeSlot): Promise<boolean>;
+  isSlotAvailable(slot: TimeSlot, userId: string): Promise<boolean>;
 
   calculateBufferTimes(slot: TimeSlot): {
     beforeBuffer: TimeSlot;
     afterBuffer: TimeSlot;
   };
 
-  updateScheduledTasks(): Promise<void>;
+  updateScheduledTasks(userId: string): Promise<void>;
 }
 
 export class TimeSlotManagerImpl implements TimeSlotManager {
@@ -49,7 +50,7 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     this.timeZone = useSettingsStore.getState().user.timeZone;
   }
 
-  async updateScheduledTasks(): Promise<void> {
+  async updateScheduledTasks(userId: string): Promise<void> {
     // Fetch all scheduled tasks
     const scheduledTasks = await this.prisma.task.findMany({
       where: {
@@ -57,6 +58,7 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
         scheduledStart: { not: null },
         scheduledEnd: { not: null },
         projectId: { not: null },
+        userId,
       },
     });
 
@@ -67,10 +69,11 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
   async findAvailableSlots(
     task: Task,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId: string
   ): Promise<TimeSlot[]> {
     // Ensure we have the latest scheduled tasks
-    await this.updateScheduledTasks();
+    await this.updateScheduledTasks(userId);
 
     // 1. Generate potential slots
     const potentialSlots = this.generatePotentialSlots(
@@ -98,14 +101,14 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     return sortedSlots;
   }
 
-  async isSlotAvailable(slot: TimeSlot): Promise<boolean> {
+  async isSlotAvailable(slot: TimeSlot, userId: string): Promise<boolean> {
     // Check if the slot is within work hours
     if (!this.isWithinWorkHours(slot)) {
       return false;
     }
 
     // Check for calendar conflicts
-    const conflicts = await this.findCalendarConflicts(slot);
+    const conflicts = await this.findCalendarConflicts(slot, userId);
     return conflicts.length === 0;
   }
 
@@ -286,7 +289,7 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     );
   }
 
-  private async findCalendarConflicts(slot: TimeSlot): Promise<Conflict[]> {
+  private async findCalendarConflicts(slot: TimeSlot, userId: string): Promise<Conflict[]> {
     const selectedCalendars = parseSelectedCalendars(
       this.settings.selectedCalendars
     );
@@ -295,7 +298,7 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       return [];
     }
 
-    return this.calendarService.findConflicts(slot, selectedCalendars);
+    return this.calendarService.findConflicts(slot, selectedCalendars, userId);
   }
 
   private async removeConflicts(

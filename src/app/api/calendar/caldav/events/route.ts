@@ -88,9 +88,11 @@ export async function POST(request: NextRequest) {
       start: newDate(eventData.start),
       end: newDate(eventData.end),
       allDay: eventData.allDay,
-      isRecurring: eventData.isRecurring,
-      recurrenceRule: eventData.recurrenceRule,
-    });
+        isRecurring: eventData.isRecurring,
+        recurrenceRule: eventData.recurrenceRule,
+      },
+      userId
+    );
 
     logger.info(
       "Successfully created CalDAV event",
@@ -205,7 +207,8 @@ export async function PUT(request: NextRequest) {
         isRecurring: updates.isRecurring ?? validatedEvent.isRecurring,
         recurrenceRule: updates.recurrenceRule ?? validatedEvent.recurrenceRule,
       },
-      "series" //todo: implement editing a single instance correctly.
+      "series", //todo: implement editing a single instance correctly.
+      userId
     );
 
     logger.info(
@@ -309,7 +312,8 @@ export async function DELETE(request: NextRequest) {
       event,
       calendarPath,
       validatedEvent.externalEventId,
-      mode || "single"
+      mode || "single",
+      userId
     );
 
     logger.info(

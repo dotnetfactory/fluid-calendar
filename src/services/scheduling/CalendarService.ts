@@ -9,18 +9,22 @@ export interface BatchConflictCheck {
 export interface CalendarService {
   findConflicts(
     slot: TimeSlot,
-    selectedCalendarIds: string[]
+    selectedCalendarIds: string[],
+    userId: string,
+    excludeTaskId?: string
   ): Promise<Conflict[]>;
-  
+
   getEvents(
     start: Date,
     end: Date,
-    selectedCalendarIds: string[]
+    selectedCalendarIds: string[],
+    userId: string
   ): Promise<CalendarEvent[]>;
 
   findBatchConflicts(
     slots: { slot: TimeSlot; taskId: string }[],
     selectedCalendarIds: string[],
+    userId: string,
     excludeTaskId?: string
   ): Promise<BatchConflictCheck[]>;
 }

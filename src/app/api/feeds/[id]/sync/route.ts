@@ -69,7 +69,7 @@ export async function POST(
 
       // Update feed's lastSync timestamp
       await tx.calendarFeed.update({
-        where: { id: feedId },
+        where: { id: feedId, userId },
         data: { lastSync: newDate() },
       });
     });
