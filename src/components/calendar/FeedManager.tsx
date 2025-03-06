@@ -65,7 +65,7 @@ export function FeedManager() {
                     backgroundColor: feed.color || "hsl(var(--primary))",
                   }}
                 />
-                <span className="text-sm text-foreground calendar-name">
+                <span className="text-sm text-foreground calendar-name max-w-[150px] truncate">
                   {feed.name}
                 </span>
                 {feed.type === "GOOGLE" && (
