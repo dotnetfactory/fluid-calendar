@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { formatISO } from "date-fns";
@@ -9,6 +9,7 @@ import {
 } from "./utils";
 import { CalDAVCalendarService } from "@/lib/caldav-calendar";
 import { newDate } from "@/lib/date-utils";
+import { getToken } from "next-auth/jwt";
 
 const LOG_SOURCE = "CalDAVCalendar";
 
@@ -17,8 +18,26 @@ const LOG_SOURCE = "CalDAVCalendar";
  * POST /api/calendar/caldav
  * Body: { accountId, calendarUrl, name, color }
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to CalDAV calendar API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const json = await request.json();
     const { accountId, calendarId } = json;
 
@@ -35,9 +54,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get the account from the database
+    // Get the account from the database and ensure it belongs to the current user
     const account = await prisma.connectedAccount.findUnique({
-      where: { id: accountId },
+      where: {
+        id: accountId,
+        userId,
+      },
     });
 
     if (!account) {

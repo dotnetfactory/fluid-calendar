@@ -91,10 +91,12 @@ export class TokenManager {
       accessToken: string;
       refreshToken?: string;
       expiresAt: Date;
-    }
+    },
+    userId: string
   ): Promise<string> {
     const account = await prisma.connectedAccount.upsert({
       where: {
+        userId,
         provider_email: {
           provider,
           email,
@@ -104,6 +106,7 @@ export class TokenManager {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresAt: tokens.expiresAt,
+        userId,
       },
       create: {
         provider,
@@ -111,49 +114,11 @@ export class TokenManager {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresAt: tokens.expiresAt,
+        userId,
       },
     });
 
     return account.id;
-  }
-
-  async removeAccount(accountId: string): Promise<void> {
-    // First delete all calendar feeds associated with this account
-    await prisma.calendarFeed.deleteMany({
-      where: { accountId },
-    });
-
-    // Then delete the account
-    await prisma.connectedAccount.delete({
-      where: { id: accountId },
-    });
-  }
-
-  async listAccounts(): Promise<
-    Array<{
-      id: string;
-      provider: Provider;
-      email: string;
-      calendars: Array<{ id: string; name: string }>;
-    }>
-  > {
-    const accounts = await prisma.connectedAccount.findMany({
-      include: {
-        calendars: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    return accounts.map((account) => ({
-      id: account.id,
-      provider: account.provider as Provider,
-      email: account.email,
-      calendars: account.calendars,
-    }));
   }
 
   async refreshOutlookTokens(accountId: string): Promise<TokenInfo | null> {

@@ -1,6 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { GaxiosError } from "gaxios";
+import { getToken } from "next-auth/jwt";
+import { logger } from "@/lib/logger";
+
+const LOG_SOURCE = "GoogleCalendarIdAPI";
 
 interface UpdateRequest {
   enabled?: boolean;
@@ -9,13 +13,34 @@ interface UpdateRequest {
 
 // Update a Google Calendar feed
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to Google calendar API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { id } = await params;
     const feed = await prisma.calendarFeed.findUnique({
-      where: { id },
+      where: {
+        id,
+        userId,
+      },
       include: { account: true },
     });
 
@@ -55,24 +80,41 @@ export async function PATCH(
 
 // Delete a Google Calendar feed
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const feed = await prisma.calendarFeed.findUnique({
-      where: { id },
-      include: { account: true },
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
     });
 
-    if (!feed || feed.type !== "GOOGLE" || !feed.url || !feed.accountId) {
-      return NextResponse.json(
-        { error: "Invalid calendar feed" },
-        { status: 400 }
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to Google calendar API",
+        {},
+        LOG_SOURCE
       );
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Delete the feed and all its events
+    const userId = token.sub;
+
+    const { id } = await params;
+    const feed = await prisma.calendarFeed.findUnique({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    if (!feed) {
+      return NextResponse.json({ error: "Feed not found" }, { status: 404 });
+    }
+
+    // Delete the feed
     await prisma.calendarFeed.delete({
       where: { id },
     });

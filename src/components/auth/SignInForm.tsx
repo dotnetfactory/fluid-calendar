@@ -125,23 +125,6 @@ export function SignInForm() {
     }
   };
 
-  const handleOAuthSignIn = async (provider: string) => {
-    setIsLoading(true);
-    try {
-      await signIn(provider, { callbackUrl: "/" });
-    } catch (error) {
-      logger.error(
-        "Error signing in with OAuth",
-        { error: error instanceof Error ? error.message : "Unknown error" },
-        LOG_SOURCE
-      );
-      toast.error("An error occurred", {
-        description: "Please try again later.",
-      });
-      setIsLoading(false);
-    }
-  };
-
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -234,7 +217,6 @@ export function SignInForm() {
             </TabsContent>
           )}
         </Tabs>
-
       </CardContent>
       <CardFooter className="flex justify-center text-sm text-muted-foreground">
         By signing in, you agree to our Terms of Service and Privacy Policy.

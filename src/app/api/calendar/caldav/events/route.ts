@@ -1,15 +1,34 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CalDAVCalendarService } from "@/lib/caldav-calendar";
 import { logger } from "@/lib/logger";
 import { newDate } from "@/lib/date-utils";
 import { getEvent, validateEvent } from "@/lib/calendar-db";
+import { getToken } from "next-auth/jwt";
 
 const LOG_SOURCE = "CalDAVEventsAPI";
 
 // Create a new event
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to CalDAV events API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { feedId, ...eventData } = await request.json();
 
     logger.info(
@@ -22,8 +41,12 @@ export async function POST(request: Request) {
       LOG_SOURCE
     );
 
+    // Check if the feed belongs to the current user
     const feed = await prisma.calendarFeed.findUnique({
-      where: { id: feedId },
+      where: {
+        id: feedId,
+        userId,
+      },
       include: {
         account: true,
       },
@@ -110,8 +133,26 @@ export async function POST(request: Request) {
 }
 
 // Update an existing event
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to update CalDAV event",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { eventId, mode, ...updates } = await request.json();
 
     logger.info(
@@ -129,6 +170,12 @@ export async function PUT(request: Request) {
     if (!event) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
+
+    // Check if the event belongs to a feed owned by the current user
+    if (event.feed.userId !== userId) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
     const validatedEvent = await validateEvent(event, "CALDAV");
 
     if (validatedEvent instanceof NextResponse) {
@@ -209,8 +256,26 @@ export async function PUT(request: Request) {
 }
 
 // Delete an event
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to delete CalDAV event",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { eventId, mode } = await request.json();
 
     logger.info(
@@ -227,6 +292,12 @@ export async function DELETE(request: Request) {
     if (!event) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
+
+    // Check if the event belongs to a feed owned by the current user
+    if (event.feed.userId !== userId) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
     const validatedEvent = await validateEvent(event, "CALDAV");
 
     if (validatedEvent instanceof NextResponse) {

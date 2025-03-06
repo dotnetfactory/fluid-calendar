@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { CalDAVCalendarService } from "@/lib/caldav-calendar";
 import { newDate } from "@/lib/date-utils";
+import { getToken } from "next-auth/jwt";
 
 const LOG_SOURCE = "CalDAVCalendarSyncAPI";
 
@@ -13,6 +14,24 @@ const LOG_SOURCE = "CalDAVCalendarSyncAPI";
  */
 export async function PUT(req: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to CalDAV sync API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const body = await req.json();
     const { feedId } = body;
 
@@ -34,7 +53,10 @@ export async function PUT(req: NextRequest) {
 
     // Get the calendar feed and account
     const feed = await prisma.calendarFeed.findUnique({
-      where: { id: feedId },
+      where: {
+        id: feedId,
+        userId,
+      },
       include: { account: true },
     });
 
@@ -139,6 +161,24 @@ export async function PUT(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to CalDAV sync API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const body = await req.json();
     const { accountId, calendarId, name, color } = body;
 
@@ -149,9 +189,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get the account
+    // Get the account and ensure it belongs to the current user
     const account = await prisma.connectedAccount.findUnique({
-      where: { id: accountId },
+      where: {
+        id: accountId,
+        userId,
+      },
     });
 
     if (!account || account.provider !== "CALDAV") {
@@ -190,7 +233,7 @@ export async function POST(req: NextRequest) {
     const caldavService = new CalDAVCalendarService(prisma, account);
 
     try {
-      await caldavService.syncCalendar(feed.id,calendarId);
+      await caldavService.syncCalendar(feed.id, calendarId);
     } catch (syncError) {
       logger.error(
         "Failed to perform initial sync of CalDAV calendar",

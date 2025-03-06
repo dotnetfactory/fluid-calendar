@@ -1,13 +1,33 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { getCurrentUserId } from "@/lib/auth/current-user";
+import { getToken } from "next-auth/jwt";
 
 const LOG_SOURCE = "DataSettingsAPI";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const userId = await getCurrentUserId();
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to data settings API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+    if (!userId) {
+      logger.warn("No user ID found in token", {}, LOG_SOURCE);
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
     // Get the data settings or create default ones if they don't exist
     const settings = await prisma.dataSettings.upsert({
@@ -32,9 +52,30 @@ export async function GET() {
   }
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: NextRequest) {
   try {
-    const userId = await getCurrentUserId();
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to data settings API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+    if (!userId) {
+      logger.warn("No user ID found in token", {}, LOG_SOURCE);
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const updates = await request.json();
 
     const settings = await prisma.dataSettings.upsert({

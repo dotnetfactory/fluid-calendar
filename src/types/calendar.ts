@@ -10,6 +10,7 @@ export interface CalendarFeed {
   caldavPath?: string;
   accountId?: string;
   syncToken?: string;
+  userId?: string;
 }
 
 export interface ExtendedEventProps {

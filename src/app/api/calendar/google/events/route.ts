@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   createGoogleEvent,
@@ -14,6 +14,10 @@ import {
   validateEvent,
 } from "@/lib/calendar-db";
 import { newDate } from "@/lib/date-utils";
+import { getToken } from "next-auth/jwt";
+import { logger } from "@/lib/logger";
+
+const LOG_SOURCE = "GoogleEventsAPI";
 
 type GoogleEvent = calendar_v3.Schema$Event;
 
@@ -103,11 +107,29 @@ async function writeEventToDatabase(
 }
 
 // Create a new event
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { feedId, ...eventData } = await request.json();
+
+    // Check if the feed belongs to the current user
     const feed = await prisma.calendarFeed.findUnique({
-      where: { id: feedId },
+      where: {
+        id: feedId,
+        userId,
+      },
       include: {
         account: true,
       },
@@ -148,7 +170,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json(records);
   } catch (error) {
-    console.error("Failed to create Google calendar event:", error);
+    logger.error(
+      "Failed to create Google calendar event:",
+      {
+        error: error instanceof Error ? error.message : String(error),
+      },
+      LOG_SOURCE
+    );
     if (error instanceof GaxiosError && Number(error.code) === 401) {
       return NextResponse.json(
         { error: "Authentication failed. Please try signing in again." },
@@ -163,14 +191,33 @@ export async function POST(request: Request) {
 }
 
 // Update an event
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { eventId, mode, ...updates } = await request.json();
     if (!eventId) {
       return NextResponse.json({ error: "Event ID required" }, { status: 400 });
     }
 
     const event = await getEvent(eventId);
+
+    // Check if the event belongs to a feed owned by the current user
+    if (event && event.feed.userId !== userId) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
     const validatedEvent = await validateEvent(event, "GOOGLE");
 
     if (validatedEvent instanceof NextResponse) {
@@ -213,7 +260,13 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(records);
   } catch (error) {
-    console.error("Failed to update Google calendar event:", error);
+    logger.error(
+      "Failed to update Google calendar event:",
+      {
+        error: error instanceof Error ? error.message : String(error),
+      },
+      LOG_SOURCE
+    );
     if (error instanceof GaxiosError && Number(error.code) === 401) {
       return NextResponse.json(
         { error: "Authentication failed. Please try signing in again." },
@@ -228,14 +281,33 @@ export async function PUT(request: Request) {
 }
 
 // Delete an event
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { eventId, mode } = await request.json();
     if (!eventId) {
       return NextResponse.json({ error: "Event ID required" }, { status: 400 });
     }
 
     const event = await getEvent(eventId);
+
+    // Check if the event belongs to a feed owned by the current user
+    if (event && event.feed.userId !== userId) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
     const validatedEvent = await validateEvent(event, "GOOGLE");
 
     if (validatedEvent instanceof NextResponse) {
@@ -255,7 +327,13 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to delete Google calendar event:", error);
+    logger.error(
+      "Failed to delete Google calendar event:",
+      {
+        error: error instanceof Error ? error.message : String(error),
+      },
+      LOG_SOURCE
+    );
     if (error instanceof GaxiosError && Number(error.code) === 401) {
       return NextResponse.json(
         { error: "Authentication failed. Please try signing in again." },

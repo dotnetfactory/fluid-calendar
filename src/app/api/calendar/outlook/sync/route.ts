@@ -4,6 +4,7 @@ import { getOutlookClient } from "@/lib/outlook-calendar";
 import { syncOutlookCalendar } from "@/lib/outlook-sync";
 import { logger } from "@/lib/logger";
 import { newDate } from "@/lib/date-utils";
+import { getToken } from "next-auth/jwt";
 
 const LOG_SOURCE = "OutlookCalendarSyncAPI";
 
@@ -18,6 +19,24 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to Outlook sync API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const body = await req.json();
     const { accountId, calendarId, name, color } = body;
 
@@ -28,9 +47,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get the account
+    // Get the account and ensure it belongs to the current user
     const account = await prisma.connectedAccount.findUnique({
-      where: { id: accountId },
+      where: {
+        id: accountId,
+        userId,
+      },
     });
 
     if (!account || account.provider !== "OUTLOOK") {
@@ -98,54 +120,55 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to Outlook sync API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const body = await req.json();
     const { feedId } = body;
+
+    if (!feedId) {
+      return NextResponse.json(
+        { error: "Feed ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Get the feed and ensure it belongs to the current user
+    const feed = await prisma.calendarFeed.findUnique({
+      where: {
+        id: feedId,
+        userId,
+      },
+      include: { account: true },
+    });
+
+    if (!feed || !feed.account) {
+      return NextResponse.json({ error: "Feed not found" }, { status: 404 });
+    }
 
     logger.error(
       "Starting Outlook calendar sync",
       {
-            feedId: String(feedId),
-            timestamp: new Date().toISOString(),
+        feedId: String(feedId),
+        timestamp: new Date().toISOString(),
       },
       LOG_SOURCE
     );
-
-    if (!feedId) {
-      return NextResponse.json(
-        { error: "Calendar feed ID is required" },
-        { status: 400 }
-      );
-    }
-
-    // Get the calendar feed and account
-    const feed = await prisma.calendarFeed.findUnique({
-      where: { id: feedId },
-      include: { account: true },
-    });
-
-    if (!feed || !feed.account || feed.type !== "OUTLOOK") {
-      logger.error(
-        "Invalid Outlook calendar",
-        {
-              feed: JSON.stringify(feed),
-              timestamp: new Date().toISOString(),
-        },
-        LOG_SOURCE
-      );
-      return NextResponse.json(
-        { error: "Invalid Outlook calendar" },
-        { status: 400 }
-      );
-    }
-
-    // Get all existing event IDs for this feed
-    // const existingEvents = await prisma.calendarEvent.findMany({
-    //   where: { feedId },
-    //   select: { id: true, externalEventId: true },
-    // });
-    // const existingEventMap = new Map(
-    //   existingEvents.map((e) => [e.externalEventId, e.id])
-    // );
 
     // Get events from Outlook
     const client = await getOutlookClient(feed.account.id);
@@ -171,24 +194,6 @@ export async function PUT(req: NextRequest) {
         },
       });
     }
-
-    // // Delete events that no longer exist in Outlook
-    // let deletedCount = 0;
-    // for (const [externalEventId, id] of existingEventMap.entries()) {
-    //   if (externalEventId && !processedEventIds.has(externalEventId)) {
-    //     try {
-    //       await prisma.calendarEvent.delete({
-    //         where: { id },
-    //       });
-    //       deletedCount++;
-    //     } catch (deleteError) {
-    //       logger.debug("Failed to delete event", {
-    //         eventId: externalEventId,
-    //         error: deleteError,
-    //       });
-    //     }
-    //   }
-    // }
 
     // Update the feed's sync status
     await prisma.calendarFeed.update({

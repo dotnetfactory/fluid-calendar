@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import {
@@ -8,6 +8,7 @@ import {
   handleFastmailPath,
   fetchCalDAVCalendars,
 } from "../utils";
+import { getToken } from "next-auth/jwt";
 
 const LOG_SOURCE = "CalDAVAuth";
 
@@ -16,8 +17,26 @@ const LOG_SOURCE = "CalDAVAuth";
  * POST /api/calendar/caldav/auth
  * Body: { serverUrl, username, password, path }
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to CalDAV auth API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { serverUrl, username, password, path } = await request.json();
 
     // Validate required fields
@@ -112,7 +131,8 @@ export async function POST(request: Request) {
           email: username,
           caldavUrl: fullUrl,
           caldavUsername: username,
-          accessToken: password, // For CalDAV, we store the password as the access token
+          accessToken: password, // Store password as access token
+          userId, // Associate with the current user
           expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Set expiry to 1 year from now
         },
       });

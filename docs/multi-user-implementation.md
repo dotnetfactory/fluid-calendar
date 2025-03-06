@@ -66,10 +66,11 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 ## Phase 3: Data Isolation and API Updates
 
 ### 3.1 Update Calendar API Routes
-- [ ] Update `src/app/api/calendar/route.ts` to include user filtering
-- [ ] Update `src/app/api/calendar/[id]/route.ts` for user-specific operations
-- [ ] Update `src/app/api/calendar/events/route.ts` for user filtering
-- [ ] Update `src/app/api/calendar/events/[id]/route.ts` for access control
+- [x] Update `src/app/api/calendar/route.ts` to include user filtering
+- [x] Update `src/app/api/calendar/init/route.ts` to associate with current user
+- [x] Update `src/app/api/calendar/google/events/route.ts` for user filtering
+- [x] Update `src/app/api/calendar/outlook/events/route.ts` for user filtering
+- [x] Update `src/app/api/calendar/caldav/events/route.ts` for user filtering
 
 ### 3.1.5 Update Settings API Routes
 - [x] Create `src/app/api/user-settings/route.ts` for user settings
@@ -82,25 +83,27 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 - [x] Update settings store to use API endpoints
 
 ### 3.2 Update Tasks API Routes
-- [ ] Update `src/app/api/tasks/route.ts` to include user filtering
-- [ ] Update `src/app/api/tasks/[id]/route.ts` for user-specific operations
-- [ ] Update `src/app/api/tasks/batch/route.ts` for user filtering
+- [x] Update `src/app/api/tasks/route.ts` to include user filtering
+- [x] Update `src/app/api/tasks/[id]/route.ts` for user-specific operations
+- [x] Update `src/app/api/tasks/schedule-all/route.ts` for user filtering
+- [x] Update `src/app/api/tasks/normalize-recurrence/route.ts` for user filtering
 
 ### 3.3 Update Projects API Routes
-- [ ] Update `src/app/api/projects/route.ts` to include user filtering
-- [ ] Update `src/app/api/projects/[id]/route.ts` for user-specific operations
+- [x] Update `src/app/api/projects/route.ts` to include user filtering
+- [x] Update `src/app/api/projects/[id]/route.ts` for user-specific operations
 
 ### 3.4 Update Tags API Routes
-- [ ] Update `src/app/api/tags/route.ts` to include user filtering
-- [ ] Update `src/app/api/tags/[id]/route.ts` for user-specific operations
+- [x] Update `src/app/api/tags/route.ts` to include user filtering
+- [x] Update `src/app/api/tags/[id]/route.ts` for user-specific operations
 
 ### 3.5 Update Feeds API Routes
-- [ ] Update `src/app/api/feeds/route.ts` to include user filtering
-- [ ] Update `src/app/api/feeds/[id]/route.ts` for user-specific operations
-- [ ] Update `src/app/api/feeds/[id]/events/route.ts` for user filtering
+- [x] Update `src/app/api/feeds/route.ts` to include user filtering
+- [x] Update `src/app/api/feeds/[id]/route.ts` for user-specific operations
+- [x] Update `src/app/api/events/route.ts` for user filtering
+- [x] Update `src/app/api/events/[id]/route.ts` for user-specific operations
 
 ### 3.6 Update Accounts API Routes
-- [ ] Update `src/app/api/accounts/route.ts` to include user filtering
+- [x] Update `src/app/api/accounts/route.ts` to include user filtering
 - [ ] Update `src/app/api/accounts/[id]/route.ts` for user-specific operations
 
 ### 3.7 Update System Settings API
@@ -211,23 +214,44 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 - ✅ Implemented proper session management with NextAuth
 - ✅ Fixed registration API to correctly use the timeZone field name from the Prisma schema
 - ✅ Fixed password storage in the registration API to use the id_token field
+- ✅ Implemented data isolation for tasks API routes
+- ✅ Implemented data isolation for projects API routes
+- ✅ Implemented data isolation for tags API routes
+- ✅ Implemented data isolation for calendar feeds API routes
+- ✅ Implemented data isolation for connected accounts API routes
+- ✅ Implemented data isolation for available calendars API routes (Google, Outlook, CalDAV)
+- ✅ Refactored TokenManager to remove account listing and removal methods in favor of API routes
+- ✅ Fixed linter errors in API routes by properly typing request parameters for NextAuth
+- ✅ Implemented data isolation for events API routes
+- ✅ Implemented data isolation for task scheduling and recurrence normalization
+- ✅ Updated calendar-db.ts to include userId in feed objects for proper access control
+- ✅ Fixed all linting errors in API routes by properly typing request parameters and removing 'as any' casts
+- ✅ Improved type safety throughout the codebase by using NextRequest instead of Request
+- ✅ Implemented data isolation for calendar API routes with minimal changes to preserve existing logic
+- ✅ Added user filtering to calendar/caldav/route.ts
+- ✅ Added user filtering to calendar/google/[id]/route.ts
+- ✅ Added user filtering to calendar/google/route.ts
+- ✅ Added user filtering to calendar/caldav/sync/route.ts
+- ✅ Added user filtering to calendar/outlook/sync/route.ts
+- ✅ Added user filtering to calendar/caldav/auth/route.ts
+- ✅ Added user filtering to calendar/caldav/test/route.ts
+- ✅ Added user filtering to feeds/[id]/sync/route.ts
+- ✅ Added admin-only protection to logs/settings/route.ts
+- ✅ Added user association to calendar/outlook/route.ts for OAuth callback
+- ✅ Replaced getCurrentUserId placeholder with proper authentication in auto-schedule-settings route
+- ✅ Replaced getCurrentUserId placeholder with proper authentication in calendar-settings route
+- ✅ Replaced getCurrentUserId placeholder with proper authentication in data-settings route
+- ✅ Replaced getCurrentUserId placeholder with proper authentication in integration-settings route
+- ✅ Replaced getCurrentUserId placeholder with proper authentication in notification-settings route
+- ✅ Replaced getCurrentUserId placeholder with proper authentication in user-settings route
 
 ### Next Steps
-1. **Complete Authentication Features**: Implement password reset and email verification functionality to complete the authentication system.
-   - Create password reset request page
-   - Create password reset confirmation page
-   - Implement email verification functionality
-
-2. **Update API Routes for Data Isolation**: Begin implementing user filtering for tasks, projects, and other data types to ensure proper data isolation. Start with:
-   - Update `src/app/api/tasks/route.ts` to include user filtering
-   - Update `src/app/api/projects/route.ts` to include user filtering
-
-3. **Create User Profile Management**: Develop user profile management pages to allow users to update their information and preferences.
-
-4. **Enhance Admin Features**: Expand the user management page to include user listing, role management, and account status control.
+1. **Complete Data Isolation for Remaining API Routes**: This is our highest priority to ensure proper multi-user security.
+   - Verify all API routes have proper authentication and user filtering
+   - Test all routes to ensure they work correctly with user filtering
 
 ### Implementation Priority
-The next steps focus on enhancing the authentication system and implementing data isolation. With the logout functionality now in place, we should focus on completing the authentication features such as password reset and email verification, followed by implementing data isolation for tasks, projects, and other data types.
+With all linting errors fixed, we should focus on completing the data isolation for calendar-related API routes. This is critical for security in a multi-user environment. Once data isolation is complete, we can move on to enhancing the authentication system with password reset and email verification features.
 
 ## Data Migration Strategy
 We've successfully implemented the data migration strategy for existing data:

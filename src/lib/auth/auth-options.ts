@@ -7,6 +7,15 @@ import { MICROSOFT_GRAPH_SCOPES } from "@/lib/outlook";
 import { authenticateUser } from "@/lib/auth/credentials-provider";
 import { logger } from "@/lib/logger";
 
+// Define a type for our user with role
+interface UserWithRole {
+  id: string;
+  name?: string;
+  email?: string;
+  image?: string;
+  role?: string;
+}
+
 const LOG_SOURCE = "AuthOptions";
 
 // Create a function to get the auth options with the credentials
@@ -90,7 +99,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         if (user) {
           // Add role from user object to token
           // TypeScript doesn't know about our custom role property
-          token.role = (user as any).role;
+          token.role = (user as UserWithRole).role;
         }
 
         return token;

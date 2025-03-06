@@ -65,7 +65,7 @@ export async function requireAdmin(
     if (token.role !== "admin") {
       logger.warn(
         "Non-admin user attempted to access admin API",
-        { userId: token.sub, path: req.nextUrl.pathname },
+        { userId: token.sub ?? "unknown", path: req.nextUrl.pathname },
         LOG_SOURCE
       );
 

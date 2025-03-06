@@ -1,24 +1,52 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { RRule } from "rrule";
 import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
+import { getToken } from "next-auth/jwt";
+import { logger } from "@/lib/logger";
+
+const LOG_SOURCE = "normalize-recurrence-route";
+
 /**
  * This endpoint normalizes recurrence rules in all tasks,
  * converting non-standard formats like ABSOLUTEMONTHLY to standard MONTHLY
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    // Get all recurring tasks with recurrence rules
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to normalize recurrence API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
+    // Get all recurring tasks with recurrence rules for the current user
     const recurringTasks = await prisma.task.findMany({
       where: {
         isRecurring: true,
         recurrenceRule: {
           not: null,
         },
+        userId,
       },
     });
 
-    console.log(`Found ${recurringTasks.length} recurring tasks to normalize`);
+    logger.info(
+      `Found ${recurringTasks.length} recurring tasks to normalize`,
+      {},
+      LOG_SOURCE
+    );
 
     // Keep track of updated tasks
     const updatedTasks = [];
@@ -32,9 +60,9 @@ export async function POST() {
         let needsUpdate = false;
 
         const standardizedRule = task.recurrenceRule
-        ? normalizeRecurrenceRule(task.recurrenceRule)
-        : undefined;
-        if(standardizedRule !== task.recurrenceRule) {
+          ? normalizeRecurrenceRule(task.recurrenceRule)
+          : undefined;
+        if (standardizedRule !== task.recurrenceRule) {
           needsUpdate = true;
         }
         // Only update if changes were made
@@ -44,7 +72,10 @@ export async function POST() {
 
           // Update the task with the standardized rule
           await prisma.task.update({
-            where: { id: task.id },
+            where: {
+              id: task.id,
+              userId,
+            },
             data: { recurrenceRule: standardizedRule },
           });
 
@@ -56,9 +87,12 @@ export async function POST() {
           });
         }
       } catch (error) {
-        console.error(
+        logger.error(
           `Error normalizing task ${task.id} (${task.title}):`,
-          error
+          {
+            error: error instanceof Error ? error.message : String(error),
+          },
+          LOG_SOURCE
         );
         failedTasks.push({
           id: task.id,
@@ -78,7 +112,13 @@ export async function POST() {
       failedTasks,
     });
   } catch (error) {
-    console.error("Error normalizing recurrence rules:", error);
+    logger.error(
+      "Error normalizing recurrence rules:",
+      {
+        error: error instanceof Error ? error.message : String(error),
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       {
         success: false,

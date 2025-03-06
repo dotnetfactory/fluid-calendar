@@ -44,6 +44,7 @@ export async function getEvent(
       caldavPath: event.feed.caldavPath || undefined,
       accountId: event.feed.accountId || undefined,
       syncToken: event.feed.syncToken || undefined,
+      userId: event.feed.userId || undefined,
     },
   };
 }

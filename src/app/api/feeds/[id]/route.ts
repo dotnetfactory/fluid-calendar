@@ -1,15 +1,41 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getToken } from "next-auth/jwt";
+import { logger } from "@/lib/logger";
+
+const LOG_SOURCE = "calendar-feed-route";
 
 // Get a specific feed
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to calendar feed API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { id } = await params;
     const feed = await prisma.calendarFeed.findUnique({
-      where: { id },
+      where: {
+        id,
+        // Ensure the feed belongs to the current user
+        userId,
+      },
       include: { events: true },
     });
 
@@ -19,7 +45,13 @@ export async function GET(
 
     return NextResponse.json(feed);
   } catch (error) {
-    console.error("Failed to fetch feed:", error);
+    logger.error(
+      "Failed to fetch feed:",
+      {
+        error: error instanceof Error ? error.message : String(error),
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to fetch feed" },
       { status: 500 }
@@ -29,19 +61,47 @@ export async function GET(
 
 // Update a specific feed
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to update calendar feed",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { id } = await params;
     const updates = await request.json();
     const updated = await prisma.calendarFeed.update({
-      where: { id },
+      where: {
+        id,
+        // Ensure the feed belongs to the current user
+        userId,
+      },
       data: updates,
     });
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Failed to update feed:", error);
+    logger.error(
+      "Failed to update feed:",
+      {
+        error: error instanceof Error ? error.message : String(error),
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to update feed" },
       { status: 500 }
@@ -51,18 +111,46 @@ export async function PATCH(
 
 // Delete a specific feed
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to delete calendar feed",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { id } = await params;
     // The feed's events will be automatically deleted due to the cascade delete in the schema
     await prisma.calendarFeed.delete({
-      where: { id },
+      where: {
+        id,
+        // Ensure the feed belongs to the current user
+        userId,
+      },
     });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to delete feed:", error);
+    logger.error(
+      "Failed to delete feed:",
+      {
+        error: error instanceof Error ? error.message : String(error),
+      },
+      LOG_SOURCE
+    );
     return NextResponse.json(
       { error: "Failed to delete feed" },
       { status: 500 }

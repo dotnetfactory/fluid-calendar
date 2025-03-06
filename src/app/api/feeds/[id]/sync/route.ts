@@ -1,6 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { newDate } from "@/lib/date-utils";
+import { getToken } from "next-auth/jwt";
+import { logger } from "@/lib/logger";
+
+const LOG_SOURCE = "FeedSyncAPI";
 
 interface CalendarEventInput {
   start: string | Date;
@@ -11,12 +15,42 @@ interface CalendarEventInput {
 }
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to feed sync API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { events } = await request.json();
     const { id: feedId } = await params;
+
+    // Verify the feed belongs to the current user
+    const feed = await prisma.calendarFeed.findUnique({
+      where: {
+        id: feedId,
+        userId,
+      },
+    });
+
+    if (!feed) {
+      return NextResponse.json({ error: "Feed not found" }, { status: 404 });
+    }
 
     // Start a transaction to ensure data consistency
     await prisma.$transaction(async (tx) => {
@@ -53,7 +87,14 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to sync feed:", error);
-    return NextResponse.json({ error: "Failed to sync feed" }, { status: 500 });
+    logger.error(
+      "Failed to sync feed events:",
+      { error: error instanceof Error ? error.message : String(error) },
+      LOG_SOURCE
+    );
+    return NextResponse.json(
+      { error: "Failed to sync feed events" },
+      { status: 500 }
+    );
   }
 }

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import {
@@ -6,6 +6,7 @@ import {
   loginToCalDAVServer,
   fetchCalDAVCalendars,
 } from "../utils";
+import { getToken } from "next-auth/jwt";
 
 const LOG_SOURCE = "CalDAVAvailable";
 
@@ -13,8 +14,26 @@ const LOG_SOURCE = "CalDAVAvailable";
  * API route for discovering and listing available CalDAV calendars
  * GET /api/calendar/caldav/available?accountId=123
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    // Get the user token from the request
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If there's no token, return unauthorized
+    if (!token) {
+      logger.warn(
+        "Unauthorized access attempt to CalDAV available calendars API",
+        {},
+        LOG_SOURCE
+      );
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const userId = token.sub;
+
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get("accountId");
 
@@ -32,14 +51,26 @@ export async function GET(request: Request) {
       LOG_SOURCE
     );
 
-    // Get the account from the database
+    // Get the account from the database and ensure it belongs to the current user
     const account = await prisma.connectedAccount.findUnique({
-      where: { id: accountId },
+      where: {
+        id: accountId,
+        userId,
+      },
     });
 
     if (!account) {
-      logger.error(`Account not found: ${accountId}`, {}, LOG_SOURCE);
-      return NextResponse.json({ error: "Account not found" }, { status: 404 });
+      logger.error(
+        `Account not found or you don't have permission to access it: ${accountId}`,
+        {},
+        LOG_SOURCE
+      );
+      return NextResponse.json(
+        {
+          error: "Account not found or you don't have permission to access it",
+        },
+        { status: 404 }
+      );
     }
 
     if (account.provider !== "CALDAV") {
@@ -119,6 +150,7 @@ export async function GET(request: Request) {
         where: {
           accountId: account.id,
           type: "CALDAV",
+          userId,
         },
         select: {
           url: true,
@@ -145,7 +177,9 @@ export async function GET(request: Request) {
       );
 
       // Return the array directly, consistent with Google and Outlook
-      return NextResponse.json(formattedCalendars.filter((cal) => !cal.alreadyAdded));
+      return NextResponse.json(
+        formattedCalendars.filter((cal) => !cal.alreadyAdded)
+      );
     } catch (error) {
       logger.error(
         `Error fetching available calendars for account: ${accountId}`,

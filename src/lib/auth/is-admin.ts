@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth/auth-options";
 import { logger } from "@/lib/logger";
+import { Session } from "next-auth";
 
 const LOG_SOURCE = "AdminCheck";
 
@@ -46,6 +47,6 @@ export async function isAdmin(): Promise<boolean> {
  * @param session The session object from useSession()
  * @returns {boolean} Whether the current user is an admin
  */
-export function isAdminFromSession(session: any): boolean {
+export function isAdminFromSession(session: Session | null): boolean {
   return session?.user?.role === "admin";
 }

@@ -69,6 +69,7 @@ export async function authenticateUser(email: string, password: string) {
     );
 
     // Return the user without the accounts
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { accounts, ...userWithoutAccounts } = user;
     return userWithoutAccounts;
   } catch (error) {
