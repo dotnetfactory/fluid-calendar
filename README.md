@@ -103,8 +103,8 @@ To enable Google Calendar integration:
      - `http://localhost:3000` (for development)
      - Your production URL (if deployed)
    - Set Authorized redirect URIs:
-     - `http://localhost:3000/api/auth/callback/google` (for development)
-     - `https://your-domain.com/api/auth/callback/google` (for production)
+     - `http://localhost:3000/api/calendar/google` (for development)
+     - `https://your-domain.com/api/calendar/google` (for production)
    - Click "Create"
    - Save the generated Client ID and Client Secret
 
