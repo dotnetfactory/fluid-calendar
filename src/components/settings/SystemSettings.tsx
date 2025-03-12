@@ -90,7 +90,7 @@ export function SystemSettings() {
                 <li>Create OAuth 2.0 Client ID credentials</li>
                 <li>
                   Add authorized redirect URI: {window.location.origin}
-                  /api/auth/callback/google
+                  /api/calendar/google
                 </li>
                 <li>Copy the Client ID and Client Secret</li>
               </ol>
