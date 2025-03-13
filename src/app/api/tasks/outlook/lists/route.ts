@@ -53,20 +53,18 @@ export async function GET(request: NextRequest) {
         externalListId: {
           in: taskLists.map((list) => list.id),
         },
+        project: {
+          userId: userId,
+        },
       },
       include: {
         project: true,
       },
     });
 
-    // Filter mappings to only include those for the current user's projects
-    const userMappings = mappings.filter(
-      (mapping) => mapping.project?.userId === userId
-    );
-
     // Transform task lists to include mapping information
     const availableLists = taskLists.map((list) => {
-      const mapping = userMappings.find((m) => m.externalListId === list.id);
+      const mapping = mappings.find((m) => m.externalListId === list.id);
       return {
         id: list.id,
         name: list.name,

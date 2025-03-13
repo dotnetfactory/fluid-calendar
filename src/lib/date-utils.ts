@@ -17,6 +17,10 @@ import {
   isSameDay,
   areIntervalsOverlapping,
   isBefore,
+  startOfDay as fnStartOfDay,
+  endOfDay as fnEndOfDay,
+  parseISO as fnParseISO,
+  subMinutes,
 } from "date-fns";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 
@@ -47,7 +51,9 @@ export function roundDateUp(date: Date, minutes?: number | undefined): Date {
     minutes = 30;
   }
   const roundedDate = new Date(date);
-  roundedDate.setMinutes(Math.ceil(roundedDate.getMinutes() / minutes) * minutes);
+  roundedDate.setMinutes(
+    Math.ceil(roundedDate.getMinutes() / minutes) * minutes
+  );
   return roundedDate;
 }
 
@@ -69,9 +75,8 @@ export function getDaysInMonth(date: Date): Date[] {
   const month = date.getMonth();
   const daysInMonth = newDateFromYMD(year, month + 1, 0).getDate();
 
-  return Array.from(
-    { length: daysInMonth },
-    (_, i) => newDateFromYMD(year, month, i + 1)
+  return Array.from({ length: daysInMonth }, (_, i) =>
+    newDateFromYMD(year, month, i + 1)
   );
 }
 
@@ -116,11 +121,41 @@ export function formatDateToLocal(date: Date): string {
  */
 export function formatToLocalISOString(date: Date): string {
   const tzOffset = date.getTimezoneOffset() * 60000; // offset in milliseconds
-  return newDate(date.getTime() - tzOffset).toISOString().slice(0, 16);
+  return newDate(date.getTime() - tzOffset)
+    .toISOString()
+    .slice(0, 16);
 }
 
 export function addHours(date: Date, hours: number): Date {
   return addMinutes(date, hours * 60);
+}
+
+/**
+ * Get the start of day for a date
+ */
+export function startOfDay(date: Date): Date {
+  return fnStartOfDay(date);
+}
+
+/**
+ * Get the end of day for a date
+ */
+export function endOfDay(date: Date): Date {
+  return fnEndOfDay(date);
+}
+
+/**
+ * Parse an ISO date string to a Date object
+ */
+export function parseISO(dateString: string): Date {
+  return fnParseISO(dateString);
+}
+
+/**
+ * Subtract hours from a date
+ */
+export function subHours(date: Date, hours: number): Date {
+  return subMinutes(date, hours * 60);
 }
 
 // Re-export date-fns functions

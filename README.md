@@ -8,8 +8,8 @@ An open-source alternative to Motion, designed for intelligent task scheduling a
 
 This project is in active development and currently contains many bugs and incomplete features. It is not yet recommended for production use. If you encounter issues:
 
-1. Please check the [existing issues](https://github.com/fluidcalendar/fluidcalendar/issues) to see if it's already reported
-2. If not found, [create a new issue](https://github.com/fluidcalendar/fluidcalendar/issues/new) with:
+1. Please check the [existing issues](https://github.com/dotnetfactory/fluid-calendar/issues) to see if it's already reported
+2. If not found, [create a new issue](https://github.com/dotnetfactory/fluid-calendar/issues/new) with:
    - Steps to reproduce
    - Expected behavior
    - Actual behavior
@@ -257,10 +257,6 @@ cp .env.example .env
 - `NEXTAUTH_URL`: Your application URL
 - `NEXTAUTH_SECRET`: Random string for session encryption
 
-3. Optional environment variables (can be configured in System Settings instead):
-- `GOOGLE_CLIENT_ID`: From Google Cloud Console
-- `GOOGLE_CLIENT_SECRET`: From Google Cloud Console
-- `LOG_LEVEL`: Logging level (none/debug)
 
 Note: Google credentials and logging settings can be managed through the UI in Settings > System. Environment variables will be used as fallback if system settings are not configured.
 
@@ -330,7 +326,7 @@ If you're a contributor to the SAAS version, follow these steps to set up your d
 
 1. Clone the private SAAS repository:
    ```
-   git clone https://github.com/fluidcalendar/fluidcalendar-saas.git
+   git clone https://github.com/dotnetfactory/fluid-calendar-saas.git
    ```
 
 2. Enable SAAS features in your environment:

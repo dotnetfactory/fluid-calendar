@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { isSaasEnabled, isFeatureEnabled } from "@/lib/config";
 
 // List of public routes that don't require authentication
 const publicRoutes = [
@@ -10,7 +9,10 @@ const publicRoutes = [
   "/auth/signin",
   "/auth/error",
   "/api/auth/register",
-  "/landing",
+  "/home",
+  "/beta",
+  "/terms",
+  "/privacy",
 ];
 
 // Routes that only admins can access
@@ -39,14 +41,9 @@ export async function middleware(request: NextRequest) {
   });
 
   // If there's no token and we're on the root path in SAAS mode with landing page enabled,
-  // redirect to the landing page
-  if (
-    !token &&
-    pathname === "/" &&
-    isSaasEnabled &&
-    isFeatureEnabled("landingPage")
-  ) {
-    return NextResponse.redirect(new URL("/landing", request.url));
+  // redirect to the home page
+  if (!token && pathname === "/") {
+    return NextResponse.redirect(new URL("/home", request.url));
   }
 
   // If there's no token, redirect to the sign-in page

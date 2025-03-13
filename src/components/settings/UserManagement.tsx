@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import AdminOnly from "@/components/auth/AdminOnly";
+import AccessDeniedMessage from "@/components/auth/AccessDeniedMessage";
 
 /**
  * User management settings component
@@ -17,7 +18,11 @@ import AdminOnly from "@/components/auth/AdminOnly";
  */
 export function UserManagement() {
   return (
-    <AdminOnly fallback={<AccessDeniedMessage />}>
+    <AdminOnly
+      fallback={
+        <AccessDeniedMessage message="You do not have permission to access the user management settings." />
+      }
+    >
       <SettingsSection
         title="User Management"
         description="Manage user settings and access control"
@@ -41,29 +46,5 @@ export function UserManagement() {
         </div>
       </SettingsSection>
     </AdminOnly>
-  );
-}
-
-/**
- * Message shown when a non-admin user tries to access admin-only settings
- */
-function AccessDeniedMessage() {
-  return (
-    <SettingsSection
-      title="User Management"
-      description="Manage user settings and access control"
-    >
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle className="text-destructive">Access Denied</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>
-            You do not have permission to access user management settings. This
-            section is only available to administrators.
-          </p>
-        </CardContent>
-      </Card>
-    </SettingsSection>
   );
 }

@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BsCalendar, BsGear, BsListTask } from "react-icons/bs";
-import { HiOutlineLightBulb } from "react-icons/hi";
+import { HiOutlineLightBulb, HiOutlineSearch } from "react-icons/hi";
 import { cn } from "@/lib/utils";
 import { RiKeyboardLine } from "react-icons/ri";
 import { useShortcutsStore } from "@/store/shortcuts";
-import { PrivacyToggle } from "./PrivacyToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
 
@@ -18,6 +17,17 @@ interface AppNavProps {
 export function AppNav({ className }: AppNavProps) {
   const pathname = usePathname();
   const { setOpen: setShortcutsOpen } = useShortcutsStore();
+
+  // Function to trigger command palette
+  const openCommandPalette = () => {
+    // Simulate Cmd+K / Ctrl+K
+    const event = new KeyboardEvent("keydown", {
+      key: "k",
+      metaKey: true,
+      bubbles: true,
+    });
+    document.dispatchEvent(event);
+  };
 
   const links = [
     { href: "/", label: "Calendar", icon: BsCalendar },
@@ -58,8 +68,18 @@ export function AppNav({ className }: AppNavProps) {
             })}
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={openCommandPalette}
+              className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
+              title="Search or run a command (⌘K)"
+            >
+              <HiOutlineSearch className="h-4 w-4" />
+              <span className="hidden sm:inline">Search</span>
+              <kbd className="hidden sm:inline ml-1 text-xs bg-muted px-1 py-0.5 rounded">
+                ⌘K
+              </kbd>
+            </button>
             <ThemeToggle />
-            <PrivacyToggle />
             <button
               onClick={() => setShortcutsOpen(true)}
               className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"

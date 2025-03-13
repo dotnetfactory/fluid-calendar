@@ -99,7 +99,12 @@ export async function POST(request: NextRequest) {
 
       // Update existing mapping's isAutoScheduled setting
       await prisma.outlookTaskListMapping.update({
-        where: { externalListId: listId },
+        where: {
+          externalListId_projectId: {
+            externalListId: listId,
+            projectId: project.id,
+          },
+        },
         data: {
           isAutoScheduled: isAutoScheduled ?? true,
           lastImported: newDate(),

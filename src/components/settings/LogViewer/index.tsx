@@ -7,9 +7,16 @@ import { useLogViewStore } from "@/store/logview";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Trash2 } from "lucide-react";
+import AdminOnly from "@/components/auth/AdminOnly";
+import AccessDeniedMessage from "@/components/auth/AccessDeniedMessage";
 
 const LOG_SOURCE = "LogViewer";
 
+/**
+ * Log viewer component
+ * Allows admins to view and filter application logs
+ * Only accessible by admin users
+ */
 export function LogViewer() {
   const {
     logs,
@@ -96,44 +103,50 @@ export function LogViewer() {
   }, [fetchSources, fetchLogs]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold tracking-tight">System Logs</h2>
-        <Button
-          variant="destructive"
-          onClick={handleCleanup}
+    <AdminOnly
+      fallback={
+        <AccessDeniedMessage message="You do not have permission to access application logs." />
+      }
+    >
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold tracking-tight">System Logs</h2>
+          <Button
+            variant="destructive"
+            onClick={handleCleanup}
+            disabled={loading}
+            size="sm"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Cleanup Expired Logs
+          </Button>
+        </div>
+
+        <LogSettings />
+
+        <LogFilters
+          filters={filters}
+          onChange={handleFilterChange}
           disabled={loading}
-          size="sm"
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Cleanup Expired Logs
-        </Button>
+        />
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <LogTable
+          logs={logs}
+          loading={loading}
+          pagination={{
+            ...pagination,
+            total: totalLogs,
+            pages: totalPages,
+          }}
+          onPageChange={handlePageChange}
+        />
       </div>
-
-      <LogSettings />
-
-      <LogFilters
-        filters={filters}
-        onChange={handleFilterChange}
-        disabled={loading}
-      />
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <LogTable
-        logs={logs}
-        loading={loading}
-        pagination={{
-          ...pagination,
-          total: totalLogs,
-          pages: totalPages,
-        }}
-        onPageChange={handlePageChange}
-      />
-    </div>
+    </AdminOnly>
   );
 }

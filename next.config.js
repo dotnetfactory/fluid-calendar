@@ -6,6 +6,9 @@ const nextConfig = {
     staticPageGenerationInfo: false,
   },
 
+  // Enable standalone output for Docker deployment
+  output: "standalone",
+
   // Determine which file extensions to use based on SAAS enablement
   pageExtensions: (() => {
     const isSaasEnabled =

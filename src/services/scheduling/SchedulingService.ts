@@ -283,6 +283,10 @@ export class SchedulingService {
           },
         });
 
+        // Add this newly scheduled task to the list of conflicts
+        // so it won't be available for other tasks
+        await timeSlotManager.addScheduledTaskConflict(updatedTask);
+
         this.endMetric("updateTask", updateStart);
         this.endMetric("tryWindow", windowStart);
         this.endMetric("scheduleTask", taskStart);

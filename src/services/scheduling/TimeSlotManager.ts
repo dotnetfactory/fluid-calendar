@@ -11,6 +11,7 @@ import {
   addDays,
   newDate,
   roundDateUp,
+  areIntervalsOverlapping,
 } from "@/lib/date-utils";
 import { CalendarService } from "./CalendarService";
 import { SlotScorer } from "./SlotScorer";
@@ -35,6 +36,8 @@ export interface TimeSlotManager {
   };
 
   updateScheduledTasks(userId: string): Promise<void>;
+
+  addScheduledTaskConflict(task: Task): Promise<void>;
 }
 
 export class TimeSlotManagerImpl implements TimeSlotManager {
@@ -72,8 +75,12 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     endDate: Date,
     userId: string
   ): Promise<TimeSlot[]> {
-    // Ensure we have the latest scheduled tasks
-    await this.updateScheduledTasks(userId);
+    // Only load scheduled tasks from the database on the first call
+    // For subsequent calls, we'll use the in-memory scheduled tasks
+    // that have been updated by addScheduledTaskConflict
+    if (this.slotScorer.getScheduledTasks().size === 0) {
+      await this.updateScheduledTasks(userId);
+    }
 
     // 1. Generate potential slots
     const potentialSlots = this.generatePotentialSlots(
@@ -81,7 +88,6 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       startDate,
       endDate
     );
-
 
     // 2. Filter by work hours
     const workHourSlots = this.filterByWorkHours(potentialSlots);
@@ -109,7 +115,16 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
 
     // Check for calendar conflicts
     const conflicts = await this.findCalendarConflicts(slot, userId);
-    return conflicts.length === 0;
+    if (conflicts.length > 0) {
+      return false;
+    }
+
+    // Check for conflicts with in-memory scheduled tasks
+    if (this.hasInMemoryConflict(slot)) {
+      return false;
+    }
+
+    return true;
   }
 
   calculateBufferTimes(slot: TimeSlot): {
@@ -289,7 +304,10 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     );
   }
 
-  private async findCalendarConflicts(slot: TimeSlot, userId: string): Promise<Conflict[]> {
+  private async findCalendarConflicts(
+    slot: TimeSlot,
+    userId: string
+  ): Promise<Conflict[]> {
     const selectedCalendars = parseSelectedCalendars(
       this.settings.selectedCalendars
     );
@@ -299,6 +317,25 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     }
 
     return this.calendarService.findConflicts(slot, selectedCalendars, userId);
+  }
+
+  private hasInMemoryConflict(slot: TimeSlot): boolean {
+    // Check all project tasks for conflicts
+    for (const [, projectTasks] of this.slotScorer
+      .getScheduledTasks()
+      .entries()) {
+      for (const projectTask of projectTasks) {
+        if (
+          areIntervalsOverlapping(
+            { start: slot.start, end: slot.end },
+            { start: projectTask.start, end: projectTask.end }
+          )
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private async removeConflicts(
@@ -323,10 +360,13 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       task.id
     );
 
-    // Process results
+    // Process results and check for conflicts with in-memory scheduled tasks
     for (const result of batchResults) {
       if (result.conflicts.length === 0) {
-        availableSlots.push(result.slot);
+        // Check for conflicts with in-memory scheduled tasks
+        if (!this.hasInMemoryConflict(result.slot)) {
+          availableSlots.push(result.slot);
+        }
       } else {
         result.slot.conflicts = result.conflicts;
       }
@@ -374,5 +414,20 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
 
   private sortByScore(slots: TimeSlot[]): TimeSlot[] {
     return [...slots].sort((a, b) => b.score - a.score);
+  }
+
+  async addScheduledTaskConflict(task: Task): Promise<void> {
+    if (task.scheduledStart && task.scheduledEnd) {
+      // Add this task to the list of scheduled tasks
+      // This will make it show up as a conflict for future slot checks
+      const projectId = task.projectId || "none";
+      const projectTasks =
+        this.slotScorer.getScheduledTasks().get(projectId) || [];
+      projectTasks.push({
+        start: task.scheduledStart,
+        end: task.scheduledEnd,
+      });
+      this.slotScorer.getScheduledTasks().set(projectId, projectTasks);
+    }
   }
 }

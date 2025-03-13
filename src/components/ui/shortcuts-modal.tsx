@@ -2,6 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { IoClose } from "react-icons/io5";
 import { commandRegistry } from "@/lib/commands/registry";
 import { Command } from "@/lib/commands/types";
+import { formatShortcut } from "@/lib/utils";
 
 interface ShortcutsModalProps {
   isOpen: boolean;
@@ -47,9 +48,13 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
                       className="flex justify-between items-center text-sm"
                     >
                       <span className="text-foreground">{command.title}</span>
-                      <kbd className="px-2 py-1 bg-muted rounded text-muted-foreground text-xs">
-                        {command.shortcut}
-                      </kbd>
+                      {formatShortcut(command.shortcut) && (
+                        <div className="flex-shrink-0">
+                          <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">
+                            {formatShortcut(command.shortcut)}
+                          </kbd>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

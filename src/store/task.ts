@@ -120,7 +120,12 @@ export const useTaskStore = create<TaskState>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(updates),
           });
-          if (!response.ok) throw new Error("Failed to update task");
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to update task: ${errorText}`);
+          }
+
           const updatedTask = await response.json();
           set((state) => ({
             tasks: state.tasks.map((task) =>

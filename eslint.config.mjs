@@ -10,6 +10,10 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  // Ignore specific worker files that use CommonJS require
+  {
+    ignores: ["src/saas/jobs/register-aliases.js", "src/saas/jobs/worker-with-aliases.js"]
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 

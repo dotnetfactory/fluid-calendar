@@ -76,6 +76,7 @@ export function Calendar() {
           <button
             onClick={() => setSidebarOpen(!isSidebarOpen)}
             className="p-2 hover:bg-muted rounded-lg text-foreground"
+            title="Toggle Sidebar (b)"
           >
             <HiMenu className="w-5 h-5" />
           </button>
@@ -84,6 +85,7 @@ export function Calendar() {
             <button
               onClick={() => setDate(newDate())}
               className="px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-lg"
+              title="Go to Today (t)"
             >
               Today
             </button>
@@ -100,6 +102,7 @@ export function Calendar() {
                 onClick={handlePrevWeek}
                 className="p-1.5 hover:bg-muted rounded-lg text-foreground"
                 data-testid="calendar-prev-week"
+                title="Previous Week (←)"
               >
                 <IoChevronBack className="w-5 h-5" />
               </button>
@@ -107,6 +110,7 @@ export function Calendar() {
                 onClick={handleNextWeek}
                 className="p-1.5 hover:bg-muted rounded-lg text-foreground"
                 data-testid="calendar-next-week"
+                title="Next Week (→)"
               >
                 <IoChevronForward className="w-5 h-5" />
               </button>

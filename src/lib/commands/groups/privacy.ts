@@ -13,7 +13,6 @@ export function usePrivacyCommands(): Command[] {
       title: isPrivacyModeActive
         ? "Disable Privacy Mode"
         : "Enable Privacy Mode",
-      shortcut: "p",
       section: "privacy",
       keywords: ["privacy", "blur", "screenshot", "hide", "sensitive"],
       icon: RiEyeOffLine,

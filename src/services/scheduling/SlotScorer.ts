@@ -202,4 +202,9 @@ export class SlotScorer {
         return 0.25;
     }
   }
+
+  // Getter for scheduledTasks to allow TimeSlotManager to update it
+  getScheduledTasks(): Map<string, ProjectTask[]> {
+    return this.scheduledTasks;
+  }
 }

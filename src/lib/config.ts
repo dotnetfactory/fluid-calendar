@@ -21,12 +21,10 @@ export const featureFlags = {
 
   // SAAS-only features (enabled only when SAAS mode is active)
   saas: {
-    teams: isSaasEnabled,
     billing: isSaasEnabled,
     advancedAnalytics: isSaasEnabled,
     aiScheduling: isSaasEnabled,
     prioritySupport: isSaasEnabled,
-    landingPage: isSaasEnabled,
   },
 };
 

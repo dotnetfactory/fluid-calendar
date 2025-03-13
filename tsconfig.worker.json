@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": false,
+    "noEmit": false
+  },
+  "include": [
+    "src/saas/jobs/**/*", 
+    "src/lib/logger/**/*",
+    "src/lib/prisma.ts",
+    "src/lib/date-utils.ts"
+  ],
+  "exclude": ["node_modules"]
+} 

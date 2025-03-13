@@ -99,7 +99,7 @@ export function useCalendarCommands(): Command[] {
           .setDefaultEndDate(newDate(now.getTime() + 3600000)); // 1 hour later
         useEventModalStore.getState().setOpen(true);
       },
-      shortcut: "e",
+      shortcut: "ne",
       context: calendarContext,
     },
   ];

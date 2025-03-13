@@ -23,7 +23,10 @@ export class TokenManager {
     return TokenManager.instance;
   }
 
-  async getTokens(accountId: string, userId: string): Promise<TokenInfo | null> {
+  async getTokens(
+    accountId: string,
+    userId: string
+  ): Promise<TokenInfo | null> {
     const account = await prisma.connectedAccount.findUnique({
       where: { id: accountId, userId },
     });
@@ -39,7 +42,10 @@ export class TokenManager {
     };
   }
 
-  async refreshGoogleTokens(accountId: string, userId: string): Promise<TokenInfo | null> {
+  async refreshGoogleTokens(
+    accountId: string,
+    userId: string
+  ): Promise<TokenInfo | null> {
     const account = await prisma.connectedAccount.findUnique({
       where: { id: accountId, userId },
     });
@@ -96,8 +102,8 @@ export class TokenManager {
   ): Promise<string> {
     const account = await prisma.connectedAccount.upsert({
       where: {
-        userId,
-        provider_email: {
+        userId_provider_email: {
+          userId,
           provider,
           email,
         },
@@ -106,7 +112,6 @@ export class TokenManager {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresAt: tokens.expiresAt,
-        userId,
       },
       create: {
         provider,
@@ -121,7 +126,10 @@ export class TokenManager {
     return account.id;
   }
 
-  async refreshOutlookTokens(accountId: string, userId: string): Promise<TokenInfo | null> {
+  async refreshOutlookTokens(
+    accountId: string,
+    userId: string
+  ): Promise<TokenInfo | null> {
     const account = await prisma.connectedAccount.findUnique({
       where: { id: accountId, userId },
     });
@@ -179,7 +187,10 @@ export class TokenManager {
 
   // For CalDAV, we don't need to refresh tokens as we store the password directly
   // This method is provided for consistency with other providers
-  async refreshCalDAVTokens(accountId: string, userId: string): Promise<TokenInfo | null> {
+  async refreshCalDAVTokens(
+    accountId: string,
+    userId: string
+  ): Promise<TokenInfo | null> {
     const account = await prisma.connectedAccount.findUnique({
       where: { id: accountId, userId },
     });

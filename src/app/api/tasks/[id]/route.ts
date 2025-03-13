@@ -63,6 +63,8 @@ export async function PUT(
     const userId = auth.userId;
 
     const { id } = await params;
+    logger.info(`Updating task ${id}`, { userId }, LOG_SOURCE);
+
     const task = await prisma.task.findUnique({
       where: {
         id,
@@ -75,12 +77,15 @@ export async function PUT(
     });
 
     if (!task) {
+      logger.warn(`Task not found: ${id}`, { userId }, LOG_SOURCE);
       return new NextResponse("Task not found", { status: 404 });
     }
 
     const json = await request.json();
+    logger.info(`Update payload for task ${id}`, { payload: json }, LOG_SOURCE);
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { tagIds, project, projectId, ...updates } = json;
+    const { tagIds, project, projectId, userId: _, ...updates } = json;
 
     // Set completedAt when task is marked as completed
     if (

@@ -25,6 +25,13 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
   const outlookCredentials = await getOutlookCredentials();
 
   return {
+    // Add secret for production - required for security
+    secret:
+      process.env.NEXTAUTH_SECRET ||
+      // Fallback secret - only used if NEXTAUTH_SECRET is not set
+      // In production, this should always be set via environment variable
+      "EM2RYkch0Uj+Qt2Cu0eDCmo/kv0MenNnHUaciNAjSrM=",
+
     providers: [
       // Keep existing providers for calendar connections
       GoogleProvider({

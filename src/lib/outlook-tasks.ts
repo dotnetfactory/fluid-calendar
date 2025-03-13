@@ -189,7 +189,12 @@ export class OutlookTasksService {
 
       // Get the mapping to check isAutoScheduled setting
       const mapping = await prisma.outlookTaskListMapping.findUnique({
-        where: { externalListId: listId },
+        where: {
+          externalListId_projectId: {
+            externalListId: listId,
+            projectId: projectId,
+          },
+        },
       });
 
       if (!mapping) {
@@ -268,7 +273,12 @@ export class OutlookTasksService {
 
       // Update the mapping's last import time
       await prisma.outlookTaskListMapping.update({
-        where: { externalListId: listId },
+        where: {
+          externalListId_projectId: {
+            externalListId: listId,
+            projectId: projectId,
+          },
+        },
         data: { lastImported: newDate() },
       });
 

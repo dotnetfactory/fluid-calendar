@@ -28,7 +28,7 @@ model ConnectedAccount {
   userId String?
   user   User?   @relation(fields: [userId], references: [id])
 
-  @@unique([provider, email])
+  @@unique([userId, provider, email])
   @@index([userId])
 }
 
@@ -79,6 +79,7 @@ model User {
   projects             Project[]
   connectedAccounts    ConnectedAccount[]
   tags                 Tag[]
+  JobRecord            JobRecord[]
 }
 
 model VerificationToken {
@@ -235,7 +236,7 @@ model Task {
 
 model Tag {
   id    String  @id @default(cuid())
-  name  String  @unique
+  name  String
   color String?
   tasks Task[]
 
@@ -243,6 +244,7 @@ model Tag {
   userId String?
   user   User?   @relation(fields: [userId], references: [id])
 
+  @@unique([name, userId])
   @@index([name])
   @@index([userId])
 }
@@ -375,13 +377,14 @@ model SystemSettings {
 
 model OutlookTaskListMapping {
   id              String   @id @default(cuid())
-  externalListId  String   @unique
+  externalListId  String
   projectId       String
   project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   lastImported    DateTime
   name            String
   isAutoScheduled Boolean  @default(true)
 
+  @@unique([externalListId, projectId])
   @@index([externalListId])
   @@index([projectId])
 }
@@ -398,4 +401,94 @@ model Log {
   @@index([timestamp, level])
   @@index([expiresAt])
   @@index([source, level])
+}
+
+model PendingWaitlist {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  name               String?
+  referralCode       String? // Referral code used during signup
+  verificationToken  String   @unique
+  verificationExpiry DateTime
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([verificationToken])
+  @@index([email])
+}
+
+model Waitlist {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String?
+  status           String    @default("WAITING") // WAITING, INVITED, REGISTERED
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  invitedAt        DateTime?
+  registeredAt     DateTime?
+  invitationToken  String?
+  invitationExpiry DateTime?
+  referralCode     String    @unique
+  referredBy       String?
+  referralCount    Int       @default(0)
+  priorityScore    Float     @default(0)
+  lastVisitedAt    DateTime?
+  notes            String?
+  lastPosition     Int? // Added to track position changes
+
+  @@index([status])
+  @@index([referredBy])
+  @@index([priorityScore])
+  @@index([referralCode])
+}
+
+model BetaSettings {
+  id                           String  @id @default("default")
+  maxActiveUsers               Int     @default(100)
+  invitationValidDays          Int     @default(7)
+  autoInviteEnabled            Boolean @default(false)
+  autoInviteCount              Int     @default(10)
+  autoInviteFrequency          String  @default("WEEKLY") // DAILY, WEEKLY, MONTHLY
+  referralBoostAmount          Float   @default(1.0)
+  maxReferralBoost             Float   @default(10.0)
+  showQueuePosition            Boolean @default(true)
+  showTotalWaitlist            Boolean @default(true)
+  invitationEmailTemplate      String  @default("") @db.Text
+  waitlistConfirmationTemplate String  @default("") @db.Text
+  reminderEmailTemplate        String  @default("") @db.Text
+}
+
+// Job tracking models for BullMQ
+model JobRecord {
+  id          String    @id @default(cuid())
+  queueName   String
+  jobId       String
+  name        String
+  data        Json
+  status      JobStatus @default(PENDING)
+  result      Json?
+  error       String?
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([queueName, jobId])
+  @@index([status])
+  @@index([queueName])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum JobStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  FAILED
+  DELAYED
+  PAUSED
 }

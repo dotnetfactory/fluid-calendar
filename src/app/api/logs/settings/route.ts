@@ -1,37 +1,15 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getToken } from "next-auth/jwt";
 import { logger } from "@/lib/logger";
+import { requireAdmin } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "LogSettingsAPI";
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to log settings API",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
     // Check if user is admin
-    if (token.role !== "ADMIN") {
-      logger.warn(
-        "Non-admin user attempted to access log settings",
-        { userId: token.sub ?? "unknown" },
-        LOG_SOURCE
-      );
-      return new NextResponse("Forbidden", { status: 403 });
-    }
+    const authResponse = await requireAdmin(request);
+    if (authResponse) return authResponse;
 
     const settings = await prisma.systemSettings.findFirst();
 
@@ -89,31 +67,9 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    // Get the user token from the request
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    // If there's no token, return unauthorized
-    if (!token) {
-      logger.warn(
-        "Unauthorized access attempt to log settings API",
-        {},
-        LOG_SOURCE
-      );
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
     // Check if user is admin
-    if (token.role !== "ADMIN") {
-      logger.warn(
-        "Non-admin user attempted to update log settings",
-        { userId: token.sub ?? "unknown" },
-        LOG_SOURCE
-      );
-      return new NextResponse("Forbidden", { status: 403 });
-    }
+    const authResponse = await requireAdmin(request);
+    if (authResponse) return authResponse;
 
     const body = await request.json();
     const { logLevel, logDestination, logRetention } = body;
