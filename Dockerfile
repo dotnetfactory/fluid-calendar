@@ -11,9 +11,9 @@ RUN apk add --no-cache netcat-openbsd
 FROM base AS development
 WORKDIR /app
 ENV NODE_ENV=development
+COPY . .
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
-COPY . .
 RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["npm", "run", "dev"]
@@ -21,9 +21,9 @@ CMD ["npm", "run", "dev"]
 # Production builder stage
 FROM base AS builder
 WORKDIR /app
+COPY . .
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
-COPY . .
 RUN npm run build
 RUN npm run prisma:generate
 
