@@ -37,6 +37,7 @@ export interface Task {
   description?: string | null;
   status: TaskStatus;
   dueDate?: Date | null;
+  startDate?: Date | null;
   duration?: number | null;
   priority?: Priority | null;
   energyLevel?: EnergyLevel | null;
@@ -83,6 +84,8 @@ export interface TaskFilters {
     start: Date;
     end: Date;
   };
+  startDate?: Date | null;
+  hideUpcomingTasks?: boolean;
   priority?: Priority[];
   energyLevel?: EnergyLevel[];
   timePreference?: TimePreference[];

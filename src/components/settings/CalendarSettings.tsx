@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function CalendarSettings() {
-  const { calendar, updateCalendarSettings } = useSettingsStore();
+  const { calendar, updateCalendarSettings, user, updateUserSettings } =
+    useSettingsStore();
   const { feeds, loadFromDatabase } = useCalendarStore();
 
   // Load feeds when component mounts
@@ -61,6 +62,28 @@ export function CalendarSettings() {
                   {feed.name}
                 </SelectItem>
               ))}
+          </SelectContent>
+        </Select>
+      </SettingRow>
+
+      <SettingRow
+        label="Week Start Day"
+        description="Set which day of the week your calendar should start on"
+      >
+        <Select
+          value={user.weekStartDay}
+          onValueChange={(value) =>
+            updateUserSettings({
+              weekStartDay: value as "monday" | "sunday",
+            })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select start day" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="sunday">Sunday</SelectItem>
+            <SelectItem value="monday">Monday</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>

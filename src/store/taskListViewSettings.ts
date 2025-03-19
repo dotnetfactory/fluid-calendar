@@ -6,6 +6,7 @@ interface TaskListViewSettings {
   // Sort settings
   sortBy:
     | "dueDate"
+    | "startDate"
     | "title"
     | "status"
     | "project"
@@ -22,6 +23,7 @@ interface TaskListViewSettings {
   timePreference?: TimePreference[];
   tagIds?: string[];
   search?: string;
+  hideUpcomingTasks?: boolean;
 
   // Actions
   setSortBy: (sortBy: TaskListViewSettings["sortBy"]) => void;
@@ -52,6 +54,7 @@ export const useTaskListViewSettings = create<TaskListViewSettings>()(
       timePreference: undefined,
       tagIds: undefined,
       search: undefined,
+      hideUpcomingTasks: false,
 
       // Actions
       setSortBy: (sortBy) => set({ sortBy }),
@@ -64,6 +67,7 @@ export const useTaskListViewSettings = create<TaskListViewSettings>()(
           timePreference: undefined,
           tagIds: undefined,
           search: undefined,
+          hideUpcomingTasks: false,
         }),
     }),
     {

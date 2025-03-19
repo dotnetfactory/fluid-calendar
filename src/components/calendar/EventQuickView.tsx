@@ -224,6 +224,15 @@ export function EventQuickView({
                   </span>
                 </div>
 
+                {taskItem.startDate && (
+                  <div className="flex items-center gap-2">
+                    <IoCalendarOutline className="h-4 w-4 flex-shrink-0" />
+                    <span>
+                      Starts {format(newDate(taskItem.startDate), "PPp")}
+                    </span>
+                  </div>
+                )}
+
                 {taskItem.priority && (
                   <div className="flex items-center gap-2">
                     <IoFlagOutline className="h-4 w-4 flex-shrink-0" />

@@ -25,22 +25,84 @@ export function UserSettings() {
     { value: "monday", label: "Monday" },
   ];
 
-  // Static list of common timezones
+  // Comprehensive list of common timezones
   const timeZones = [
+    // UTC
     "UTC",
-    "America/New_York",
+    // North America
+    "America/Anchorage",
     "America/Chicago",
     "America/Denver",
+    "America/Edmonton",
+    "America/Halifax",
     "America/Los_Angeles",
+    "America/Mexico_City",
+    "America/Montreal",
+    "America/New_York",
+    "America/Phoenix",
     "America/Toronto",
-    "Europe/London",
-    "Europe/Paris",
+    "America/Vancouver",
+    "America/Winnipeg",
+    // South America
+    "America/Bogota",
+    "America/Buenos_Aires",
+    "America/Caracas",
+    "America/Lima",
+    "America/Santiago",
+    "America/Sao_Paulo",
+    // Europe
+    "Europe/Amsterdam",
+    "Europe/Athens",
     "Europe/Berlin",
-    "Asia/Tokyo",
+    "Europe/Brussels",
+    "Europe/Budapest",
+    "Europe/Copenhagen",
+    "Europe/Dublin",
+    "Europe/Helsinki",
+    "Europe/Istanbul",
+    "Europe/Lisbon",
+    "Europe/London",
+    "Europe/Madrid",
+    "Europe/Moscow",
+    "Europe/Oslo",
+    "Europe/Paris",
+    "Europe/Prague",
+    "Europe/Rome",
+    "Europe/Stockholm",
+    "Europe/Vienna",
+    "Europe/Warsaw",
+    "Europe/Zurich",
+    // Asia
+    "Asia/Bangkok",
+    "Asia/Dubai",
+    "Asia/Hong_Kong",
+    "Asia/Jakarta",
+    "Asia/Jerusalem",
+    "Asia/Kolkata",
+    "Asia/Kuala_Lumpur",
+    "Asia/Manila",
+    "Asia/Riyadh",
+    "Asia/Seoul",
     "Asia/Shanghai",
     "Asia/Singapore",
+    "Asia/Taipei",
+    "Asia/Tokyo",
+    // Africa
+    "Africa/Cairo",
+    "Africa/Casablanca",
+    "Africa/Johannesburg",
+    "Africa/Lagos",
+    "Africa/Nairobi",
+    // Oceania
+    "Australia/Adelaide",
+    "Australia/Brisbane",
+    "Australia/Darwin",
+    "Australia/Melbourne",
+    "Australia/Perth",
     "Australia/Sydney",
     "Pacific/Auckland",
+    "Pacific/Fiji",
+    "Pacific/Honolulu",
   ];
 
   return (
@@ -127,10 +189,10 @@ export function UserSettings() {
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-h-[300px]">
             {timeZones.map((zone) => (
               <SelectItem key={zone} value={zone}>
-                {zone.replace("_", " ")}
+                {zone.replace(/_/g, " ")}
               </SelectItem>
             ))}
           </SelectContent>

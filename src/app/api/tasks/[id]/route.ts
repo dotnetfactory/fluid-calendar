@@ -125,6 +125,34 @@ export async function PUT(
         }
 
         if (nextOccurrence) {
+          // Calculate the time delta between start date and due date (if both exist)
+          let nextStartDate = undefined;
+          if (task.startDate && task.dueDate) {
+            // Calculate the number of days between the original start and due dates
+            const startToDueDelta = Math.round(
+              (task.dueDate.getTime() - task.startDate.getTime()) /
+                (1000 * 60 * 60 * 24)
+            );
+
+            // Apply the same delta to the new due date to get the new start date
+            const newStartDate = new Date(nextOccurrence);
+            newStartDate.setDate(newStartDate.getDate() - startToDueDelta);
+            nextStartDate = newStartDate;
+
+            logger.info(
+              "Calculated new start date for recurring task",
+              {
+                taskId: task.id,
+                originalStartDate: task.startDate?.toISOString(),
+                originalDueDate: task.dueDate?.toISOString(),
+                deltaInDays: startToDueDelta,
+                newDueDate: nextOccurrence.toISOString(),
+                newStartDate: nextStartDate.toISOString(),
+              },
+              LOG_SOURCE
+            );
+          }
+
           // Create a completed instance as a separate task
           await prisma.task.create({
             data: {
@@ -132,6 +160,7 @@ export async function PUT(
               description: task.description,
               status: TaskStatus.COMPLETED,
               dueDate: baseDate, // Use the original due date for the completed instance
+              startDate: task.startDate, // Use the original start date for the completed instance
               duration: task.duration,
               priority: task.priority,
               energyLevel: task.energyLevel,
@@ -149,6 +178,7 @@ export async function PUT(
 
           // Update the recurring task with new due date and reset status
           updates.dueDate = nextOccurrence;
+          updates.startDate = nextStartDate; // Update the start date if calculated
           updates.status = TaskStatus.TODO;
           updates.lastCompletedDate = newDate();
         }

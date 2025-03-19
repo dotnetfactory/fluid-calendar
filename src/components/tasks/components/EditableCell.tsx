@@ -10,7 +10,12 @@ import {
 } from "@/components/ui/select";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, newDate, newDateFromYMD } from "@/lib/date-utils";
+import {
+  format,
+  newDate,
+  newDateFromYMD,
+  createUTCMidnightDate,
+} from "@/lib/date-utils";
 import { useProjectStore } from "@/store/project";
 import {
   formatEnumValue,
@@ -19,7 +24,7 @@ import {
   priorityColors,
 } from "../utils/task-list-utils";
 import { Button } from "@/components/ui/button";
-import { HiCheck, HiX } from "react-icons/hi";
+import { HiCheck, HiX, HiExclamation } from "react-icons/hi";
 
 interface EditableCellProps {
   task: Task;
@@ -188,6 +193,16 @@ export function EditableCell({
               "Set due date"
             )}
           </span>
+        ) : field === "startDate" ? (
+          <span
+            className={`text-sm ${
+              value ? "text-muted-foreground" : "text-muted-foreground/70"
+            }`}
+          >
+            {value
+              ? formatContextualDate(newDate(value)).text
+              : "Set start date"}
+          </span>
         ) : field === "projectId" ? (
           <div className="flex items-center gap-2">
             {task.project ? (
@@ -317,7 +332,15 @@ export function EditableCell({
       ) : field === "dueDate" ? (
         <div className="flex items-center gap-2">
           <DatePicker
-            selected={editValue ? newDate(editValue) : null}
+            selected={
+              editValue
+                ? newDateFromYMD(
+                    new Date(editValue).getUTCFullYear(),
+                    new Date(editValue).getUTCMonth(),
+                    new Date(editValue).getUTCDate()
+                  )
+                : null
+            }
             onChange={(date) => {
               // Just update the local state, don't save yet
               setEditValue(date);
@@ -331,9 +354,55 @@ export function EditableCell({
             size="sm"
             variant="ghost"
             onClick={() => {
+              // Use the date-utils function to create a consistent UTC midnight date
               onSave({
                 ...task,
-                [field]: editValue ? newDate(editValue) : null,
+                [field]: createUTCMidnightDate(editValue),
+              });
+              setIsEditing(false);
+            }}
+            className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-500/10"
+          >
+            <HiCheck className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleCancel}
+            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <HiX className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : field === "startDate" ? (
+        <div className="flex items-center gap-2">
+          <DatePicker
+            selected={
+              editValue
+                ? newDateFromYMD(
+                    new Date(editValue).getUTCFullYear(),
+                    new Date(editValue).getUTCMonth(),
+                    new Date(editValue).getUTCDate()
+                  )
+                : null
+            }
+            onChange={(date) => {
+              // Just update the local state, don't save yet
+              setEditValue(date);
+            }}
+            className="h-8 w-full border border-input bg-background px-2 py-1 text-sm rounded-md"
+            dateFormat="MMM d, yyyy"
+            isClearable
+            autoFocus
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              // Use the date-utils function to create a consistent UTC midnight date
+              onSave({
+                ...task,
+                [field]: createUTCMidnightDate(editValue),
               });
               setIsEditing(false);
             }}
@@ -448,4 +517,3 @@ const formatContextualDate = (date: Date) => {
 
 // Import missing functions
 import { isToday, isTomorrow, isThisWeek, isThisYear } from "date-fns";
-import { HiExclamation } from "react-icons/hi";

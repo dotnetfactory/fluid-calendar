@@ -802,17 +802,6 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
     const tasks = useTaskStore.getState().tasks;
     // const userTimeZone = useSettingsStore.getState().user.timeZone;
 
-    // console.log("Converting tasks to events:", {
-    //   totalTasks: tasks.length,
-    //   tasksWithDueDate: tasks.filter((task) => task.dueDate).length,
-    //   tasksAutoScheduled: tasks.filter(
-    //     (task) =>
-    //       task.isAutoScheduled && task.scheduledStart && task.scheduledEnd
-    //   ).length,
-    //   dateRange: { start: start.toISOString(), end: end.toISOString() },
-    //   userTimeZone,
-    // });
-
     // Create date boundaries in user's timezone
     const startDay = newDate(start);
     startDay.setHours(0, 0, 0, 0);
@@ -821,9 +810,11 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
 
     const events = tasks
       .filter((task) => {
+        // Skip completed tasks
         if (task.status === TaskStatus.COMPLETED) {
           return false;
         }
+
         if (task.isAutoScheduled && task.scheduledStart && task.scheduledEnd) {
           // For auto-scheduled tasks, check if scheduled time is within range
           const scheduledStart = newDate(task.scheduledStart);
@@ -867,6 +858,9 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
               dueDate: task.dueDate
                 ? newDate(task.dueDate).toISOString()
                 : null,
+              startDate: task.startDate
+                ? newDate(task.startDate).toISOString()
+                : null,
             },
           };
         } else {
@@ -904,12 +898,14 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
               dueDate: task.dueDate
                 ? newDate(task.dueDate).toISOString()
                 : null,
+              startDate: task.startDate
+                ? newDate(task.startDate).toISOString()
+                : null,
             },
           };
         }
       });
 
-    // console.log("Converted tasks to events:", events.length);
     return events;
   },
 

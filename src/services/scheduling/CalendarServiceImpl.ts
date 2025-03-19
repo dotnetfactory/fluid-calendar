@@ -201,6 +201,11 @@ export class CalendarServiceImpl implements CalendarService {
     userId: string,
     excludeTaskId?: string
   ): Promise<BatchConflictCheck[]> {
+    // Safety check: if slots array is empty, return empty results
+    if (!slots || slots.length === 0) {
+      return [];
+    }
+
     // Get the earliest start and latest end times from all slots
     const startTime = slots.reduce(
       (earliest, { slot }) => (slot.start < earliest ? slot.start : earliest),

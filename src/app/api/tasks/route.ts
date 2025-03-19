@@ -28,7 +28,10 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const taskStartDate = searchParams.get("taskStartDate");
+    const hideUpcomingTasks = searchParams.get("hideUpcomingTasks") === "true";
 
+    const now = newDate();
     const tasks = await prisma.task.findMany({
       where: {
         // Filter by the current user's ID
@@ -52,6 +55,14 @@ export async function GET(request: NextRequest) {
               lte: newDate(endDate),
             },
           }),
+        ...(taskStartDate && {
+          startDate: {
+            gte: newDate(taskStartDate),
+          },
+        }),
+        ...(hideUpcomingTasks && {
+          OR: [{ startDate: null }, { startDate: { lte: now } }],
+        }),
       },
       include: {
         tags: true,

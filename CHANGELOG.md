@@ -4,12 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 ### Added
+- Added task start date feature to specify when a task should become active
+  - Tasks with future start dates won't appear in focus mode
+  - Auto-scheduling respects start dates, not scheduling tasks before their start date
+  - Visual indicators for upcoming tasks in task list view
+  - Filter option to hide upcoming tasks
+  - Ability to sort and filter by start date
+- Added week start day setting to Calendar Settings UI to allow users to choose between Monday and Sunday as the first day of the week
+- Expanded timezone options in user settings to include a more comprehensive global list fixes #68
 
 ### Changed
 - Replaced Google Fonts CDN with self-hosted Inter font to fix intermittent build failures
 
 ### Fixed
-
+- Fixed startDate handling for recurring tasks, ensuring the time interval between start date and due date is preserved when creating new instances
+- Fixed timezone inconsistency in task list display for start dates and due dates
+- Fixed DatePicker showing incorrect dates (off by one day) when inline editing due dates and start dates
 
 ## [1.2.2] 2025-03-18
 ### Added

@@ -32,6 +32,12 @@ The `settings` JSONB field will store:
       "width": 120,
       "order": 1
     },
+    {
+      "id": "startDate",
+      "visible": true,
+      "width": 120,
+      "order": 5
+    },
     // other columns...
   ],
   "sort": {
@@ -43,7 +49,9 @@ The `settings` JSONB field will store:
     "energyLevel": null,
     "timePreference": null,
     "tagIds": null,
-    "search": null
+    "search": null,
+    "startDate": null,
+    "hideUpcomingTasks": false
   }
 }
 ```
@@ -105,6 +113,7 @@ model User {
    - Update to load from and save to the new API
    - Add methods to save current settings as a new view
    - Implement loading settings from saved views
+   - Add support for the new startDate filter options
 
 ### Phase 3: UI Components for View Management
 
@@ -123,7 +132,7 @@ model User {
 
 8. **Implement Column Selection**
    - Create a column selector component
-   - Allow toggling visibility of columns
+   - Allow toggling visibility of columns (including startDate)
    - Store column visibility in view settings
 
 9. **Add Column Reordering**
@@ -139,7 +148,8 @@ model User {
 11. **Enhance Filter UI**
     - Create a more advanced filter panel
     - Support multiple conditions for the same field
-    - Add date range filters for due dates
+    - Add date range filters for due dates and start dates
+    - Add "Hide future tasks" option that hides tasks with start dates in the future
 
 12. **Implement Filter Persistence**
     - Save filter configurations in view settings
@@ -154,6 +164,7 @@ model User {
 14. **Implement Row Styling Rules**
     - Add conditional formatting based on task properties
     - Store styling rules in view settings
+    - Add visual indication for tasks with future start dates
 
 ### Phase 7: Testing and Refinement
 
@@ -204,6 +215,7 @@ model User {
   - Add method to save current settings to a view
   - Add method to load settings from a view
   - Keep local changes until explicitly saved
+  - Add support for startDate filtering options
 
 ### Task 6: Create View Selector Component
 - Create `/src/components/tasks/components/ViewSelector.tsx`
@@ -215,11 +227,12 @@ model User {
 - Create `/src/components/tasks/components/ViewSettingsModal.tsx`
 - Implement form for view name and default status
 - Add tabs for different setting categories (columns, sorting, filtering)
+- Include startDate options in the appropriate categories
 - Implement save and cancel functionality
 
 ### Task 8: Implement Column Selection
 - Create `/src/components/tasks/components/ColumnSelector.tsx`
-- List all available columns with checkboxes
+- List all available columns with checkboxes (including startDate)
 - Update TaskList to only render visible columns
 - Store column visibility in view settings
 
@@ -236,7 +249,8 @@ model User {
 ### Task 11: Enhance Filter UI
 - Create `/src/components/tasks/components/AdvancedFilter.tsx`
 - Support multiple conditions per field
-- Add date range picker for due dates
+- Add date range picker for due dates and start dates
+- Add "Hide future tasks" option
 - Implement AND/OR logic between conditions
 
 ### Task 12: Implement Filter Persistence
@@ -251,7 +265,8 @@ model User {
 
 ### Task 14: Implement Row Styling Rules
 - Create UI for defining conditional formatting rules
-- Apply styles to rows based on rules
+- Apply styles to rows based on rules (including start date status)
+- Add visual indicators for future tasks
 - Store rules in view settings
 
 ### Task 15-17: Testing and Optimization
@@ -267,6 +282,7 @@ model User {
 - Use a throttled save mechanism to prevent excessive API calls
 - Consider accessibility throughout the implementation
 - Ensure mobile responsiveness for all new components
+- Add proper support for the new startDate field in all components and filters
 
 ## Next Steps After Completion
 
@@ -276,3 +292,4 @@ Once the TaskList enhancements are complete and working perfectly, we can consid
 2. Adding more advanced features like task dependencies
 3. Implementing team sharing of views
 4. Adding AI-suggested views based on user behavior 
+5. Creating saved filters for tasks based on start date (e.g., "Starting this week") 

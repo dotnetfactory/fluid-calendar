@@ -182,6 +182,7 @@ model Task {
 
   // Time Management
   dueDate       DateTime?
+  startDate     DateTime? // When the task becomes active
   duration      Int? // estimated duration in minutes
   priority      String? // enum: 'high', 'medium', 'low', 'none'
   energyLevel   String? // enum: 'high', 'medium', 'low'
@@ -223,6 +224,7 @@ model Task {
 
   @@index([status])
   @@index([dueDate])
+  @@index([startDate])
   @@index([priority])
   @@index([projectId])
   @@index([isRecurring])

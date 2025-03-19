@@ -64,6 +64,7 @@ export function TaskModal({
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.TODO);
   const [dueDate, setDueDate] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
   const [duration, setDuration] = useState<string>("");
   const [energyLevel, setEnergyLevel] = useState<EnergyLevel | "">("");
   const [preferredTime, setPreferredTime] = useState<TimePreference | "">("");
@@ -92,6 +93,7 @@ export function TaskModal({
     setDescription("");
     setStatus(TaskStatus.TODO);
     setDueDate("");
+    setStartDate("");
     setDuration("");
     setEnergyLevel("");
     setPreferredTime("");
@@ -126,6 +128,12 @@ export function TaskModal({
       } else {
         setDueDate("");
       }
+      if (task.startDate) {
+        const date = newDate(task.startDate);
+        setStartDate(date.toISOString().split("T")[0]);
+      } else {
+        setStartDate("");
+      }
       setDuration(task.duration?.toString() || "");
       setEnergyLevel(task.energyLevel || "");
       setPreferredTime(task.preferredTime || "");
@@ -159,6 +167,7 @@ export function TaskModal({
         description: description.trim() || undefined,
         status,
         dueDate: dueDate ? newDate(dueDate) : null,
+        startDate: startDate ? newDate(startDate) : null,
         duration: duration ? parseInt(duration, 10) : undefined,
         energyLevel: energyLevel || undefined,
         preferredTime: preferredTime || undefined,
@@ -250,6 +259,19 @@ export function TaskModal({
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
               />
+            </div>
+
+            <div>
+              <Label htmlFor="startDate">Start Date</Label>
+              <Input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional: Task won&apos;t be scheduled before this date
+              </p>
             </div>
 
             <div>

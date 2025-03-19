@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 type SortableColumn =
   | "title"
   | "dueDate"
+  | "startDate"
   | "status"
   | "project"
   | "schedule"

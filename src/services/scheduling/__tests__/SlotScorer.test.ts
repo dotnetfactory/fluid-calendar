@@ -55,6 +55,7 @@ describe("SlotScorer", () => {
       description: null,
       status: "todo",
       dueDate: null,
+      startDate: null,
       duration: 30,
       priority: null,
       energyLevel: null,

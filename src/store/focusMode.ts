@@ -90,6 +90,7 @@ export const useFocusModeStore = create<FocusModeStore>()(
         logger.debug("[FocusMode] Getting queued tasks", {}, LOG_SOURCE);
         const tasks = useTaskStore.getState().tasks;
         const currentTaskId = get().currentTaskId;
+        const now = newDate();
 
         if (!tasks || tasks.length === 0) {
           logger.debug("[FocusMode] No tasks available", {}, LOG_SOURCE);
@@ -99,11 +100,13 @@ export const useFocusModeStore = create<FocusModeStore>()(
         // Filter for tasks that are:
         // 1. Not completed
         // 2. Not postponed
-        // 3. Include the current task (we'll filter it out later if needed)
+        // 3. Don't have a future start date
+        // 4. Include the current task (we'll filter it out later if needed)
         const availableTasks = tasks.filter(
           (task) =>
             task.status !== TaskStatus.COMPLETED &&
-            (!task.postponedUntil || newDate(task.postponedUntil) <= newDate())
+            (!task.postponedUntil || newDate(task.postponedUntil) <= now) &&
+            (!task.startDate || newDate(task.startDate) <= now)
         );
 
         // Log if current task is in available tasks

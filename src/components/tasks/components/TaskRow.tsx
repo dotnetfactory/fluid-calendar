@@ -37,13 +37,17 @@ export function TaskRow({
   onInlineEdit,
 }: TaskRowProps) {
   const { draggableProps, isDragging } = useDraggableTask(task);
+  const now = newDate();
+  const isFutureTask = task.startDate && newDate(task.startDate) > now;
 
   return (
     <tr
       key={task.id}
-      className={`hover:bg-muted/50 transition-colors ${
-        isDragging ? "opacity-50" : ""
-      }`}
+      className={cn(
+        "hover:bg-muted/50 transition-colors",
+        isDragging ? "opacity-50" : "",
+        isFutureTask ? "bg-muted/25 text-muted-foreground" : ""
+      )}
     >
       <td className="px-3 py-2">
         <div
@@ -131,19 +135,39 @@ export function TaskRow({
       </td>
       <td className="px-3 py-2">
         <div className="flex items-center gap-2">
-          {task.isRecurring && (
-            <HiRefresh
-              className="h-4 w-4 text-primary flex-shrink-0"
-              title="Recurring task"
-            />
-          )}
           <EditableCell
             task={task}
             field="title"
             value={task.title}
             onSave={onInlineEdit}
           />
+
+          {isFutureTask && (
+            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+              Upcoming
+            </span>
+          )}
+
+          {task.isRecurring && (
+            <HiRefresh
+              className="h-4 w-4 text-blue-500 shrink-0"
+              title="Recurring task"
+            />
+          )}
+          {task.isAutoScheduled && (
+            <HiClock
+              className="h-4 w-4 text-purple-500 shrink-0"
+              title="Auto-scheduled"
+            />
+          )}
+          {task.scheduleLocked && (
+            <HiLockClosed
+              className="h-4 w-4 text-amber-500 shrink-0"
+              title="Schedule locked"
+            />
+          )}
         </div>
+
       </td>
       <td className="px-3 py-2 whitespace-nowrap">
         <EditableCell
@@ -209,7 +233,7 @@ export function TaskRow({
               )}
               {task.scheduledStart && task.scheduledEnd && (
                 <span className="text-sm text-primary">
-                  {format(newDate(task.scheduledStart), "p")} -{" "}
+                  {format(newDate(task.scheduledStart), "MMM d, p")} -{" "}
                   {format(newDate(task.scheduledEnd), "p")}
                   {task.scheduleScore && (
                     <span className="ml-1 text-primary/70">
@@ -223,6 +247,14 @@ export function TaskRow({
             <span className="text-sm text-muted-foreground">Manual</span>
           )}
         </div>
+      </td>
+      <td className="px-3 py-2 whitespace-nowrap text-sm text-muted-foreground">
+        <EditableCell
+          task={task}
+          field="startDate"
+          value={task.startDate}
+          onSave={onInlineEdit}
+        />
       </td>
       <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
         <div className="flex items-center gap-1">

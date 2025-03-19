@@ -158,6 +158,17 @@ export function subHours(date: Date, hours: number): Date {
   return subMinutes(date, hours * 60);
 }
 
+/**
+ * Creates a date at UTC midnight from a local date's components
+ * This is useful for storing dates consistently regardless of user timezone
+ */
+export function createUTCMidnightDate(localDate: Date | null): Date | null {
+  if (!localDate) return null;
+  return new Date(
+    Date.UTC(localDate.getFullYear(), localDate.getMonth(), localDate.getDate())
+  );
+}
+
 // Re-export date-fns functions
 export {
   addMinutes,

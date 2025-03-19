@@ -82,10 +82,23 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       await this.updateScheduledTasks(userId);
     }
 
+    // If task has a startDate that is beyond our endDate window, return empty slots
+    // These tasks will get picked up in a future scheduling run
+    if (task.startDate instanceof Date && task.startDate > endDate) {
+      // Skip this task - it will be scheduled in a future run
+      return [];
+    }
+
+    // If task has a startDate and it's after the provided startDate but within window, use the task's startDate
+    const effectiveStartDate =
+      task.startDate instanceof Date && task.startDate > startDate
+        ? task.startDate
+        : startDate;
+
     // 1. Generate potential slots
     const potentialSlots = this.generatePotentialSlots(
       task.duration || DEFAULT_TASK_DURATION,
-      startDate,
+      effectiveStartDate,
       endDate
     );
 
@@ -357,11 +370,17 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     const batchResults = await this.calendarService.findBatchConflicts(
       slotsToCheck,
       selectedCalendars,
+      task.userId || "",
       task.id
     );
 
     // Process results and check for conflicts with in-memory scheduled tasks
     for (const result of batchResults) {
+      // Add null check to prevent "Cannot read properties of undefined (reading 'slot')"
+      if (!result || !result.slot) {
+        continue;
+      }
+
       if (result.conflicts.length === 0) {
         // Check for conflicts with in-memory scheduled tasks
         if (!this.hasInMemoryConflict(result.slot)) {

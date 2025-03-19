@@ -39,6 +39,7 @@ export function TaskList({
     timePreference,
     tagIds,
     search,
+    hideUpcomingTasks,
     setSortBy,
     setSortDirection,
     setFilters,
@@ -64,9 +65,20 @@ export function TaskList({
 
   // Then apply other filters
   const filteredTasks = useMemo(() => {
+    const now = newDate();
+
     return projectFilteredTasks.filter((task) => {
       // Status filter
       if (status?.length && !status.includes(task.status)) {
+        return false;
+      }
+
+      // Hide future tasks
+      if (
+        hideUpcomingTasks &&
+        task.startDate &&
+        newDate(task.startDate) > now
+      ) {
         return false;
       }
 
@@ -113,6 +125,7 @@ export function TaskList({
     timePreference,
     tagIds,
     search,
+    hideUpcomingTasks,
   ]);
 
   // Apply sorting
@@ -128,6 +141,13 @@ export function TaskList({
           return (
             direction *
             (newDate(a.dueDate).getTime() - newDate(b.dueDate).getTime())
+          );
+        case "startDate":
+          if (!a.startDate) return 1;
+          if (!b.startDate) return -1;
+          return (
+            direction *
+            (newDate(a.startDate).getTime() - newDate(b.startDate).getTime())
           );
         case "status":
           return direction * a.status.localeCompare(b.status);
@@ -260,6 +280,21 @@ export function TaskList({
             </Button>
           )}
         </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="hideUpcomingTasks"
+            checked={hideUpcomingTasks}
+            onChange={(e) =>
+              setFilters({ hideUpcomingTasks: e.target.checked })
+            }
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/80"
+          />
+          <label htmlFor="hideUpcomingTasks" className="text-sm">
+            Hide upcoming tasks
+          </label>
+        </div>
       </div>
 
       <div className="flex-1 bg-background border rounded-lg">
@@ -345,6 +380,14 @@ export function TaskList({
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
+                />
+                <SortableHeader
+                  column="startDate"
+                  label="Start Date"
+                  currentSort={sortBy}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="w-40"
                 />
                 <th scope="col" className="relative px-3 py-2 w-10">
                   <span className="sr-only">Actions</span>
