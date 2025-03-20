@@ -169,6 +169,39 @@ export function createUTCMidnightDate(localDate: Date | null): Date | null {
   );
 }
 
+/**
+ * Creates a date for an all-day event, handling timezone issues
+ * For all-day events, the date should be interpreted as local midnight
+ * This prevents issues where all-day events appear on the wrong day due to timezone conversion
+ * @param dateString The date string in ISO format (YYYY-MM-DD)
+ * @returns Date object representing midnight (00:00:00) in local time for that day
+ */
+export function createAllDayDate(dateString: string): Date {
+  if (!dateString) return new Date();
+
+  // For an all-day event, extract just the YYYY-MM-DD portion
+  const [year, month, day] = dateString.split("T")[0].split("-").map(Number);
+
+  // Create a date at midnight local time for the specified day
+  return new Date(year, month - 1, day, 0, 0, 0);
+}
+
+/**
+ * Creates a date for an Outlook all-day event
+ * Outlook requires all-day events to have start and end times at exactly midnight UTC
+ * @param dateString The date string in ISO format (YYYY-MM-DD)
+ * @returns Date object representing midnight (00:00:00) in UTC for that day
+ */
+export function createOutlookAllDayDate(dateString: string): Date {
+  if (!dateString) return new Date();
+
+  // For an all-day event, extract just the YYYY-MM-DD portion
+  const [year, month, day] = dateString.split("T")[0].split("-").map(Number);
+
+  // Create a date at midnight UTC for the specified day
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+}
+
 // Re-export date-fns functions
 export {
   addMinutes,

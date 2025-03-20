@@ -8,7 +8,6 @@
 - [ ] use task-reminder job for sending reminders
 - [ ] cron job to cleanup logs
 - [ ] cron job to expire waitlist verifications
-- [ ] all-day multi-day editing is not working (google)
 - [ ] support attendees
 - [ ] support event notifications
 - [ ] add localization for date formatting
@@ -19,7 +18,6 @@
 # CalDAV Implementation
 ## Phase 3: Calendar Synchronization (Pending)
 - [ ] Implement two-way sync with change tracking
-- [ ] all day events are off by a day
 
 ## Phase 4: Advanced Features (Pending)
 - [ ] Support for CalDAV collections

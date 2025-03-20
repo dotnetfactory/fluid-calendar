@@ -17,7 +17,7 @@ export function useNavigationCommands(): Command[] {
       section: "navigation",
       shortcut: "gc",
       perform: (router?: AppRouterInstance) => {
-        if (router) router.push("/");
+        if (router) router.push("/calendar");
       },
     },
     {

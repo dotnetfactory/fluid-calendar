@@ -68,7 +68,7 @@ export function SignInForm() {
         // to ensure the token is available for the next request
         setTimeout(() => {
           // Force a hard navigation to ensure the middleware re-evaluates with the new token
-          window.location.href = "/";
+          window.location.href = "/calendar";
         }, 100);
       }
     } catch (error) {

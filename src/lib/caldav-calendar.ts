@@ -1,8 +1,4 @@
-import {
-  CalendarEvent,
-  ConnectedAccount,
-  Prisma,
-} from "@prisma/client";
+import { CalendarEvent, ConnectedAccount, Prisma } from "@prisma/client";
 import { createDAVClient, DAVResponse, DAVDepth } from "tsdav";
 import ICAL from "ical.js";
 import { logger } from "@/lib/logger";
@@ -934,13 +930,18 @@ export class CalDAVCalendarService {
       dtstart.setParameter("value", "date");
       dtend.setParameter("value", "date");
 
-      // Format as YYYYMMDD for all-day events
+      // Use ICAL.Time for all-day events with isDate=true
       const formatDate = (date: Date) => {
-        return date.toISOString().split("T")[0].replace(/-/g, "");
+        const dateString = date.toISOString().split("T")[0];
+        return ICAL.Time.fromDateString(dateString);
       };
 
       dtstart.setValue(formatDate(event.start));
-      dtend.setValue(formatDate(event.end));
+
+      // For all-day events, the end date should be the next day in iCal
+      // Make sure we create a new date to avoid mutating the original
+      const endDate = new Date(event.end);
+      dtend.setValue(formatDate(endDate));
     } else {
       // Set as date-time with timezone
       const startTime = ICAL.Time.fromJSDate(event.start, false);

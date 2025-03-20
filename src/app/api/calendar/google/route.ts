@@ -6,7 +6,7 @@ import { TokenManager } from "@/lib/token-manager";
 import { getGoogleCalendarClient } from "@/lib/google-calendar";
 import { createGoogleOAuthClient } from "@/lib/google";
 import { GaxiosError } from "gaxios";
-import { newDate, newDateFromYMD } from "@/lib/date-utils";
+import { newDate, newDateFromYMD, createAllDayDate } from "@/lib/date-utils";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "GoogleCalendarAPI";
@@ -270,19 +270,29 @@ export async function POST(request: NextRequest) {
             },
           });
 
+          const isAllDay = masterEventData.start
+            ? !masterEventData.start.dateTime
+            : false;
+
           const masterEventRecord = {
             feedId: feed.id,
             externalEventId: eventId,
             title: masterEventData.summary || "Untitled Event",
             description: masterEventData.description || "",
-            start: newDate(
-              masterEventData.start?.dateTime ||
-                masterEventData.start?.date ||
-                ""
-            ),
-            end: newDate(
-              masterEventData.end?.dateTime || masterEventData.end?.date || ""
-            ),
+            start: isAllDay
+              ? createAllDayDate(masterEventData.start?.date || "")
+              : newDate(
+                  masterEventData.start?.dateTime ||
+                    masterEventData.start?.date ||
+                    ""
+                ),
+            end: isAllDay
+              ? createAllDayDate(masterEventData.end?.date || "")
+              : newDate(
+                  masterEventData.end?.dateTime ||
+                    masterEventData.end?.date ||
+                    ""
+                ),
             location: masterEventData.location,
             isRecurring: true,
             isMaster: true,
@@ -295,7 +305,7 @@ export async function POST(request: NextRequest) {
               )
             ),
             recurringEventId: masterEventData.recurringEventId,
-            allDay: !masterEventData.start?.dateTime,
+            allDay: isAllDay,
             status: masterEventData.status,
             sequence: masterEventData.sequence,
             created: masterEventData.created
@@ -343,13 +353,19 @@ export async function POST(request: NextRequest) {
               })
             : null;
 
+          const isAllDay = event.start ? !event.start.dateTime : false;
+
           const eventRecord = {
             feedId: feed.id,
             externalEventId: event.id,
             title: event.summary || "Untitled Event",
             description: event.description || "",
-            start: newDate(event.start?.dateTime || event.start?.date || ""),
-            end: newDate(event.end?.dateTime || event.end?.date || ""),
+            start: isAllDay
+              ? createAllDayDate(event.start?.date || "")
+              : newDate(event.start?.dateTime || event.start?.date || ""),
+            end: isAllDay
+              ? createAllDayDate(event.end?.date || "")
+              : newDate(event.end?.dateTime || event.end?.date || ""),
             location: event.location,
             isRecurring: !!event.recurringEventId,
             isMaster: false,
@@ -363,7 +379,7 @@ export async function POST(request: NextRequest) {
                     ? newDate(event.start?.dateTime || event.start?.date || "")
                     : undefined
                 ),
-            allDay: event.start ? !event.start.dateTime : false,
+            allDay: isAllDay,
             status: event.status,
             sequence: event.sequence,
             created: event.created ? newDate(event.created) : undefined,
@@ -513,6 +529,8 @@ export async function PUT(request: NextRequest) {
           event.recurrence = masterEvents.get(event.recurringEventId);
         }
 
+        const isAllDay = event.start ? !event.start.dateTime : false;
+
         await tx.calendarEvent.create({
           data: {
             id: event.id || undefined,
@@ -520,8 +538,12 @@ export async function PUT(request: NextRequest) {
             externalEventId: event.id,
             title: event.summary || "Untitled Event",
             description: event.description || "",
-            start: newDate(event.start.dateTime || event.start.date || ""),
-            end: newDate(event.end?.dateTime || event.end?.date || ""),
+            start: isAllDay
+              ? createAllDayDate(event.start.date || "")
+              : newDate(event.start.dateTime || event.start.date || ""),
+            end: isAllDay
+              ? createAllDayDate(event.end?.date || "")
+              : newDate(event.end?.dateTime || event.end?.date || ""),
             location: event.location,
             isRecurring: !!event.recurringEventId || !!event.recurrence,
             recurringEventId: event.recurringEventId,
@@ -531,7 +553,7 @@ export async function PUT(request: NextRequest) {
                 ? newDate(event.start?.dateTime || event.start?.date || "")
                 : undefined
             ),
-            allDay: event.start ? !event.start.dateTime : false,
+            allDay: isAllDay,
             status: event.status,
             sequence: event.sequence,
             created: event.created ? newDate(event.created) : undefined,

@@ -15,7 +15,7 @@ export default async function SetupPage() {
 
   // If users already exist, redirect to home page
   if (!needsSetup) {
-    redirect("/");
+    redirect("/calendar");
   }
 
   return (

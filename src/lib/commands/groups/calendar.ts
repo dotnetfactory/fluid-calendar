@@ -34,7 +34,7 @@ export function useCalendarCommands(): Command[] {
   const { isSidebarOpen, setSidebarOpen } = useCalendarUIStore();
 
   const calendarContext = {
-    requiredPath: "/",
+    requiredPath: "/calendar",
     navigateIfNeeded: true,
   };
 
@@ -58,7 +58,7 @@ export function useCalendarCommands(): Command[] {
       perform: () => setDate(subDays(currentDate, 7)),
       shortcut: "left",
       context: {
-        requiredPath: "/",
+        requiredPath: "/calendar",
         navigateIfNeeded: false,
       },
     },
@@ -71,7 +71,7 @@ export function useCalendarCommands(): Command[] {
       perform: () => setDate(addDays(currentDate, 7)),
       shortcut: "right",
       context: {
-        requiredPath: "/",
+        requiredPath: "/calendar",
         navigateIfNeeded: false,
       },
     },

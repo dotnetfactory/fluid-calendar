@@ -1,8 +1,9 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-
 ## [unreleased]
+
+## [1.2.3]
 ### Added
 - Added task start date feature to specify when a task should become active
   - Tasks with future start dates won't appear in focus mode
@@ -12,14 +13,22 @@ All notable changes to this project will be documented in this file.
   - Ability to sort and filter by start date
 - Added week start day setting to Calendar Settings UI to allow users to choose between Monday and Sunday as the first day of the week
 - Expanded timezone options in user settings to include a more comprehensive global list fixes #68
+- Bulk resend invitations functionality for users with INVITED status
+- Added "Resend Invitation" button to individual user actions in waitlist management
 
 ### Changed
 - Replaced Google Fonts CDN with self-hosted Inter font to fix intermittent build failures
+- Updated waitlist entries sorting to include secondary sorting by priorityScore and createdAt
 
 ### Fixed
+- Fixed all-day events appearing on the wrong day for Google Calendar events due to timezone handling issues
+- Fixed Outlook all-day event creation that was failing due to Outlook requiring exact midnight UTC times
+- Fixed Outlook all-day events requiring a minimum 24-hour duration by automatically extending single-day events to end on the next day at midnight
+- Fixed Outlook all-day events displaying on the wrong day in the calendar due to incorrect date conversion during sync
 - Fixed startDate handling for recurring tasks, ensuring the time interval between start date and due date is preserved when creating new instances
 - Fixed timezone inconsistency in task list display for start dates and due dates
 - Fixed DatePicker showing incorrect dates (off by one day) when inline editing due dates and start dates
+- Fixed CalDAV all-day event creation failing with "invalid date-time value" error by properly using ICAL.Time.fromDateString instead of raw string dates
 
 ## [1.2.2] 2025-03-18
 ### Added

@@ -30,7 +30,7 @@ export function AppNav({ className }: AppNavProps) {
   };
 
   const links = [
-    { href: "/", label: "Calendar", icon: BsCalendar },
+    { href: "/calendar", label: "Calendar", icon: BsCalendar },
     { href: "/tasks", label: "Tasks", icon: BsListTask },
     { href: "/focus", label: "Focus", icon: HiOutlineLightBulb },
   ];

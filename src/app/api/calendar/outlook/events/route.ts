@@ -227,6 +227,7 @@ export async function DELETE(request: NextRequest) {
     // Delete from Outlook Calendar
     await deleteOutlookEvent(
       validatedEvent.feed.accountId,
+      userId,
       validatedEvent.feed.url,
       validatedEvent.externalEventId,
       mode

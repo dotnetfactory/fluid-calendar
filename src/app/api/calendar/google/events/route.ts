@@ -12,7 +12,7 @@ import {
   getEvent,
   validateEvent,
 } from "@/lib/calendar-db";
-import { newDate } from "@/lib/date-utils";
+import { newDate, createAllDayDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 
@@ -27,6 +27,8 @@ async function writeEventToDatabase(
   instances?: GoogleEvent[]
 ) {
   const isRecurring = !!event.recurrence;
+  const isAllDay = event.start ? !event.start.dateTime : false;
+
   if (!isRecurring) {
     // Create the master event only if not recurring
     const masterEvent = await prisma.calendarEvent.create({
@@ -35,12 +37,16 @@ async function writeEventToDatabase(
         externalEventId: event.id,
         title: event.summary || "Untitled Event",
         description: event.description || "",
-        start: newDate(event.start?.dateTime || event.start?.date || ""),
-        end: newDate(event.end?.dateTime || event.end?.date || ""),
+        start: isAllDay
+          ? createAllDayDate(event.start?.date || "")
+          : newDate(event.start?.dateTime || event.start?.date || ""),
+        end: isAllDay
+          ? createAllDayDate(event.end?.date || "")
+          : newDate(event.end?.dateTime || event.end?.date || ""),
         location: event.location,
         isRecurring: isRecurring,
         recurrenceRule: event.recurrence?.[0],
-        allDay: !event.start?.dateTime,
+        allDay: isAllDay,
         status: event.status,
         sequence: event.sequence,
         created: event.created ? newDate(event.created) : undefined,
@@ -65,20 +71,27 @@ async function writeEventToDatabase(
   const createdInstances = [];
   if (instances) {
     for (const instance of instances) {
+      const instanceIsAllDay = instance.start
+        ? !instance.start.dateTime
+        : false;
+
       const createdInstance = await prisma.calendarEvent.create({
         data: {
           feedId,
           externalEventId: instance.id,
           title: instance.summary || "Untitled Event",
           description: instance.description || "",
-          start: newDate(
-            instance.start?.dateTime || instance.start?.date || ""
-          ),
-          end: newDate(instance.end?.dateTime || instance.end?.date || ""),
+          start: instanceIsAllDay
+            ? createAllDayDate(instance.start?.date || "")
+            : newDate(instance.start?.dateTime || instance.start?.date || ""),
+          end: instanceIsAllDay
+            ? createAllDayDate(instance.end?.date || "")
+            : newDate(instance.end?.dateTime || instance.end?.date || ""),
           location: instance.location,
           isRecurring: true,
           recurrenceRule: event.recurrence?.[0],
           recurringEventId: instance.recurringEventId,
+          allDay: instanceIsAllDay,
           status: instance.status,
           sequence: instance.sequence,
           created: instance.created ? newDate(instance.created) : undefined,
@@ -136,16 +149,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create event in Google Calendar
-    const googleEvent = await createGoogleEvent(feed.accountId, userId, feed.url, {
-      title: eventData.title,
-      description: eventData.description,
-      location: eventData.location,
-      start: newDate(eventData.start),
-      end: newDate(eventData.end),
-      allDay: eventData.allDay,
-      isRecurring: eventData.isRecurring,
-      recurrenceRule: eventData.recurrenceRule,
-    });
+    const googleEvent = await createGoogleEvent(
+      feed.accountId,
+      userId,
+      feed.url,
+      {
+        title: eventData.title,
+        description: eventData.description,
+        location: eventData.location,
+        start: newDate(eventData.start),
+        end: newDate(eventData.end),
+        allDay: eventData.allDay,
+        isRecurring: eventData.isRecurring,
+        recurrenceRule: eventData.recurrenceRule,
+      }
+    );
 
     if (!googleEvent.id) {
       throw new Error("Failed to get event ID from Google Calendar");

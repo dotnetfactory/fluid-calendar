@@ -3,8 +3,21 @@
 import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function OpenSourceHomePage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  const handleLogin = () => {
+    if (session) {
+      router.push("/calendar");
+    } else {
+      router.push("/auth/signin");
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* GitHub Button in Top Right */}
@@ -66,14 +79,13 @@ export default function OpenSourceHomePage() {
 
         {/* Login and GitHub Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 mb-12">
-          <Link href="/auth/signin">
-            <Button
-              size="lg"
-              className="px-8 py-6 text-lg bg-blue-600 hover:bg-blue-700"
-            >
-              Sign In
-            </Button>
-          </Link>
+          <Button
+            size="lg"
+            className="px-8 py-6 text-lg bg-blue-600 hover:bg-blue-700"
+            onClick={handleLogin}
+          >
+            {session ? "Go to App" : "Sign In"}
+          </Button>
           <Link
             href="https://github.com/dotnetfactory/fluid-calendar"
             target="_blank"
@@ -188,14 +200,13 @@ export default function OpenSourceHomePage() {
             Get Started with FluidCalendar
           </h2>
           <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
-            <Link href="/auth/signin">
-              <Button
-                size="lg"
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700"
-              >
-                Sign In to Your Instance
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              className="px-8 py-4 bg-blue-600 hover:bg-blue-700"
+              onClick={handleLogin}
+            >
+              {session ? "Go to Your Calendar" : "Sign In to Your Instance"}
+            </Button>
             <Link
               href="https://github.com/dotnetfactory/fluid-calendar#installation"
               target="_blank"

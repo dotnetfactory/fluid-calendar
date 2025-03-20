@@ -5,7 +5,7 @@ import { TokenManager } from "./token-manager";
 import { logger } from "@/lib/logger";
 import { RRule, Frequency } from "rrule";
 import { useSettingsStore } from "@/store/settings";
-import { newDate, newDateFromYMD } from "./date-utils";
+import { newDate, newDateFromYMD, createOutlookAllDayDate } from "./date-utils";
 
 const LOG_SOURCE = "OutlookCalendar";
 
@@ -420,6 +420,48 @@ export async function createOutlookEvent(
     console.log("Converted recurrence pattern:", recurrence);
   }
 
+  // Special handling for all-day events - ensure they are at midnight UTC
+  let startDate = event.start;
+  let endDate = event.end;
+
+  if (event.allDay) {
+    // Use ISO date strings to handle all-day events, ensuring they start/end at midnight UTC
+    const startStr = event.start.toISOString().split("T")[0];
+
+    // For all-day events, Outlook requires the end date to be the NEXT day at midnight UTC
+    // (to represent the end of the day, as the event duration must be at least 24 hours)
+
+    // First, check if start and end are the same day
+    const sameDay =
+      event.start.toISOString().split("T")[0] ===
+      event.end.toISOString().split("T")[0];
+
+    // If they are the same day, add one day to the end date
+    if (sameDay) {
+      // Create a new date object for the next day
+      const nextDay = new Date(event.end);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const endStr = nextDay.toISOString().split("T")[0];
+
+      startDate = createOutlookAllDayDate(startStr);
+      endDate = createOutlookAllDayDate(endStr);
+    } else {
+      // If multi-day event, use the existing end date but ensure it's at midnight UTC
+      const endStr = event.end.toISOString().split("T")[0];
+      startDate = createOutlookAllDayDate(startStr);
+      endDate = createOutlookAllDayDate(endStr);
+    }
+
+    // Log the dates for debugging
+    console.log("All-day event dates:", {
+      originalStart: event.start,
+      originalEnd: event.end,
+      adjustedStart: startDate,
+      adjustedEnd: endDate,
+      sameDay: sameDay,
+    });
+  }
+
   // Format dates in ISO format for Outlook
   const eventData = {
     subject: event.title,
@@ -428,11 +470,11 @@ export async function createOutlookEvent(
       content: event.description || "",
     },
     start: {
-      dateTime: event.start.toISOString(),
+      dateTime: startDate.toISOString(),
       timeZone,
     },
     end: {
-      dateTime: event.end.toISOString(),
+      dateTime: endDate.toISOString(),
       timeZone,
     },
     location: event.location ? { displayName: event.location } : undefined,
@@ -557,6 +599,48 @@ export async function updateOutlookEvent(
       recurrence = convertRRuleToOutlookRecurrence(rrule);
     }
 
+    // Special handling for all-day events - ensure they are at midnight UTC
+    let startDate = event.start;
+    let endDate = event.end;
+
+    if (event.allDay && event.start && event.end) {
+      // Use ISO date strings to handle all-day events, ensuring they start/end at midnight UTC
+      const startStr = event.start.toISOString().split("T")[0];
+
+      // For all-day events, Outlook requires the end date to be the NEXT day at midnight UTC
+      // (to represent the end of the day, as the event duration must be at least 24 hours)
+
+      // First, check if start and end are the same day
+      const sameDay =
+        event.start.toISOString().split("T")[0] ===
+        event.end.toISOString().split("T")[0];
+
+      // If they are the same day, add one day to the end date
+      if (sameDay) {
+        // Create a new date object for the next day
+        const nextDay = new Date(event.end);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const endStr = nextDay.toISOString().split("T")[0];
+
+        startDate = createOutlookAllDayDate(startStr);
+        endDate = createOutlookAllDayDate(endStr);
+      } else {
+        // If multi-day event, use the existing end date but ensure it's at midnight UTC
+        const endStr = event.end.toISOString().split("T")[0];
+        startDate = createOutlookAllDayDate(startStr);
+        endDate = createOutlookAllDayDate(endStr);
+      }
+
+      // Log the dates for debugging
+      console.log("All-day event update dates:", {
+        originalStart: event.start,
+        originalEnd: event.end,
+        adjustedStart: startDate,
+        adjustedEnd: endDate,
+        sameDay: sameDay,
+      });
+    }
+
     const response = await client
       .api(`/me/calendars/${calendarId}/events/${targetEventId}`)
       .patch({
@@ -567,15 +651,15 @@ export async function updateOutlookEvent(
               content: event.description,
             }
           : undefined,
-        start: event.start
+        start: startDate
           ? {
-              dateTime: event.start.toISOString(),
+              dateTime: startDate.toISOString(),
               timeZone,
             }
           : undefined,
-        end: event.end
+        end: endDate
           ? {
-              dateTime: event.end.toISOString(),
+              dateTime: endDate.toISOString(),
               timeZone,
             }
           : undefined,
@@ -587,9 +671,10 @@ export async function updateOutlookEvent(
     return response;
   } catch (error) {
     logger.error(
-      "Failed to update event",
+      "Failed to update Outlook event",
       {
         error: error instanceof Error ? error.message : "Unknown error",
+        eventId,
       },
       LOG_SOURCE
     );

@@ -71,13 +71,46 @@ export function createBaseEventData(
   isRecurring: boolean,
   isMaster: boolean
 ) {
+  let start, end;
+
+  // Handle all-day events specially
+  if (event.isAllDay) {
+    // Extract just the date part without time
+    const startStr = event.start.dateTime.split("T")[0];
+    const endStr = event.end.dateTime.split("T")[0];
+
+    // Create dates at local midnight for all-day events
+    // This ensures they display on the correct day in the calendar
+    start = new Date(
+      parseInt(startStr.split("-")[0]),
+      parseInt(startStr.split("-")[1]) - 1,
+      parseInt(startStr.split("-")[2]),
+      0,
+      0,
+      0
+    );
+
+    end = new Date(
+      parseInt(endStr.split("-")[0]),
+      parseInt(endStr.split("-")[1]) - 1,
+      parseInt(endStr.split("-")[2]),
+      0,
+      0,
+      0
+    );
+  } else {
+    // Regular events use the normal UTC conversion
+    start = convertToUTC(event.start.dateTime, event.start.timeZone);
+    end = convertToUTC(event.end.dateTime, event.end.timeZone);
+  }
+
   return {
     feedId,
     externalEventId: event.id,
     title: event.subject || "Untitled Event",
     description: event.body?.content || null,
-    start: convertToUTC(event.start.dateTime, event.start.timeZone),
-    end: convertToUTC(event.end.dateTime, event.end.timeZone),
+    start,
+    end,
     location: event.location?.displayName || null,
     isRecurring,
     isMaster,

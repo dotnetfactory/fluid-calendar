@@ -1,6 +1,7 @@
 import { inter } from "@/lib/fonts";
 import "@/app/globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { SessionProvider } from "@/components/providers/SessionProvider";
 
 export default function OpenSourceHomeLayout({
   children,
@@ -22,7 +23,7 @@ export default function OpenSourceHomeLayout({
           forcedTheme="light"
           enableSystem={false}
         >
-          {children}
+          <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>
       </body>
     </html>

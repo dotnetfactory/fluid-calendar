@@ -79,7 +79,7 @@ export function SetupForm() {
 
       // Redirect to home page after a short delay
       setTimeout(() => {
-        router.push("/");
+        router.push("/calendar");
         router.refresh();
       }, 2000);
     } catch (err) {

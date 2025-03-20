@@ -37,7 +37,7 @@ const NotificationProvider = dynamic<{ children: React.ReactNode }>(
 
 const getTitleFromPathname = (pathname: string) => {
   switch (pathname) {
-    case "/":
+    case "/calendar":
       return "Calendar | FluidCalendar";
     case "/tasks":
       return "Tasks | FluidCalendar";

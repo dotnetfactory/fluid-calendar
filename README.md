@@ -90,9 +90,9 @@ To enable Google Calendar integration:
      - Developer contact information
    - Add scopes:
      - `./auth/calendar.events`
-     - `./auth/calendar.readonly`
+     - `./auth/calendar`
      - `./auth/userinfo.email`
-     - `./auth/userinfo.profile`
+     - `openid`
    - Add test users if in testing mode
 
 4. Create OAuth 2.0 Credentials:
@@ -225,7 +225,7 @@ If you want to develop FluidCalendar:
 
 2. Start the development environment:
    ```bash
-   docker compose -f docker-compose.dev.yml up -d
+   docker compose -f docker-compose.yml up -d
    ```
 
 3. Visit http://localhost:3000

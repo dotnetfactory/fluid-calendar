@@ -43,7 +43,12 @@ async function verifyEventDeletion(
       `Attempt ${attempt}/${maxAttempts} to verify event deletion...`
     );
     try {
-      const event = await getGoogleEvent(accountId, calendarId, eventId, userId);
+      const event = await getGoogleEvent(
+        accountId,
+        calendarId,
+        eventId,
+        userId
+      );
       console.log(`Attempt ${attempt}: Event data:`, event);
 
       // Check if the event is marked as cancelled
@@ -85,7 +90,7 @@ test.describe("Google Calendar Integration", () => {
     console.log("Using Test Calendar:", testCalendar);
 
     // Navigate to the app (assuming already authenticated)
-    await page.goto("/");
+    await page.goto("/calendar");
 
     // Test data
     const eventTitle = `Test Event ${Date.now()}`;
@@ -232,7 +237,7 @@ test.describe("Google Calendar Integration", () => {
     console.log("Using Test Calendar:", testCalendar);
 
     // Navigate to the app (assuming already authenticated)
-    await page.goto("/");
+    await page.goto("/calendar");
 
     // Test data
     const eventTitle = `Recurring Test Event ${Date.now()}`;

@@ -9,7 +9,6 @@ const publicRoutes = [
   "/auth/signin",
   "/auth/error",
   "/api/auth/register",
-  "/home",
   "/beta",
   "/terms",
   "/privacy",
@@ -25,7 +24,10 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check if the route is public
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+  if (
+    pathname === "/" ||
+    publicRoutes.some((route) => pathname.startsWith(route))
+  ) {
     return NextResponse.next();
   }
 
@@ -39,11 +41,6 @@ export async function middleware(request: NextRequest) {
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
   });
-
-  // If there's no token and we're on the root path, redirect to the home page
-  if (!token && pathname === "/") {
-    return NextResponse.redirect(new URL("/home", request.url));
-  }
 
   // If there's no token, redirect to the sign-in page
   if (!token) {
