@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useState } from "react";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface AvailableCalendar {
@@ -125,7 +126,7 @@ export function AvailableCalendars({ accountId, provider }: Props) {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="flex items-center justify-between p-4 rounded-md border bg-card"
+            className="flex items-center justify-between rounded-md border bg-card p-4"
           >
             <div className="flex items-center gap-2">
               <Skeleton className="h-5 w-16" />
@@ -140,7 +141,7 @@ export function AvailableCalendars({ accountId, provider }: Props) {
 
   if (calendars.length === 0) {
     return (
-      <div className="text-center text-muted-foreground py-4">
+      <div className="py-4 text-center text-muted-foreground">
         No available calendars found
       </div>
     );
@@ -152,7 +153,7 @@ export function AvailableCalendars({ accountId, provider }: Props) {
         {calendars.map((calendar) => (
           <div
             key={calendar.id}
-            className="flex items-center justify-between p-4 rounded-md border bg-card"
+            className="flex items-center justify-between rounded-md border bg-card p-4"
           >
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="capitalize">

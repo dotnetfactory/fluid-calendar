@@ -1,8 +1,10 @@
 "use client";
 
-import { Command } from "@/lib/commands/types";
-import { usePrivacy } from "@/components/providers/PrivacyProvider";
 import { RiEyeOffLine } from "react-icons/ri";
+
+import { usePrivacy } from "@/components/providers/PrivacyProvider";
+
+import { Command } from "@/lib/commands/types";
 
 export function usePrivacyCommands(): Command[] {
   const { isPrivacyModeActive, togglePrivacyMode } = usePrivacy();

@@ -1,6 +1,7 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { Task } from "@/types/task";
+
 import { Project } from "@/types/project";
+import { Task } from "@/types/task";
 
 export function useDraggableTask(task: Task) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =

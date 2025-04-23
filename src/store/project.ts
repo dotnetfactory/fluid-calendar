@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+
 import {
-  Project,
   NewProject,
-  UpdateProject,
+  Project,
   ProjectStatus,
+  UpdateProject,
 } from "@/types/project";
 
 interface ProjectState {

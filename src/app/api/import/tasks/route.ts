@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { logger } from "@/lib/logger";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
-import { Task, Tag } from "@/types/task";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+
 import { Project } from "@/types/project";
+import { Tag, Task } from "@/types/task";
 
 const LOG_SOURCE = "import-tasks-api";
 

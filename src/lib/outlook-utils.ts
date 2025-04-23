@@ -1,7 +1,8 @@
 import { Client } from "@microsoft/microsoft-graph-client";
-import { TokenManager, Provider } from "@/lib/token-manager";
+
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { Provider, TokenManager } from "@/lib/token-manager";
 
 const LOG_SOURCE = "OutlookUtils";
 

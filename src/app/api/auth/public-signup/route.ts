@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { isPublicSignupEnabled } from "@/lib/auth/public-signup";
 import { logger } from "@/lib/logger";
 

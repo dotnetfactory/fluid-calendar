@@ -1,11 +1,12 @@
 import { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+
 import { getGoogleCredentials, getOutlookCredentials } from "@/lib/auth";
-import { MICROSOFT_GRAPH_SCOPES } from "@/lib/outlook";
 import { authenticateUser } from "@/lib/auth/credentials-provider";
 import { logger } from "@/lib/logger";
+import { MICROSOFT_GRAPH_SCOPES } from "@/lib/outlook";
 
 // Define a type for our user with role
 interface UserWithRole {

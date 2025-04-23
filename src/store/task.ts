@@ -1,14 +1,16 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import {
-  Task,
-  NewTask,
-  UpdateTask,
-  Tag,
-  NewTag,
-  TaskFilters,
-} from "@/types/task";
+
 import { isSaasEnabled } from "@/lib/config";
+
+import {
+  NewTag,
+  NewTask,
+  Tag,
+  Task,
+  TaskFilters,
+  UpdateTask,
+} from "@/types/task";
 
 interface TaskState {
   tasks: Task[];

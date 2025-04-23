@@ -1,10 +1,12 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
 
 export default function OpenSourceHomePage() {
   const { data: session } = useSession();
@@ -19,9 +21,9 @@ export default function OpenSourceHomePage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex min-h-screen flex-col bg-white">
       {/* GitHub Button in Top Right */}
-      <div className="absolute top-4 right-4">
+      <div className="absolute right-4 top-4">
         <Link
           href="https://github.com/dotnetfactory/fluid-calendar"
           target="_blank"
@@ -43,7 +45,7 @@ export default function OpenSourceHomePage() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-grow flex flex-col items-center justify-center px-4 py-12">
+      <main className="flex flex-grow flex-col items-center justify-center px-4 py-12">
         {/* Logo */}
         <div className="mb-8">
           <svg
@@ -64,24 +66,24 @@ export default function OpenSourceHomePage() {
         </div>
 
         {/* Title and Description */}
-        <h1 className="text-5xl md:text-6xl font-bold mb-6 text-center">
+        <h1 className="mb-6 text-center text-5xl font-bold md:text-6xl">
           <span className="text-blue-600">FluidCalendar</span>
           <span className="text-gray-800"> Open Source</span>
         </h1>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-4 text-center">
+        <p className="mx-auto mb-4 max-w-3xl text-center text-xl text-gray-600">
           The open-source intelligent calendar that adapts to your workflow.
           Experience seamless task scheduling powered by AI, designed to make
           your time management effortless.
         </p>
-        <p className="text-lg text-gray-500 mb-8 text-center">
+        <p className="mb-8 text-center text-lg text-gray-500">
           Your open-source alternative to Motion
         </p>
 
         {/* Login and GitHub Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-12">
+        <div className="mb-12 flex flex-col gap-4 sm:flex-row">
           <Button
             size="lg"
-            className="px-8 py-6 text-lg bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 px-8 py-6 text-lg hover:bg-blue-700"
             onClick={handleLogin}
           >
             {session ? "Go to App" : "Sign In"}
@@ -108,13 +110,13 @@ export default function OpenSourceHomePage() {
 
         {/* Open Source Features */}
         <div className="w-full max-w-6xl">
-          <h2 className="text-3xl font-bold text-center mb-8">
+          <h2 className="mb-8 text-center text-3xl font-bold">
             Open Source Features
           </h2>
 
           {/* Self-Hosting */}
-          <div className="bg-white p-8 rounded-lg shadow-sm mb-8 flex">
-            <div className="text-blue-600 mr-6">
+          <div className="mb-8 flex rounded-lg bg-white p-8 shadow-sm">
+            <div className="mr-6 text-blue-600">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-12 w-12"
@@ -131,7 +133,7 @@ export default function OpenSourceHomePage() {
               </svg>
             </div>
             <div>
-              <h3 className="text-xl font-semibold mb-2">Self-Hosting</h3>
+              <h3 className="mb-2 text-xl font-semibold">Self-Hosting</h3>
               <p className="text-gray-600">
                 Host FluidCalendar on your own servers for complete control over
                 your data and infrastructure.
@@ -140,8 +142,8 @@ export default function OpenSourceHomePage() {
           </div>
 
           {/* Full Source Access */}
-          <div className="bg-white p-8 rounded-lg shadow-sm mb-8 flex">
-            <div className="text-blue-600 mr-6">
+          <div className="mb-8 flex rounded-lg bg-white p-8 shadow-sm">
+            <div className="mr-6 text-blue-600">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-12 w-12"
@@ -158,7 +160,7 @@ export default function OpenSourceHomePage() {
               </svg>
             </div>
             <div>
-              <h3 className="text-xl font-semibold mb-2">Full Source Access</h3>
+              <h3 className="mb-2 text-xl font-semibold">Full Source Access</h3>
               <p className="text-gray-600">
                 Access and modify the complete source code to customize
                 FluidCalendar to your specific needs.
@@ -167,8 +169,8 @@ export default function OpenSourceHomePage() {
           </div>
 
           {/* Community Driven */}
-          <div className="bg-white p-8 rounded-lg shadow-sm mb-8 flex">
-            <div className="text-blue-600 mr-6">
+          <div className="mb-8 flex rounded-lg bg-white p-8 shadow-sm">
+            <div className="mr-6 text-blue-600">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-12 w-12"
@@ -185,7 +187,7 @@ export default function OpenSourceHomePage() {
               </svg>
             </div>
             <div>
-              <h3 className="text-xl font-semibold mb-2">Community Driven</h3>
+              <h3 className="mb-2 text-xl font-semibold">Community Driven</h3>
               <p className="text-gray-600">
                 Join a vibrant community of developers and users contributing to
                 the future of FluidCalendar.
@@ -195,14 +197,14 @@ export default function OpenSourceHomePage() {
         </div>
 
         {/* Get Started Section */}
-        <div className="w-full max-w-3xl mt-12 bg-gray-50 p-8 rounded-lg border border-gray-200">
-          <h2 className="text-2xl font-bold mb-4 text-center">
+        <div className="mt-12 w-full max-w-3xl rounded-lg border border-gray-200 bg-gray-50 p-8">
+          <h2 className="mb-4 text-center text-2xl font-bold">
             Get Started with FluidCalendar
           </h2>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
+          <div className="mt-6 flex flex-col justify-center gap-4 sm:flex-row">
             <Button
               size="lg"
-              className="px-8 py-4 bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 px-8 py-4 hover:bg-blue-700"
               onClick={handleLogin}
             >
               {session ? "Go to Your Calendar" : "Sign In to Your Instance"}
@@ -220,10 +222,10 @@ export default function OpenSourceHomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-50 py-8 border-t border-gray-200">
+      <footer className="border-t border-gray-200 bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
+          <div className="flex flex-col items-center justify-between md:flex-row">
+            <div className="mb-4 flex items-center space-x-2 md:mb-0">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -241,7 +243,7 @@ export default function OpenSourceHomePage() {
               </svg>
               <span className="text-xl font-bold">FluidCalendar</span>
             </div>
-            <div className="text-gray-500 text-sm">
+            <div className="text-sm text-gray-500">
               Licensed under MIT. Contribute on{" "}
               <a
                 href="https://github.com/dotnetfactory/fluid-calendar"

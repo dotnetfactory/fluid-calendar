@@ -1,20 +1,21 @@
-import { NextResponse, NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import {
-  createOutlookEvent,
-  updateOutlookEvent,
-  deleteOutlookEvent,
-} from "@/lib/outlook-calendar";
-import { logger } from "@/lib/logger";
-import { getOutlookClient } from "@/lib/outlook-calendar";
-import { syncOutlookCalendar } from "@/lib/outlook-sync";
+import { NextRequest, NextResponse } from "next/server";
+
+import { authenticateRequest } from "@/lib/auth/api-auth";
 import {
   deleteCalendarEvent,
   getEvent,
   validateEvent,
 } from "@/lib/calendar-db";
 import { newDate } from "@/lib/date-utils";
-import { authenticateRequest } from "@/lib/auth/api-auth";
+import { logger } from "@/lib/logger";
+import {
+  createOutlookEvent,
+  deleteOutlookEvent,
+  updateOutlookEvent,
+} from "@/lib/outlook-calendar";
+import { getOutlookClient } from "@/lib/outlook-calendar";
+import { syncOutlookCalendar } from "@/lib/outlook-sync";
+import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "OutlookCalendarEventsAPI";
 

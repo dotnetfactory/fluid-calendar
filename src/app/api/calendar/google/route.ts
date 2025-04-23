@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
-import { prisma } from "@/lib/prisma";
-import { google, calendar_v3 } from "googleapis";
-import { TokenManager } from "@/lib/token-manager";
-import { getGoogleCalendarClient } from "@/lib/google-calendar";
-import { createGoogleOAuthClient } from "@/lib/google";
+
 import { GaxiosError } from "gaxios";
-import { newDate, newDateFromYMD, createAllDayDate } from "@/lib/date-utils";
+import { calendar_v3, google } from "googleapis";
+import { v4 as uuidv4 } from "uuid";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { createAllDayDate, newDate, newDateFromYMD } from "@/lib/date-utils";
+import { createGoogleOAuthClient } from "@/lib/google";
+import { getGoogleCalendarClient } from "@/lib/google-calendar";
+import { prisma } from "@/lib/prisma";
+import { TokenManager } from "@/lib/token-manager";
 
 const LOG_SOURCE = "GoogleCalendarAPI";
 

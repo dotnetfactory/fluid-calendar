@@ -1,9 +1,11 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
-import { format } from "@/lib/date-utils";
-import { Task, TaskStatus } from "@/types/task";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+
+import { format } from "@/lib/date-utils";
+
+import { Task, TaskStatus } from "@/types/task";
 
 interface FocusedTaskProps {
   task: Task | null;
@@ -48,21 +50,21 @@ function linkifyText(text: string): React.ReactNode[] {
 export function FocusedTask({ task }: FocusedTaskProps) {
   if (!task) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
+      <div className="flex h-full flex-col items-center justify-center">
         <p className="text-lg text-muted-foreground">No task selected</p>
       </div>
     );
   }
 
   return (
-    <Card className="p-6 h-full flex flex-col">
-      <div className="flex items-start justify-between mb-6">
+    <Card className="flex h-full flex-col p-6">
+      <div className="mb-6 flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-bold mb-2 task-title">{task.title}</h2>
+          <h2 className="task-title mb-2 text-2xl font-bold">{task.title}</h2>
 
           {/* Display tags */}
           {task.tags && task.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
+            <div className="mt-2 flex flex-wrap gap-2">
               {task.tags.map((tag) => (
                 <Badge
                   key={tag.id}
@@ -82,10 +84,10 @@ export function FocusedTask({ task }: FocusedTaskProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-2 gap-4">
         {task.dueDate && (
           <div>
-            <h3 className="text-sm font-medium mb-1">Due Date</h3>
+            <h3 className="mb-1 text-sm font-medium">Due Date</h3>
             <p className="text-muted-foreground">
               {format(task.dueDate, "PPP")}
             </p>
@@ -93,7 +95,7 @@ export function FocusedTask({ task }: FocusedTaskProps) {
         )}
         {task.completedAt && task.status === TaskStatus.COMPLETED && (
           <div>
-            <h3 className="text-sm font-medium mb-1">Completed On</h3>
+            <h3 className="mb-1 text-sm font-medium">Completed On</h3>
             <p className="text-muted-foreground">
               {format(task.completedAt, "PPP p")}
             </p>
@@ -101,13 +103,13 @@ export function FocusedTask({ task }: FocusedTaskProps) {
         )}
         {task.duration && (
           <div>
-            <h3 className="text-sm font-medium mb-1">Estimated Duration</h3>
+            <h3 className="mb-1 text-sm font-medium">Estimated Duration</h3>
             <p className="text-muted-foreground">{task.duration} minutes</p>
           </div>
         )}
         {task.scheduleScore && (
           <div>
-            <h3 className="text-sm font-medium mb-1">Focus Score</h3>
+            <h3 className="mb-1 text-sm font-medium">Focus Score</h3>
             <p className="text-muted-foreground">
               {task.scheduleScore.toFixed(2)}
             </p>
@@ -115,7 +117,7 @@ export function FocusedTask({ task }: FocusedTaskProps) {
         )}
         {task.isRecurring && (
           <div>
-            <h3 className="text-sm font-medium mb-1">Recurring Task</h3>
+            <h3 className="mb-1 text-sm font-medium">Recurring Task</h3>
             <p className="text-muted-foreground">This task repeats</p>
           </div>
         )}
@@ -123,9 +125,9 @@ export function FocusedTask({ task }: FocusedTaskProps) {
 
       {/* Task description with hyperlinks */}
       {task.description && (
-        <div className="pt-4 border-t border-border">
-          <h3 className="text-sm font-medium mb-2">Description</h3>
-          <div className="text-muted-foreground whitespace-pre-wrap overflow-auto task-description">
+        <div className="border-t border-border pt-4">
+          <h3 className="mb-2 text-sm font-medium">Description</h3>
+          <div className="task-description overflow-auto whitespace-pre-wrap text-muted-foreground">
             {linkifyText(task.description)}
           </div>
         </div>

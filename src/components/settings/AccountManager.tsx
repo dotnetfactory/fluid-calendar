@@ -1,5 +1,9 @@
-import { useState, useCallback, useEffect } from "react";
-import { useSettingsStore } from "@/store/settings";
+import { useCallback, useEffect, useState } from "react";
+
+import { AlertCircle } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,12 +12,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AvailableCalendars } from "./AvailableCalendars";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { CalDAVAccountForm } from "./CalDAVAccountForm";
+
 import { logger } from "@/lib/logger";
+
+import { useSettingsStore } from "@/store/settings";
+
+import { AvailableCalendars } from "./AvailableCalendars";
+import { CalDAVAccountForm } from "./CalDAVAccountForm";
 
 const LOG_SOURCE = "AccountManager";
 
@@ -149,15 +154,15 @@ export function AccountManager() {
               <div key={account.id} className="space-y-4">
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                      <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Badge
                           variant={
                             account.provider === "GOOGLE"
                               ? "default"
                               : account.provider === "OUTLOOK"
-                              ? "secondary"
-                              : "outline"
+                                ? "secondary"
+                                : "outline"
                           }
                           className="capitalize"
                         >

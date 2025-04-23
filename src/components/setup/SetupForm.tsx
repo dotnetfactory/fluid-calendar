@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+
 import { useRouter } from "next/navigation";
+
+import { HiCheckCircle, HiExclamationCircle } from "react-icons/hi";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -13,8 +16,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { HiCheckCircle, HiExclamationCircle } from "react-icons/hi";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 import { useSetupStore } from "@/store/setup";
 
 export function SetupForm() {
@@ -92,7 +96,7 @@ export function SetupForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader>
         <CardTitle className="text-2xl">Welcome to FluidCalendar</CardTitle>
         <CardDescription>
@@ -109,7 +113,7 @@ export function SetupForm() {
         )}
 
         {success && (
-          <Alert className="mb-4 bg-green-50 border-green-200">
+          <Alert className="mb-4 border-green-200 bg-green-50">
             <HiCheckCircle className="h-4 w-4 text-green-600" />
             <AlertTitle className="text-green-800">Success!</AlertTitle>
             <AlertDescription className="text-green-700">
@@ -176,7 +180,7 @@ export function SetupForm() {
 
           <Button
             type="submit"
-            className="w-full mt-6"
+            className="mt-6 w-full"
             disabled={isLoading || success}
           >
             {isLoading ? "Setting up..." : "Create Admin Account"}

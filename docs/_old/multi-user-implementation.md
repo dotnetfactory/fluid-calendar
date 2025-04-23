@@ -5,11 +5,13 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 ## Phase 1: Authentication Enhancement and First-Time Setup
 
 ### 1.1 Update Database Schema
+
 - [x] move all settings to the database
 - [x] Add `role` field to User model in `prisma/schema.prisma`
 - [x] Add migration for existing data to associate with admin user
 
 ### 1.2 Create First-Time Setup Flow
+
 - [x] Create `src/app/setup` page for initial admin user creation
 - [x] Create `src/app/api/setup/route.ts` API endpoint for setup process
 - [x] Implement middleware to redirect to setup if no users exist in `src/middleware.ts`
@@ -17,6 +19,7 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 - [x] Implement data migration utility in `src/lib/setup-migration.ts` to associate existing data with admin user
 
 ### 1.3 Enhance NextAuth Configuration
+
 - [x] Update `src/app/api/auth/[...nextauth]/route.ts` to add more providers
 - [x] Add Email/Password provider with proper validation
 - [x] Configure callbacks for user creation and role assignment
@@ -24,6 +27,7 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 - [x] Create `src/lib/auth/credentials-provider.ts` for email/password authentication logic
 
 ### 1.4 Create Authentication Pages
+
 - [x] Create `src/app/auth/signin/page.tsx` for sign-in
 - [x] Create `src/components/auth/SignInForm.tsx` for authentication forms
 - [x] Create `src/app/api/auth/register/route.ts` for user registration
@@ -32,6 +36,7 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 - [ ] Create `src/app/auth/verify-email/page.tsx` for email verification
 
 ### 1.5 Implement Authentication Middleware
+
 - [x] Update `src/middleware.ts` for route protection
 - [x] Implement role-based access control
 - [x] Add public routes configuration
@@ -40,24 +45,28 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 ## Phase 2: User Management and Access Control
 
 ### 2.1 Create User Management API
+
 - [ ] Create `src/app/api/users/route.ts` for user listing and creation
 - [ ] Create `src/app/api/users/[id]/route.ts` for user operations
 - [ ] Create `src/app/api/invitations/route.ts` for user invitations
 - [ ] Create `src/lib/email/templates/invitation.ts` for invitation emails
 
 ### 2.2 Implement User Profile Management
+
 - [ ] Create `src/app/profile/page.tsx` for user profile
 - [ ] Create `src/app/profile/security/page.tsx` for security settings
 - [ ] Create profile form components in `src/components/profile/`
 - [ ] Implement avatar upload functionality
 
 ### 2.3 Create Admin Dashboard
+
 - [ ] Create `src/app/admin/page.tsx` for admin dashboard
 - [ ] Create `src/app/admin/users/page.tsx` for user management
 - [ ] Create `src/app/admin/settings/page.tsx` for system settings
 - [ ] Create admin components in `src/components/admin/`
 
 ### 2.4 Update Data Access Control
+
 - [x] Create `src/lib/auth/current-user.ts` for retrieving current user ID
 - [ ] Create `src/lib/auth/permissions.ts` for permission definitions
 - [ ] Create `src/lib/auth/access-control.ts` for access control helpers
@@ -66,6 +75,7 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 ## Phase 3: Data Isolation and API Updates
 
 ### 3.1 Update Calendar API Routes
+
 - [x] Update `src/app/api/calendar/route.ts` to include user filtering
 - [x] Update `src/app/api/calendar/init/route.ts` to associate with current user
 - [x] Update `src/app/api/calendar/google/events/route.ts` for user filtering
@@ -73,6 +83,7 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 - [x] Update `src/app/api/calendar/caldav/events/route.ts` for user filtering
 
 ### 3.1.5 Update Settings API Routes
+
 - [x] Create `src/app/api/user-settings/route.ts` for user settings
 - [x] Create `src/app/api/calendar-settings/route.ts` for calendar settings
 - [x] Create `src/app/api/notification-settings/route.ts` for notification settings
@@ -83,36 +94,43 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 - [x] Update settings store to use API endpoints
 
 ### 3.2 Update Tasks API Routes
+
 - [x] Update `src/app/api/tasks/route.ts` to include user filtering
 - [x] Update `src/app/api/tasks/[id]/route.ts` for user-specific operations
 - [x] Update `src/app/api/tasks/schedule-all/route.ts` for user filtering
 - [x] Update `src/app/api/tasks/normalize-recurrence/route.ts` for user filtering
 
 ### 3.3 Update Projects API Routes
+
 - [x] Update `src/app/api/projects/route.ts` to include user filtering
 - [x] Update `src/app/api/projects/[id]/route.ts` for user-specific operations
 
 ### 3.4 Update Tags API Routes
+
 - [x] Update `src/app/api/tags/route.ts` to include user filtering
 - [x] Update `src/app/api/tags/[id]/route.ts` for user-specific operations
 
 ### 3.5 Update Feeds API Routes
+
 - [x] Update `src/app/api/feeds/route.ts` to include user filtering
 - [x] Update `src/app/api/feeds/[id]/route.ts` for user-specific operations
 - [x] Update `src/app/api/events/route.ts` for user filtering
 - [x] Update `src/app/api/events/[id]/route.ts` for user-specific operations
 
 ### 3.6 Update Accounts API Routes
+
 - [x] Update `src/app/api/accounts/route.ts` to include user filtering
 - [ ] Update `src/app/api/accounts/[id]/route.ts` for user-specific operations
 
 ### 3.7 Update System Settings API
+
 - [x] Update `src/app/api/system-settings/route.ts` to use proper logging
 - [x] Update `src/app/api/system-settings/route.ts` to require admin role
 
 ## Phase 4: UI Updates for Multi-User Support
 
 ### 4.1 Update Navigation Components
+
 - [x] Update `src/app/settings/page.tsx` to include user management link for admins
 - [x] Update `src/app/settings/page.tsx` to integrate user management as a tab instead of a separate page
 - [x] Update `src/components/navigation/AppNav.tsx` to include user menu
@@ -122,6 +140,7 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 - [x] Add logout functionality to the user menu
 
 ### 4.2 Update Settings Pages
+
 - [x] Create `src/components/settings/UserManagement.tsx` for user management tab
 - [x] Create `src/components/settings/PublicSignupSettings.tsx` for controlling public signup
 - [x] Update `src/app/settings/page.tsx` to include user-specific settings
@@ -129,16 +148,19 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 - [ ] Update settings components in `src/components/settings/`
 
 ### 4.3 Create Sharing UI
+
 - [ ] Create `src/components/sharing/ShareModal.tsx` for sharing functionality
 - [ ] Create `src/components/sharing/PermissionSelector.tsx` for permission selection
 - [ ] Update calendar and task views to show sharing status
 
 ### 4.4 Update Calendar Views
+
 - [ ] Update `src/app/page.tsx` (calendar page) to filter by user
 - [ ] Update calendar components to handle shared calendars
 - [ ] Add user indicators for shared items
 
 ### 4.5 Update Tasks Views
+
 - [ ] Update `src/app/tasks/page.tsx` to filter by user
 - [ ] Update task components to handle shared tasks
 - [ ] Add user indicators for shared items
@@ -146,18 +168,21 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 ## Phase 5: Sharing and Collaboration Features
 
 ### 5.1 Update Database Schema for Sharing
+
 - [ ] Create `CalendarShare` model in `prisma/schema.prisma`
 - [ ] Create `ProjectShare` model in `prisma/schema.prisma`
 - [ ] Create `TaskShare` model in `prisma/schema.prisma`
 - [ ] Add migration for sharing tables
 
 ### 5.2 Implement Sharing API
+
 - [ ] Create `src/app/api/calendar/[id]/share/route.ts` for calendar sharing
 - [ ] Create `src/app/api/projects/[id]/share/route.ts` for project sharing
 - [ ] Create `src/app/api/tasks/[id]/share/route.ts` for task sharing
 - [ ] Create `src/lib/sharing/permissions.ts` for sharing permission logic
 
 ### 5.3 Implement Notification System
+
 - [ ] Create `Notification` model in `prisma/schema.prisma`
 - [ ] Create `src/app/api/notifications/route.ts` for notification management
 - [ ] Create `src/components/notifications/NotificationCenter.tsx` for UI
@@ -166,17 +191,20 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 ## Phase 6: SaaS Features (Optional)
 
 ### 6.1 Implement Subscription Management
+
 - [ ] Create `Subscription` model in `prisma/schema.prisma`
 - [ ] Integrate with payment provider (Stripe, etc.)
 - [ ] Create subscription management API routes
 - [ ] Create subscription management UI
 
 ### 6.2 Implement Usage Limits and Quotas
+
 - [ ] Create usage tracking system
 - [ ] Implement quota enforcement
 - [ ] Create upgrade prompts and notifications
 
 ### 6.3 Add Analytics and Reporting
+
 - [ ] Create analytics data collection
 - [ ] Create reporting API routes
 - [ ] Create analytics dashboard UI
@@ -184,6 +212,7 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 ## Progress Summary and Next Steps
 
 ### Completed Tasks
+
 - ✅ Moved all settings to the database
 - ✅ Created API endpoints for all settings types
 - ✅ Updated settings store to use API endpoints
@@ -246,19 +275,23 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
 - ✅ Verified all API routes have proper authentication and user filtering
 
 ### Next Steps
+
 1. **Implement Password Reset Functionality**: This is our highest priority now that data isolation is complete.
+
    - Create password reset request page (`src/app/auth/forgot-password/page.tsx`)
    - Create password reset confirmation page (`src/app/auth/reset-password/page.tsx`)
    - Implement API endpoints for password reset (`src/app/api/auth/forgot-password/route.ts` and `src/app/api/auth/reset-password/route.ts`)
    - Implement email sending functionality for reset links
 
 2. **Implement Email Verification**: This will improve security and user account management.
+
    - Create email verification page (`src/app/auth/verify-email/page.tsx`)
    - Update registration process to send verification emails
    - Add verification status indicators in the UI
    - Implement API endpoint for email verification (`src/app/api/auth/verify-email/route.ts`)
 
 3. **Consider Making userId Non-Nullable**: Strengthen the database schema for better security.
+
    - Implement the two-step migration approach outlined below
    - Test thoroughly in development before applying to production
 
@@ -268,6 +301,7 @@ This document outlines the step-by-step process for transitioning FluidCalendar 
    - Create email templates for invitations (`src/lib/email/templates/invitation.ts`)
 
 ### Implementation Priority
+
 With data isolation and API refactoring complete, we should now focus on:
 
 1. Implementing password reset functionality as the next major feature
@@ -276,9 +310,11 @@ With data isolation and API refactoring complete, we should now focus on:
 4. Enhancing user management features for administrators
 
 ## Data Migration Strategy for Non-Nullable userId
+
 To make userId non-nullable in the database schema, we recommend a two-step migration approach:
 
-1. **First Migration**: 
+1. **First Migration**:
+
    - Identify all records without a userId
    - Assign them to the admin user using the existing migrateExistingData function
    - Verify all records have a valid userId
@@ -290,6 +326,7 @@ To make userId non-nullable in the database schema, we recommend a two-step migr
 This approach ensures data integrity while strengthening the database schema for better security.
 
 ## Security Considerations
+
 As we move forward with implementing multi-user functionality, we should keep these security considerations in mind:
 
 1. Implement proper CSRF protection
@@ -300,4 +337,4 @@ As we move forward with implementing multi-user functionality, we should keep th
 6. Use HTTPS for all communications
 7. Implement proper password hashing and storage
 8. Regularly audit authentication and authorization code
-9. Ensure system-wide settings (like logs) are only accessible to administrators 
+9. Ensure system-wide settings (like logs) are only accessible to administrators

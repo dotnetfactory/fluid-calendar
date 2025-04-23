@@ -1,40 +1,46 @@
 # Focus Mode Implementation Plan
 
 ## Overview
+
 This document outlines the implementation plan for adding a Focus Mode feature to FluidCalendar. The feature will leverage the existing auto-scheduling system to help users focus on their most important tasks.
 
 ## Core Features
 
 ### 1. Focus Mode UI ✅
+
 - Full-screen overlay with navbar retained
 - Minimalist design with reduced visual noise
 - Smooth transitions between states
 - Quick action buttons for task management
 
 ### 2. Task Selection ✅
+
 Leverage existing auto-scheduling system to:
+
 - Select top 3 tasks based on:
-  * Schedule score (already implemented)
-  * Due dates
-  * Priority levels
-  * Energy levels
-  * Project grouping
+  - Schedule score (already implemented)
+  - Due dates
+  - Priority levels
+  - Energy levels
+  - Project grouping
 - Show why each task was selected
 - Allow manual override of selection
 
 ### 3. Task Focus View ✅
+
 - Enlarged current task view
 - Dimmed secondary tasks
 - Progress tracking
 - Quick actions:
-  * Mark as complete
-  * Move to next task
-  * Add notes
-  * Add subtasks
-  * Pause/resume
-  * Exit focus mode
+  - Mark as complete
+  - Move to next task
+  - Add notes
+  - Add subtasks
+  - Pause/resume
+  - Exit focus mode
 
 ### 4. State Management ✅
+
 - Track focus mode state
 - Persist focus session data
 - Handle interruptions
@@ -43,7 +49,9 @@ Leverage existing auto-scheduling system to:
 ## Implementation Steps
 
 ### Phase 1: Core Focus Mode ⚡️ ✅
+
 - [x] Add FocusMode type definitions
+
   ```typescript
   interface FocusMode {
     isActive: boolean;
@@ -62,62 +70,72 @@ Leverage existing auto-scheduling system to:
   ```
 
 - [x] Create focus mode store
-  * State management for focus mode
-  * Actions for state changes
-  * Session tracking
+
+  - State management for focus mode
+  - Actions for state changes
+  - Session tracking
 
 - [x] Implement focus mode component
-  * Full-screen overlay
-  * Task display
-  * Basic controls
+  - Full-screen overlay
+  - Task display
+  - Basic controls
 
 ### Phase 2: Task Management 📋 ✅
+
 - [x] Integrate with auto-scheduling
-  * Reuse existing scoring system
-  * Add focus-specific scoring factors
-  * Task queue management
+
+  - Reuse existing scoring system
+  - Add focus-specific scoring factors
+  - Task queue management
 
 - [x] Add task transition logic
-  * Complete current task
-  * Move to next task
-  * Update task status
+
+  - Complete current task
+  - Move to next task
+  - Update task status
 
 - [x] Implement quick actions
-  * Task completion
-  * Task switching
-  * Note taking
-  * Subtask management
+  - Task completion
+  - Task switching
+  - Note taking
+  - Subtask management
 
 ### Phase 3: UI/UX Enhancement 🎨 (In Progress)
+
 - [x] Design and implement transitions
-  * Smooth state changes
-  * Task switching animations
-  * Progress indicators
+
+  - Smooth state changes
+  - Task switching animations
+  - Progress indicators
 
 - [x] Add visual feedback
-  * Task completion celebration (using canvas-confetti)
-  * Progress visualization
-  * Time tracking display
+
+  - Task completion celebration (using canvas-confetti)
+  - Progress visualization
+  - Time tracking display
 
 - [ ] Enhance accessibility
-  * Keyboard shortcuts (in progress)
-  * Screen reader support
-  * High contrast mode
+  - Keyboard shortcuts (in progress)
+  - Screen reader support
+  - High contrast mode
 
 ### Phase 4: Analytics & Insights 📊 (Planned)
+
 - [ ] Track focus sessions
-  * Time spent
-  * Tasks completed
-  * Break patterns
+
+  - Time spent
+  - Tasks completed
+  - Break patterns
 
 - [ ] Generate insights
-  * Productivity patterns
-  * Task completion rates
-  * Focus session effectiveness
+  - Productivity patterns
+  - Task completion rates
+  - Focus session effectiveness
 
 ## Technical Details
 
 ### Component Structure
+
 ```typescript
 // Core Components
 - FocusMode
@@ -130,6 +148,7 @@ Leverage existing auto-scheduling system to:
 ```
 
 ### State Management
+
 ```typescript
 // Focus Mode Store
 interface FocusModeStore {
@@ -151,12 +170,15 @@ interface FocusModeStore {
 ```
 
 ### Integration Points
+
 1. Auto-scheduling System
+
    - Reuse existing scoring logic
    - Add focus-specific scoring factors
    - Handle task transitions
 
 2. Task Management
+
    - Update task status
    - Handle completion
    - Manage subtasks
@@ -169,20 +191,23 @@ interface FocusModeStore {
 ## Next Steps
 
 ### Immediate Actions
+
 1. ✅ Create basic focus mode component structure
 2. ✅ Implement core state management
 3. ✅ Integrate with auto-scheduling system
 4. ✅ Add basic task switching functionality
 
 ### Future Enhancements
+
 1. Advanced analytics
 2. Custom focus modes
-4. Integration with external tools
-5. Focus mode templates
+3. Integration with external tools
+4. Focus mode templates
 
 ## Notes
+
 - Leverage existing auto-scheduling system
 - Keep UI minimal and focused
 - Ensure smooth transitions
 - Prioritize user experience
-- Make it keyboard-friendly 
+- Make it keyboard-friendly

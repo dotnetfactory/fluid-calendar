@@ -5,7 +5,6 @@
  * It serves as the foundation for our task synchronization system, enabling a consistent way
  * to interact with various external task services (Outlook, Asana, CalDAV, etc.)
  */
-
 import { Task } from "@/types/task";
 
 /**

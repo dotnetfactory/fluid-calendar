@@ -1,5 +1,7 @@
-import { IconType } from "react-icons";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+
+import { IconType } from "react-icons";
+
 export interface CommandContext {
   requiredPath: string; // The path where this command should work
   navigateIfNeeded: boolean; // Whether to auto-navigate if not on required path

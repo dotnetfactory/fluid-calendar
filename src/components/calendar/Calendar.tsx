@@ -2,16 +2,19 @@
 
 import { HiMenu } from "react-icons/hi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
-import { WeekView } from "@/components/calendar/WeekView";
-import { MonthView } from "@/components/calendar/MonthView";
-import { MultiMonthView } from "@/components/calendar/MultiMonthView";
+
 import { DayView } from "@/components/calendar/DayView";
 import { FeedManager } from "@/components/calendar/FeedManager";
-import { addDays, newDate, subDays, formatDate } from "@/lib/date-utils";
-import { useViewStore, useCalendarUIStore } from "@/store/calendar";
-import { useTaskStore } from "@/store/task";
-import { cn } from "@/lib/utils";
+import { MonthView } from "@/components/calendar/MonthView";
+import { MultiMonthView } from "@/components/calendar/MultiMonthView";
+import { WeekView } from "@/components/calendar/WeekView";
 import { SponsorshipBanner } from "@/components/ui/sponsorship-banner";
+
+import { addDays, formatDate, newDate, subDays } from "@/lib/date-utils";
+import { cn } from "@/lib/utils";
+
+import { useCalendarUIStore, useViewStore } from "@/store/calendar";
+import { useTaskStore } from "@/store/task";
 
 export function Calendar() {
   const { date: currentDate, setDate, view, setView } = useViewStore();
@@ -45,18 +48,18 @@ export function Calendar() {
   };
 
   return (
-    <div className="h-full w-full flex">
+    <div className="flex h-full w-full">
       {/* Sidebar */}
       <aside
         className={cn(
-          "h-full w-80 bg-white border-r border-gray-200 flex-none",
+          "h-full w-80 flex-none border-r border-gray-200 bg-white",
           "transform transition-transform duration-300 ease-in-out",
-          !isHydrated && "duration-0 opacity-0",
+          !isHydrated && "opacity-0 duration-0",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
         style={{ marginLeft: isSidebarOpen ? 0 : "-20rem" }}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex h-full flex-col">
           {/* Feed Manager */}
           <div className="flex-1 overflow-y-auto">
             <FeedManager />
@@ -68,21 +71,21 @@ export function Calendar() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 bg-background">
+      <main className="flex min-w-0 flex-1 flex-col bg-background">
         {/* Header */}
-        <header className="h-16 border-b border-border flex items-center px-4 flex-none">
+        <header className="flex h-16 flex-none items-center border-b border-border px-4">
           <button
             onClick={() => setSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-muted rounded-lg text-foreground"
+            className="rounded-lg p-2 text-foreground hover:bg-muted"
             title="Toggle Sidebar (b)"
           >
-            <HiMenu className="w-5 h-5" />
+            <HiMenu className="h-5 w-5" />
           </button>
 
           <div className="ml-4 flex items-center gap-4">
             <button
               onClick={() => setDate(newDate())}
-              className="px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-lg"
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
               title="Go to Today (t)"
             >
               Today
@@ -90,7 +93,7 @@ export function Calendar() {
 
             <button
               onClick={handleAutoSchedule}
-              className="px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg"
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10"
             >
               Auto Schedule
             </button>
@@ -98,19 +101,19 @@ export function Calendar() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handlePrevWeek}
-                className="p-1.5 hover:bg-muted rounded-lg text-foreground"
+                className="rounded-lg p-1.5 text-foreground hover:bg-muted"
                 data-testid="calendar-prev-week"
                 title="Previous Week (←)"
               >
-                <IoChevronBack className="w-5 h-5" />
+                <IoChevronBack className="h-5 w-5" />
               </button>
               <button
                 onClick={handleNextWeek}
-                className="p-1.5 hover:bg-muted rounded-lg text-foreground"
+                className="rounded-lg p-1.5 text-foreground hover:bg-muted"
                 data-testid="calendar-next-week"
                 title="Next Week (→)"
               >
-                <IoChevronForward className="w-5 h-5" />
+                <IoChevronForward className="h-5 w-5" />
               </button>
             </div>
 
@@ -124,10 +127,10 @@ export function Calendar() {
             <button
               onClick={() => setView("day")}
               className={cn(
-                "px-3 py-1.5 text-sm font-medium rounded-lg",
+                "rounded-lg px-3 py-1.5 text-sm font-medium",
                 view === "day"
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
               Day
@@ -135,10 +138,10 @@ export function Calendar() {
             <button
               onClick={() => setView("week")}
               className={cn(
-                "px-3 py-1.5 text-sm font-medium rounded-lg",
+                "rounded-lg px-3 py-1.5 text-sm font-medium",
                 view === "week"
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
               Week
@@ -146,10 +149,10 @@ export function Calendar() {
             <button
               onClick={() => setView("month")}
               className={cn(
-                "px-3 py-1.5 text-sm font-medium rounded-lg",
+                "rounded-lg px-3 py-1.5 text-sm font-medium",
                 view === "month"
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
               Month
@@ -157,10 +160,10 @@ export function Calendar() {
             <button
               onClick={() => setView("multiMonth")}
               className={cn(
-                "px-3 py-1.5 text-sm font-medium rounded-lg",
+                "rounded-lg px-3 py-1.5 text-sm font-medium",
                 view === "multiMonth"
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
               Year

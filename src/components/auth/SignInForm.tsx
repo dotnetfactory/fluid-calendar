@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useEffect } from "react";
+
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -13,12 +17,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
+
 import { isPublicSignupEnabledClient } from "@/lib/auth/client-public-signup";
-import { useEffect } from "react";
 import { logger } from "@/lib/logger";
-import { useRouter } from "next/navigation";
 
 const LOG_SOURCE = "SignInForm";
 
@@ -131,7 +135,7 @@ export function SignInForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader>
         <CardTitle className="text-2xl font-bold">
           Welcome to FluidCalendar
@@ -143,7 +147,7 @@ export function SignInForm() {
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as "signin" | "signup")}
         >
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="mb-6 grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             {publicSignupEnabled && (
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -176,7 +180,7 @@ export function SignInForm() {
                 <div className="text-right">
                   <Button
                     variant="link"
-                    className="text-sm text-muted-foreground p-0 h-auto"
+                    className="h-auto p-0 text-sm text-muted-foreground"
                     onClick={() => router.push("/auth/reset-password")}
                     type="button"
                   >

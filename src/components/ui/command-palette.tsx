@@ -1,18 +1,21 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { Command } from "cmdk";
+import { useEffect, useMemo, useState } from "react";
+
 import * as Dialog from "@radix-ui/react-dialog";
-import { cn, formatShortcut } from "@/lib/utils";
+import { Command } from "cmdk";
 import { HiOutlineSearch, HiX } from "react-icons/hi";
-import { useCommands } from "@/hooks/useCommands";
 import {
   HiOutlineCalendar,
   HiOutlineClipboardList,
-  HiOutlineLightningBolt,
   HiOutlineCog,
   HiOutlineCollection,
+  HiOutlineLightningBolt,
 } from "react-icons/hi";
+
+import { cn, formatShortcut } from "@/lib/utils";
+
+import { useCommands } from "@/hooks/useCommands";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -57,8 +60,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
-        <Dialog.Content className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-[640px] z-50">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-[20%] z-50 w-full max-w-[640px] -translate-x-1/2">
           <Dialog.Title className="sr-only">Command Menu</Dialog.Title>
           <Dialog.Description className="sr-only">
             Search commands and navigate the application
@@ -66,18 +69,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
           <Command
             className={cn(
-              "rounded-lg border shadow-lg bg-white overflow-hidden",
-              "transition-all transform",
+              "overflow-hidden rounded-lg border bg-white shadow-lg",
+              "transform transition-all",
               "data-[state=open]:animate-in data-[state=closed]:animate-out",
-              "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
-              "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95"
+              "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+              "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
             )}
           >
             <div className="flex items-center border-b px-3">
-              <HiOutlineSearch className="w-5 h-5 text-gray-400" />
+              <HiOutlineSearch className="h-5 w-5 text-gray-400" />
               <Command.Input
                 placeholder="Type a command or search..."
-                className="flex-1 h-12 px-3 text-base outline-none placeholder:text-gray-400"
+                className="h-12 flex-1 px-3 text-base outline-none placeholder:text-gray-400"
                 value={search}
                 onValueChange={setSearch}
               />
@@ -87,11 +90,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   onClick={() => setSearch("")}
                   aria-label="Clear search"
                 >
-                  <HiX className="w-5 h-5" />
+                  <HiX className="h-5 w-5" />
                 </button>
               )}
               {!search && (
-                <kbd className="hidden sm:flex items-center gap-1 px-2 py-0.5 text-xs text-gray-400 bg-gray-100 rounded">
+                <kbd className="hidden items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-400 sm:flex">
                   <span className="text-xs">⌘</span>
                   <span>K</span>
                 </kbd>
@@ -100,7 +103,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 className="ml-2 p-2 text-gray-400 hover:text-gray-600"
                 aria-label="Close command menu"
               >
-                <HiX className="w-5 h-5" />
+                <HiX className="h-5 w-5" />
               </Dialog.Close>
             </div>
 
@@ -110,9 +113,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   <p className="mb-2">
                     Start typing to search commands or try these:
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <div
-                      className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                      className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-gray-100"
                       onClick={() => {
                         executeCommand("navigation.calendar");
                         onOpenChange(false);
@@ -120,12 +123,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     >
                       <HiOutlineCalendar className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">Go to Calendar</span>
-                      <kbd className="ml-auto text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                      <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
                         gc
                       </kbd>
                     </div>
                     <div
-                      className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                      className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-gray-100"
                       onClick={() => {
                         executeCommand("navigation.tasks");
                         onOpenChange(false);
@@ -133,12 +136,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     >
                       <HiOutlineClipboardList className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">Go to Tasks</span>
-                      <kbd className="ml-auto text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                      <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
                         gt
                       </kbd>
                     </div>
                     <div
-                      className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                      className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-gray-100"
                       onClick={() => {
                         executeCommand("navigation.focus");
                         onOpenChange(false);
@@ -146,12 +149,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     >
                       <HiOutlineLightningBolt className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">Go to Focus</span>
-                      <kbd className="ml-auto text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                      <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
                         gf
                       </kbd>
                     </div>
                     <div
-                      className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                      className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-gray-100"
                       onClick={() => {
                         executeCommand("navigation.settings");
                         onOpenChange(false);
@@ -159,7 +162,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     >
                       <HiOutlineCog className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">Go to Settings</span>
-                      <kbd className="ml-auto text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                      <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
                         gs
                       </kbd>
                     </div>
@@ -168,7 +171,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   <div className="mt-4 flex justify-center">
                     <button
                       onClick={() => setShowAllCommands(true)}
-                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 rounded-md"
+                      className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
                     >
                       <HiOutlineCollection className="h-4 w-4" />
                       Show all commands
@@ -195,13 +198,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         return (
                           <Command.Item
                             key={command.id}
-                            className="px-2 py-2 rounded-md text-sm cursor-pointer flex items-center gap-2 aria-selected:bg-blue-50 aria-selected:text-blue-700"
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm aria-selected:bg-blue-50 aria-selected:text-blue-700"
                             onSelect={() => {
                               executeCommand(command.id);
                               onOpenChange(false);
                             }}
                           >
-                            {Icon && <Icon className="w-4 h-4" />}
+                            {Icon && <Icon className="h-4 w-4" />}
                             <span>{command.title}</span>
                             {command.shortcut && (
                               <kbd className="ml-auto text-xs text-gray-400">

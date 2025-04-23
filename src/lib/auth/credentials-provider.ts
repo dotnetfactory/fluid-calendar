@@ -1,6 +1,8 @@
 import { compare } from "bcrypt";
-import { prisma } from "@/lib/prisma";
+
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+
 import { isPublicSignupEnabled } from "./public-signup";
 
 const LOG_SOURCE = "CredentialsProvider";

@@ -1,21 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { TaskList } from "@/components/tasks/TaskList";
-import { BoardView } from "@/components/tasks/BoardView/BoardView";
-import { TaskModal } from "@/components/tasks/TaskModal";
-import { useTaskStore } from "@/store/task";
-import { useProjectStore } from "@/store/project";
-import { useTaskPageSettings } from "@/store/taskPageSettings";
-import { Task, TaskStatus, NewTask } from "@/types/task";
-import { ProjectSidebar } from "@/components/projects/ProjectSidebar";
-import { BsListTask, BsKanban } from "react-icons/bs";
-import { cn } from "@/lib/utils";
-import { useTaskModalStore } from "@/store/taskModal";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useEffect, useState } from "react";
+
+import { BsKanban, BsListTask } from "react-icons/bs";
 import { toast } from "sonner";
+
+import { ProjectSidebar } from "@/components/projects/ProjectSidebar";
+import { BoardView } from "@/components/tasks/BoardView/BoardView";
+import { TaskList } from "@/components/tasks/TaskList";
+import { TaskModal } from "@/components/tasks/TaskModal";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+
+import { cn } from "@/lib/utils";
+
+import { useProjectStore } from "@/store/project";
+import { useTaskStore } from "@/store/task";
+import { useTaskModalStore } from "@/store/taskModal";
+import { useTaskPageSettings } from "@/store/taskPageSettings";
+
+import { NewTask, Task, TaskStatus } from "@/types/task";
 
 export default function TasksPage() {
   const {
@@ -108,16 +113,16 @@ export default function TasksPage() {
   return (
     <div className="flex h-full">
       <ProjectSidebar />
-      <div className="flex-1 flex flex-col min-w-0" data-task-page>
-        <div className="px-6 py-4 border-b border-border">
-          <div className="flex justify-between items-center">
+      <div className="flex min-w-0 flex-1 flex-col" data-task-page>
+        <div className="border-b border-border px-6 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
-              <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+              <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
                 <button
                   onClick={() => setViewMode("list")}
                   className={cn(
-                    "p-2 rounded-md text-sm font-medium flex items-center gap-2",
+                    "flex items-center gap-2 rounded-md p-2 text-sm font-medium",
                     viewMode === "list"
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
@@ -129,7 +134,7 @@ export default function TasksPage() {
                 <button
                   onClick={() => setViewMode("board")}
                   className={cn(
-                    "p-2 rounded-md text-sm font-medium flex items-center gap-2",
+                    "flex items-center gap-2 rounded-md p-2 text-sm font-medium",
                     viewMode === "board"
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
@@ -178,7 +183,7 @@ export default function TasksPage() {
           )}
         </div>
 
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0 p-6">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6">
           {viewMode === "list" ? (
             <TaskList
               tasks={tasks}
@@ -218,8 +223,8 @@ export default function TasksPage() {
         />
 
         {loading && (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
-            <div className="bg-background rounded-lg p-4 shadow-lg border">
+          <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+            <div className="rounded-lg border bg-background p-4 shadow-lg">
               <LoadingSpinner size="lg" />
             </div>
           </div>

@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+
+import { usePathname, useRouter } from "next/navigation";
+
 import { checkSetupStatus } from "@/lib/setup-actions";
+
 import { useSetupStore } from "@/store/setup";
 
 // How often to check the setup status (in milliseconds)

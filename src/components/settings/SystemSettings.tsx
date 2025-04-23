@@ -1,6 +1,7 @@
-import { useSettingsStore } from "@/store/settings";
-import { SettingsSection, SettingRow } from "./SettingsSection";
 import { useEffect } from "react";
+
+import AccessDeniedMessage from "@/components/auth/AccessDeniedMessage";
+import AdminOnly from "@/components/auth/AdminOnly";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -10,10 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { logger } from "@/lib/logger";
-import AdminOnly from "@/components/auth/AdminOnly";
-import AccessDeniedMessage from "@/components/auth/AccessDeniedMessage";
+
 import { clearResendInstance } from "@/lib/email/resend";
+import { logger } from "@/lib/logger";
+
+import { useSettingsStore } from "@/store/settings";
+
+import { SettingRow, SettingsSection } from "./SettingsSection";
 
 const LOG_SOURCE = "SystemSettings";
 
@@ -92,7 +96,7 @@ export function SystemSettings() {
               </div>
               <div>
                 To get these credentials:
-                <ol className="list-decimal ml-4 mt-1 space-y-1 text-muted-foreground">
+                <ol className="ml-4 mt-1 list-decimal space-y-1 text-muted-foreground">
                   <li>
                     Go to the{" "}
                     <a
@@ -155,7 +159,7 @@ export function SystemSettings() {
               </div>
               <div>
                 To get these credentials:
-                <ol className="list-decimal ml-4 mt-1 space-y-1 text-muted-foreground">
+                <ol className="ml-4 mt-1 list-decimal space-y-1 text-muted-foreground">
                   <li>
                     Go to the{" "}
                     <a

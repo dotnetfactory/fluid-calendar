@@ -1,6 +1,7 @@
 # Outlook Tasks Integration Implementation Plan
 
 ## Overview
+
 This document outlines the implementation plan for adding Microsoft Outlook tasks import support to FluidCalendar using the Microsoft Graph API. This integration will enable users to import their Microsoft 365 and Outlook.com tasks as a one-way sync, maintaining task IDs for future reference while keeping the task system independent. Task lists from Outlook will be mapped to projects in the system.
 
 ## Implementation Phases
@@ -8,6 +9,7 @@ This document outlines the implementation plan for adding Microsoft Outlook task
 ### Phase 1: Core Infrastructure
 
 #### 1. Database Schema Updates
+
 ```sql
 -- Add externalTaskId and source fields to Task table
 ALTER TABLE "Task" ADD COLUMN "externalTaskId" TEXT;
@@ -33,11 +35,13 @@ CREATE INDEX "OutlookTaskListMapping_projectId_idx" ON "OutlookTaskListMapping"(
 ```
 
 #### 2. Microsoft Graph API Integration
+
 - Add Tasks.Read scope to existing OAuth configuration
 - Update token management to include task permissions
 - Create task-specific Graph API client methods
 
 #### 3. Core Interfaces
+
 ```typescript
 interface OutlookTask {
   id: string;
@@ -72,10 +76,10 @@ interface OutlookTaskList {
 
 interface OutlookTaskListMapping {
   id: string;
-  externalListId: string;    // Outlook list ID
-  projectId: string;         // Local project ID
+  externalListId: string; // Outlook list ID
+  projectId: string; // Local project ID
   lastImported: Date;
-  name: string;              // Original Outlook list name
+  name: string; // Original Outlook list name
 }
 
 interface TaskImportOptions {
@@ -108,6 +112,7 @@ interface TaskImportResult {
 ### Phase 2: Core Implementation
 
 #### 1. Task List Management
+
 - [ ] Implement task list discovery
 - [ ] Add task list selection UI
 - [ ] Store user's task list preferences
@@ -115,6 +120,7 @@ interface TaskImportResult {
 - [ ] Handle list/project synchronization
 
 #### 2. Task Import System
+
 - [ ] Create task import service
 - [ ] Implement field mapping
 - [ ] Handle attachments (skip for v1)
@@ -124,6 +130,7 @@ interface TaskImportResult {
 - [ ] Map tasks to appropriate projects
 
 #### 3. UI Integration
+
 - [ ] Add import button to tasks view
 - [ ] Create import configuration modal
 - [ ] Show import progress
@@ -135,6 +142,7 @@ interface TaskImportResult {
 ### Phase 3: Testing & Validation
 
 #### 1. Test Cases
+
 - [ ] Task list retrieval
 - [ ] Project mapping creation
 - [ ] Basic task import
@@ -146,6 +154,7 @@ interface TaskImportResult {
 - [ ] Project relationship integrity
 
 #### 2. Edge Cases
+
 - [ ] Empty task lists
 - [ ] Invalid task data
 - [ ] Network interruptions
@@ -160,8 +169,9 @@ interface TaskImportResult {
 ### 1. API Endpoints
 
 #### Task List Discovery
+
 ```typescript
-GET /api/tasks/outlook/lists
+GET / api / tasks / outlook / lists;
 Response: {
   lists: Array<{
     id: string;
@@ -178,6 +188,7 @@ Response: {
 ```
 
 #### Task Import
+
 ```typescript
 POST /api/tasks/outlook/import
 Body: {
@@ -195,10 +206,11 @@ Response: TaskImportResult
 ### 2. Core Functions
 
 #### Task List Management
+
 ```typescript
 async function getOutlookTaskLists(accountId: string) {
   const client = await getOutlookClient(accountId);
-  return client.api('/me/todo/lists').get();
+  return client.api("/me/todo/lists").get();
 }
 
 async function createProjectFromList(
@@ -212,8 +224,8 @@ async function createProjectFromList(
       data: {
         name: listName,
         description: `Imported from Outlook task list: ${listName}`,
-        status: 'active'
-      }
+        status: "active",
+      },
     });
 
     const mapping = await tx.outlookTaskListMapping.create({
@@ -221,8 +233,8 @@ async function createProjectFromList(
         externalListId: listId,
         projectId: project.id,
         name: listName,
-        lastImported: newDate()
-      }
+        lastImported: newDate(),
+      },
     });
 
     return { project, mapping };
@@ -231,6 +243,7 @@ async function createProjectFromList(
 ```
 
 #### Task Import
+
 ```typescript
 async function importOutlookTasks(
   accountId: string,
@@ -243,7 +256,7 @@ async function importOutlookTasks(
     .api(`/me/todo/lists/${listId}/tasks`)
     .filter(buildTaskFilter(options))
     .get();
-  
+
   return await processTaskImport(tasks, projectId, options);
 }
 
@@ -256,7 +269,7 @@ async function processTaskImport(
     imported: 0,
     skipped: 0,
     failed: 0,
-    errors: []
+    errors: [],
   };
 
   for (const task of tasks) {
@@ -266,16 +279,16 @@ async function processTaskImport(
           ...mapOutlookTask(task),
           projectId,
           externalTaskId: task.id,
-          source: 'OUTLOOK',
-          lastSyncedAt: newDate()
-        }
+          source: "OUTLOOK",
+          lastSyncedAt: newDate(),
+        },
       });
       results.imported++;
     } catch (error) {
       results.failed++;
       results.errors.push({
         taskId: task.id,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -287,6 +300,7 @@ async function processTaskImport(
 ### 3. Data Mapping
 
 #### Outlook to Local Task Mapping
+
 ```typescript
 function mapOutlookTask(outlookTask: OutlookTask): Partial<Task> {
   return {
@@ -297,24 +311,30 @@ function mapOutlookTask(outlookTask: OutlookTask): Partial<Task> {
     priority: mapPriority(outlookTask.importance),
     status: mapStatus(outlookTask.status),
     externalTaskId: outlookTask.id,
-    source: 'OUTLOOK',
-    lastSyncedAt: newDate()
+    source: "OUTLOOK",
+    lastSyncedAt: newDate(),
   };
 }
 
 function mapPriority(importance: string): string {
   switch (importance.toLowerCase()) {
-    case 'high': return 'high';
-    case 'low': return 'low';
-    default: return 'medium';
+    case "high":
+      return "high";
+    case "low":
+      return "low";
+    default:
+      return "medium";
   }
 }
 
 function mapStatus(outlookStatus: string): TaskStatus {
   switch (outlookStatus.toLowerCase()) {
-    case 'completed': return TaskStatus.COMPLETED;
-    case 'inProgress': return TaskStatus.IN_PROGRESS;
-    default: return TaskStatus.TODO;
+    case "completed":
+      return TaskStatus.COMPLETED;
+    case "inProgress":
+      return TaskStatus.IN_PROGRESS;
+    default:
+      return TaskStatus.TODO;
   }
 }
 ```
@@ -322,6 +342,7 @@ function mapStatus(outlookStatus: string): TaskStatus {
 ## Implementation Steps
 
 1. Database Updates
+
    - [ ] Create migration for new task fields
    - [ ] Create migration for list mapping table
    - [ ] Update task model
@@ -329,6 +350,7 @@ function mapStatus(outlookStatus: string): TaskStatus {
    - [ ] Add indices for performance
 
 2. API Integration
+
    - [ ] Add task permissions to OAuth scope
    - [ ] Create task API client class
    - [ ] Implement task list endpoints
@@ -336,6 +358,7 @@ function mapStatus(outlookStatus: string): TaskStatus {
    - [ ] Add list mapping endpoints
 
 3. Core Logic
+
    - [ ] Implement task mapping
    - [ ] Create import service
    - [ ] Add error handling
@@ -344,6 +367,7 @@ function mapStatus(outlookStatus: string): TaskStatus {
    - [ ] Handle list synchronization
 
 4. UI Components
+
    - [ ] Add import button
    - [ ] Create import modal
    - [ ] Add progress indicator
@@ -362,6 +386,7 @@ function mapStatus(outlookStatus: string): TaskStatus {
 ## Future Considerations
 
 1. Potential Enhancements
+
    - Two-way sync capability
    - Real-time updates
    - Attachment support
@@ -372,6 +397,7 @@ function mapStatus(outlookStatus: string): TaskStatus {
    - List hierarchy support
 
 2. Performance Optimizations
+
    - Batch processing
    - Parallel imports
    - Incremental updates
@@ -389,6 +415,7 @@ function mapStatus(outlookStatus: string): TaskStatus {
 ## Security Considerations
 
 1. Token Management
+
    - Secure storage
    - Proper refresh
    - Scope validation
@@ -402,6 +429,7 @@ function mapStatus(outlookStatus: string): TaskStatus {
 ## Error Handling
 
 1. Common Scenarios
+
    - Network failures
    - Token expiration
    - Rate limiting
@@ -419,6 +447,7 @@ function mapStatus(outlookStatus: string): TaskStatus {
 ## Dependencies
 
 1. Required Packages
+
    - @microsoft/microsoft-graph-client
    - date-fns-tz
    - zod (for validation)
@@ -431,6 +460,7 @@ function mapStatus(outlookStatus: string): TaskStatus {
 ## Documentation Requirements
 
 1. User Documentation
+
    - Import process
    - Configuration options
    - Project mapping guide
@@ -442,4 +472,4 @@ function mapStatus(outlookStatus: string): TaskStatus {
    - Data models
    - Error handling
    - Extension points
-   - Project mapping patterns 
+   - Project mapping patterns

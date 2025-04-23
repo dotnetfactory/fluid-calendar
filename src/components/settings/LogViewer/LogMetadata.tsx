@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { LogMetadata } from "@/lib/logger/types";
+
+import { ChevronUp, Copy } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Copy, ChevronUp } from "lucide-react";
+
+import { LogMetadata } from "@/lib/logger/types";
 
 interface LogMetadataViewProps {
   metadata: LogMetadata | null;
@@ -56,7 +59,7 @@ export function LogMetadataView({ metadata }: LogMetadataViewProps) {
                 <span className="sr-only">Collapse</span>
               </Button>
             </div>
-            <pre className="text-sm whitespace-pre-wrap">
+            <pre className="whitespace-pre-wrap text-sm">
               {JSON.stringify(metadata, null, 2)}
             </pre>
           </CardContent>

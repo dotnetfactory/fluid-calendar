@@ -1,8 +1,6 @@
-import { useSettingsStore } from "@/store/settings";
-import { SettingsSection, SettingRow } from "./SettingsSection";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { TimeFormat, WeekStartDay } from "@/types/settings";
+
 import {
   Select,
   SelectContent,
@@ -10,6 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+import { useSettingsStore } from "@/store/settings";
+
+import { TimeFormat, WeekStartDay } from "@/types/settings";
+
+import { SettingRow, SettingsSection } from "./SettingsSection";
 
 export function UserSettings() {
   const { data: session } = useSession();

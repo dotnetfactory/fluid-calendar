@@ -1,14 +1,19 @@
 import { useEffect } from "react";
-import { LogTable } from "./LogTable";
+
+import { Trash2 } from "lucide-react";
+
+import AccessDeniedMessage from "@/components/auth/AccessDeniedMessage";
+import AdminOnly from "@/components/auth/AdminOnly";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+
+import { logger } from "@/lib/logger";
+
+import { useLogViewStore } from "@/store/logview";
+
 import { LogFilters } from "./LogFilters";
 import { LogSettings } from "./LogSettings";
-import { logger } from "@/lib/logger";
-import { useLogViewStore } from "@/store/logview";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Trash2 } from "lucide-react";
-import AdminOnly from "@/components/auth/AdminOnly";
-import AccessDeniedMessage from "@/components/auth/AccessDeniedMessage";
+import { LogTable } from "./LogTable";
 
 const LOG_SOURCE = "LogViewer";
 
@@ -109,7 +114,7 @@ export function LogViewer() {
       }
     >
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight">System Logs</h2>
           <Button
             variant="destructive"
@@ -117,7 +122,7 @@ export function LogViewer() {
             disabled={loading}
             size="sm"
           >
-            <Trash2 className="h-4 w-4 mr-2" />
+            <Trash2 className="mr-2 h-4 w-4" />
             Cleanup Expired Logs
           </Button>
         </div>

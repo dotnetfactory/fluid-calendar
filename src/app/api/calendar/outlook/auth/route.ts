@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { getOutlookCredentials } from "@/lib/auth";
 import {
   MICROSOFT_GRAPH_AUTH_ENDPOINTS,

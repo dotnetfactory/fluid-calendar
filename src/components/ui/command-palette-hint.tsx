@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+
 import { HiOutlineSearch } from "react-icons/hi";
 import { IoClose } from "react-icons/io5";
 
@@ -42,10 +43,10 @@ export function CommandPaletteHint() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-background border rounded-lg shadow-lg p-4 max-w-xs">
-        <div className="flex justify-between items-start mb-2">
-          <div className="flex items-center gap-2 text-primary font-medium">
+    <div className="fixed bottom-4 right-4 z-50 duration-300 animate-in fade-in slide-in-from-bottom-4">
+      <div className="max-w-xs rounded-lg border bg-background p-4 shadow-lg">
+        <div className="mb-2 flex items-start justify-between">
+          <div className="flex items-center gap-2 font-medium text-primary">
             <HiOutlineSearch className="h-5 w-5" />
             <span>Quick Tip</span>
           </div>
@@ -58,23 +59,23 @@ export function CommandPaletteHint() {
           </button>
         </div>
 
-        <p className="text-sm text-foreground mb-3">
-          Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">⌘K</kbd>{" "}
+        <p className="mb-3 text-sm text-foreground">
+          Press <kbd className="rounded bg-muted px-1.5 py-0.5 text-xs">⌘K</kbd>{" "}
           (or{" "}
-          <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Ctrl+K</kbd>)
+          <kbd className="rounded bg-muted px-1.5 py-0.5 text-xs">Ctrl+K</kbd>)
           to open the command palette and quickly access features.
         </p>
 
         <div className="flex justify-end gap-2">
           <button
             onClick={dismissHint}
-            className="text-xs px-2 py-1 text-muted-foreground hover:text-foreground"
+            className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
           >
             Dismiss
           </button>
           <button
             onClick={openCommandPalette}
-            className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            className="rounded-md bg-primary px-3 py-1 text-xs text-primary-foreground hover:bg-primary/90"
           >
             Try it now
           </button>

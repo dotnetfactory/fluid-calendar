@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+
+import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { authenticateRequest } from "@/lib/auth/api-auth";
 
 const LOG_SOURCE = "accounts-route";
 

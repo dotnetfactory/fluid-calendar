@@ -1,8 +1,9 @@
-import { NextResponse, NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { newDate } from "@/lib/date-utils";
+import { NextRequest, NextResponse } from "next/server";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "events-route";
 

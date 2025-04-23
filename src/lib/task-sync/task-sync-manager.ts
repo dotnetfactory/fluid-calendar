@@ -8,30 +8,30 @@
  * - Handling task operations that trigger syncs
  * - Resolving conflicts between local and remote tasks
  */
-
-import { prisma } from "@/lib/prisma";
-import { logger } from "@/lib/logger";
 import {
   TaskProvider as DbTaskProvider,
   TaskListMapping,
 } from "@prisma/client";
-import {
-  TaskProviderInterface,
-  ExternalTask,
-} from "./providers/task-provider.interface";
+
 import { newDate } from "@/lib/date-utils";
-import { TaskChangeTracker } from "./task-change-tracker";
-import { TaskStatus } from "@/types/task";
-import { FieldMapper } from "./field-mapper";
-import { OutlookFieldMapper } from "./providers/outlook-field-mapper";
-import { SyncResult, TaskWithSync } from "./types";
-
-// Import provider implementations
-import { OutlookTaskProvider } from "./providers/outlook-provider";
+import { logger } from "@/lib/logger";
 // import { CalDAVTaskProvider } from "./providers/caldav-provider";
-
 // Import utility to get Microsoft Graph client
 import { getMsGraphClient } from "@/lib/outlook-utils";
+import { prisma } from "@/lib/prisma";
+
+import { TaskStatus } from "@/types/task";
+
+import { FieldMapper } from "./field-mapper";
+import { OutlookFieldMapper } from "./providers/outlook-field-mapper";
+// Import provider implementations
+import { OutlookTaskProvider } from "./providers/outlook-provider";
+import {
+  ExternalTask,
+  TaskProviderInterface,
+} from "./providers/task-provider.interface";
+import { TaskChangeTracker } from "./task-change-tracker";
+import { SyncResult, TaskWithSync } from "./types";
 
 const LOG_SOURCE = "TaskSyncManager";
 
@@ -488,8 +488,8 @@ export class TaskSyncManager {
                   externalUpdatedAt: externalTask.lastModified
                     ? newDate(externalTask.lastModified)
                     : externalTask.lastModifiedDateTime
-                    ? newDate(externalTask.lastModifiedDateTime)
-                    : new Date(),
+                      ? newDate(externalTask.lastModifiedDateTime)
+                      : new Date(),
                   syncHash: tracker.generateTaskHash({
                     title: internalTask.title,
                     description: internalTask.description,
@@ -538,8 +538,8 @@ export class TaskSyncManager {
               externalUpdatedAt: createdTask.lastModified
                 ? newDate(createdTask.lastModified)
                 : createdTask.lastModifiedDateTime
-                ? newDate(createdTask.lastModifiedDateTime)
-                : new Date(),
+                  ? newDate(createdTask.lastModifiedDateTime)
+                  : new Date(),
               syncHash: tracker.generateTaskHash(localTask),
             },
           });
@@ -676,8 +676,8 @@ export class TaskSyncManager {
         externalUpdatedAt: createdTask.lastModified
           ? newDate(createdTask.lastModified)
           : createdTask.lastModifiedDateTime
-          ? newDate(createdTask.lastModifiedDateTime)
-          : new Date(),
+            ? newDate(createdTask.lastModifiedDateTime)
+            : new Date(),
         lastSyncedAt: newDate(),
         syncStatus: "SYNCED",
         syncHash: new TaskChangeTracker().generateTaskHash(taskWithSync),
@@ -743,8 +743,8 @@ export class TaskSyncManager {
         externalUpdatedAt: updatedTask.lastModified
           ? newDate(updatedTask.lastModified)
           : updatedTask.lastModifiedDateTime
-          ? newDate(updatedTask.lastModifiedDateTime)
-          : new Date(),
+            ? newDate(updatedTask.lastModifiedDateTime)
+            : new Date(),
         lastSyncedAt: newDate(),
         syncStatus: "SYNCED",
         syncHash: new TaskChangeTracker().generateTaskHash(taskWithSync),
@@ -839,8 +839,8 @@ export class TaskSyncManager {
         externalUpdatedAt: externalTask.lastModified
           ? newDate(externalTask.lastModified)
           : externalTask.lastModifiedDateTime
-          ? newDate(externalTask.lastModifiedDateTime)
-          : new Date(),
+            ? newDate(externalTask.lastModifiedDateTime)
+            : new Date(),
       },
     });
   }
@@ -860,8 +860,8 @@ export class TaskSyncManager {
     const externalUpdatedAt = externalTask.lastModified
       ? newDate(externalTask.lastModified)
       : externalTask.lastModifiedDateTime
-      ? newDate(externalTask.lastModifiedDateTime)
-      : new Date();
+        ? newDate(externalTask.lastModifiedDateTime)
+        : new Date();
 
     // Map external task to internal format
     const mappedExternalTask = fieldMapper.mapToInternalTask(
@@ -926,8 +926,8 @@ export class TaskSyncManager {
           externalUpdatedAt: updatedTask.lastModified
             ? newDate(updatedTask.lastModified)
             : updatedTask.lastModifiedDateTime
-            ? newDate(updatedTask.lastModifiedDateTime)
-            : new Date(),
+              ? newDate(updatedTask.lastModifiedDateTime)
+              : new Date(),
           lastSyncedAt: newDate(),
           syncStatus: "SYNCED",
           syncHash: new TaskChangeTracker().generateTaskHash(localTask),

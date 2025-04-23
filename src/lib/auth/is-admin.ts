@@ -1,7 +1,8 @@
 import { getServerSession } from "next-auth";
+import { Session } from "next-auth";
+
 import { getAuthOptions } from "@/lib/auth/auth-options";
 import { logger } from "@/lib/logger";
-import { Session } from "next-auth";
 
 const LOG_SOURCE = "AdminCheck";
 

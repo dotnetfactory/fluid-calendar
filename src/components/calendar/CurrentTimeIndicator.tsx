@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import { isSameDay, newDate } from "@/lib/date-utils";
 
 interface CurrentTimeIndicatorProps {
@@ -26,20 +27,20 @@ export function CurrentTimeIndicator({ date }: CurrentTimeIndicatorProps) {
 
   return (
     <div
-      className="absolute left-0 right-0 pointer-events-none"
+      className="pointer-events-none absolute left-0 right-0"
       style={{ top: `${percentage}%` }}
     >
       {/* Time label */}
-      <div className="absolute -left-16 -translate-y-1/2 w-12 text-right">
+      <div className="absolute -left-16 w-12 -translate-y-1/2 text-right">
         <span className="text-xs font-medium text-red-500">
           {now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
         </span>
       </div>
 
       {/* Line */}
-      <div className="h-px bg-red-500 w-full relative">
+      <div className="relative h-px w-full bg-red-500">
         {/* Circle */}
-        <div className="absolute left-0 -translate-y-1/2 w-2 h-2 rounded-full bg-red-500" />
+        <div className="absolute left-0 h-2 w-2 -translate-y-1/2 rounded-full bg-red-500" />
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 # Outlook Calendar Integration Implementation Plan
 
 ## Overview
+
 This document outlines the implementation plan for adding Microsoft Outlook calendar support to FluidCalendar using the Microsoft Graph API. This integration will enable users to connect their Microsoft 365 and Outlook.com calendars, expanding the calendar integration options alongside Google Calendar and CalDAV support.
 
 ## Outlook Integration Details
@@ -8,6 +9,7 @@ This document outlines the implementation plan for adding Microsoft Outlook cale
 The Outlook integration system will handle OAuth authentication, synchronization, and CRUD operations for Microsoft calendars. This component is responsible for:
 
 ### 1. Core Interfaces
+
 ```typescript
 interface OutlookAccount {
   id: string;
@@ -67,7 +69,9 @@ interface OutlookEvent {
 ```
 
 ### 2. Core Responsibilities
+
 - **Authentication Management**
+
   - OAuth 2.0 flow
   - Token refresh handling
   - Permission scopes
@@ -75,6 +79,7 @@ interface OutlookEvent {
   - Token storage
 
 - **Calendar Synchronization**
+
   - Delta query support
   - Batch operations
   - Change tracking
@@ -82,6 +87,7 @@ interface OutlookEvent {
   - Error recovery
 
 - **Event Management**
+
   - CRUD operations
   - Recurring events
   - Attendee management
@@ -96,6 +102,7 @@ interface OutlookEvent {
   - Quota management
 
 ### 3. Implementation Approach
+
 ```typescript
 class OutlookServiceImpl implements CalendarService {
   constructor(
@@ -119,7 +126,10 @@ class OutlookServiceImpl implements CalendarService {
     // 5. Update sync state
   }
 
-  async createEvent(calendar: OutlookCalendar, event: CalendarEvent): Promise<OutlookEvent> {
+  async createEvent(
+    calendar: OutlookCalendar,
+    event: CalendarEvent
+  ): Promise<OutlookEvent> {
     // 1. Convert to Graph API format
     // 2. Create event
     // 3. Handle attendees
@@ -129,23 +139,32 @@ class OutlookServiceImpl implements CalendarService {
 ```
 
 ### 4. Key Components
+
 1. **Graph API Client**
+
    - Authentication flow
    - Token management
    - Request handling
    - Batch operations
 
 2. **Sync Engine**
+
    ```typescript
    interface OutlookSyncEngine {
-     getDeltaChanges(calendar: OutlookCalendar, deltaToken?: string): Promise<{
+     getDeltaChanges(
+       calendar: OutlookCalendar,
+       deltaToken?: string
+     ): Promise<{
        events: OutlookEvent[];
        deltaToken: string;
      }>;
-     
+
      applyChanges(changes: OutlookChanges): Promise<void>;
-     
-     handleConflicts(local: OutlookEvent, remote: OutlookEvent): Promise<OutlookEvent>;
+
+     handleConflicts(
+       local: OutlookEvent,
+       remote: OutlookEvent
+     ): Promise<OutlookEvent>;
    }
    ```
 
@@ -160,6 +179,7 @@ class OutlookServiceImpl implements CalendarService {
    ```
 
 ### 5. Edge Cases to Handle
+
 - Token expiration during operations
 - Rate limit exceeded
 - Multi-calendar sync conflicts
@@ -172,6 +192,7 @@ class OutlookServiceImpl implements CalendarService {
 ## Implementation Status
 
 ### ✅ Phase 1: Foundation Setup (Completed)
+
 - [x] Azure AD Configuration
   - [x] App registration
   - [x] Permission scopes
@@ -188,6 +209,7 @@ class OutlookServiceImpl implements CalendarService {
   - [x] Token refresh handling
 
 ### ✅ Phase 2: Core Integration (Completed)
+
 - [x] Calendar Integration
   - [x] Full CRUD support
   - [x] Recurring events
@@ -205,6 +227,7 @@ class OutlookServiceImpl implements CalendarService {
   - [x] Error reporting
 
 ### 🚧 Phase 3: Advanced Features & Bug Fixes (In Progress)
+
 - [ ] Enhanced Sync
   - [ ] Real-time updates
   - [ ] Webhook support
@@ -238,18 +261,21 @@ class OutlookServiceImpl implements CalendarService {
 ## Technical Considerations
 
 1. **Security**
+
    - Secure token storage
    - Scope management
    - Token refresh handling
    - Rate limit handling
 
 2. **Performance**
+
    - Delta query usage
    - Batch operations
    - Caching strategy
    - Background sync
 
 3. **Reliability**
+
    - Token refresh logic
    - Retry mechanisms
    - Error recovery
@@ -264,6 +290,7 @@ class OutlookServiceImpl implements CalendarService {
 ## Dependencies
 
 1. **Required Libraries**
+
    - `@microsoft/microsoft-graph-client`
    - `@azure/msal-node`
    - `date-fns-tz`
@@ -278,12 +305,14 @@ class OutlookServiceImpl implements CalendarService {
 ## Testing Strategy
 
 1. **Unit Tests**
+
    - Auth flows
    - Token management
    - Event conversion
    - Error handling
 
 2. **Integration Tests**
+
    - Graph API calls
    - Sync processes
    - Token refresh
@@ -298,6 +327,7 @@ class OutlookServiceImpl implements CalendarService {
 ## Documentation Requirements
 
 1. **User Documentation**
+
    - Connection guide
    - Permission explanation
    - Troubleshooting steps
@@ -312,6 +342,7 @@ class OutlookServiceImpl implements CalendarService {
 ## Azure AD Configuration
 
 1. **App Registration**
+
    ```
    Application (client) ID: [Your Client ID]
    Directory (tenant) ID: [Your Tenant ID]
@@ -319,6 +350,7 @@ class OutlookServiceImpl implements CalendarService {
    ```
 
 2. **Required Permissions**
+
    ```
    Calendars.ReadWrite
    User.Read
@@ -331,4 +363,4 @@ class OutlookServiceImpl implements CalendarService {
    Redirect URI: https://[your-domain]/api/calendar/outlook/callback
    Access tokens: Yes
    ID tokens: Yes
-   ``` 
+   ```

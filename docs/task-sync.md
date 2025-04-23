@@ -26,6 +26,7 @@ The current system implements a one-way import of Outlook Tasks with these key c
 - UI components for initiating imports and mapping task lists to projects
 
 Limitations:
+
 - One-way sync only (changes in FluidCalendar aren't synced back to Outlook)
 - No change tracking or conflict resolution
 - No support for periodic syncing
@@ -103,7 +104,7 @@ model TaskListMapping {
 ```prisma
 model Task {
   // Existing fields...
-  
+
   // Modified sync fields
   externalTaskId   String?
   externalUrl      String?      // URL to the task in the external system
@@ -113,7 +114,7 @@ model Task {
   syncStatus       String?      // "SYNCING", "SYNCED", "ERROR", "CONFLICT"
   providerId       String?
   provider         TaskProvider? @relation(fields: [providerId], references: [id])
-  
+
   // @@index for the new fields
   @@index([providerId])
   @@index([syncStatus])
@@ -137,21 +138,25 @@ Create an abstract interface that all provider implementations must follow:
 // src/lib/task-sync/providers/task-provider.interface.ts
 export interface TaskProviderInterface {
   // Provider information
-  getType(): string;  // Returns provider type identifier
-  getName(): string;  // Returns human-readable provider name
-  
+  getType(): string; // Returns provider type identifier
+  getName(): string; // Returns human-readable provider name
+
   // Task list operations
   getTaskLists(): Promise<TaskList[]>;
-  
+
   // Task operations
   getTasks(listId: string, options?: SyncOptions): Promise<ExternalTask[]>;
   createTask(listId: string, task: TaskToCreate): Promise<ExternalTask>;
-  updateTask(listId: string, taskId: string, updates: TaskUpdates): Promise<ExternalTask>;
+  updateTask(
+    listId: string,
+    taskId: string,
+    updates: TaskUpdates
+  ): Promise<ExternalTask>;
   deleteTask(listId: string, taskId: string): Promise<void>;
-  
+
   // Sync operations
   getChanges(listId: string, since?: Date): Promise<TaskChange[]>;
-  
+
   // Authentication/connection
   validateConnection(): Promise<boolean>;
 }
@@ -166,18 +171,21 @@ Central service to manage synchronization across providers:
 export class TaskSyncManager {
   // Initialize provider based on type
   getProvider(providerId: string): Promise<TaskProviderInterface>;
-  
+
   // Sync operations
   syncTaskList(mappingId: string): Promise<SyncResult>;
   syncAllForUser(userId: string): Promise<SyncResult[]>;
-  
+
   // Task operations that trigger syncs
   createTask(task: NewTask): Promise<Task>;
   updateTask(taskId: string, updates: UpdateTask): Promise<Task>;
   deleteTask(taskId: string): Promise<void>;
-  
+
   // Conflict resolution
-  resolveConflict(taskId: string, resolution: ConflictResolution): Promise<Task>;
+  resolveConflict(
+    taskId: string,
+    resolution: ConflictResolution
+  ): Promise<Task>;
 }
 ```
 
@@ -189,11 +197,15 @@ Service to track changes to tasks for efficient syncing:
 // src/lib/task-sync/task-change-tracker.ts
 export class TaskChangeTracker {
   // Track changes to local tasks
-  trackChange(taskId: string, changeType: 'CREATE' | 'UPDATE' | 'DELETE', data?: any): Promise<void>;
-  
+  trackChange(
+    taskId: string,
+    changeType: "CREATE" | "UPDATE" | "DELETE",
+    data?: any
+  ): Promise<void>;
+
   // Get changes since last sync
   getChangesSince(mappingId: string, since: Date): Promise<TaskChange[]>;
-  
+
   // Mark changes as synced
   markAsSynced(changeIds: string[]): Promise<void>;
 }
@@ -205,13 +217,13 @@ Different task providers have their own concept of organizing tasks, which we ne
 
 ### Project Mapping Concepts
 
-| Provider | Their Concept | Our Mapping |
-|----------|---------------|-------------|
-| Outlook | Task Lists | Projects |
-| Asana | Projects/Boards | Projects |
-| CalDAV | Task Collections | Projects |
-| Todoist | Projects | Projects |
-| Jira | Boards/Projects | Projects |
+| Provider | Their Concept    | Our Mapping |
+| -------- | ---------------- | ----------- |
+| Outlook  | Task Lists       | Projects    |
+| Asana    | Projects/Boards  | Projects    |
+| CalDAV   | Task Collections | Projects    |
+| Todoist  | Projects         | Projects    |
+| Jira     | Boards/Projects  | Projects    |
 
 ### Project Mapping Strategy: 1-to-1 vs 1-to-Many
 
@@ -222,12 +234,14 @@ We have two potential approaches for mapping external task lists to FluidCalenda
 Each external task list/project maps to exactly one FluidCalendar project.
 
 **Advantages:**
+
 - Simpler conceptual model for users to understand
 - Clearer sync behavior (changes to a project affect one external list)
 - More straightforward conflict resolution
 - Easier to visualize in the UI
 
 **Disadvantages:**
+
 - Less flexibility for users who want to combine tasks from multiple external lists
 - Could lead to project proliferation if users have many external lists
 
@@ -236,11 +250,13 @@ Each external task list/project maps to exactly one FluidCalendar project.
 Multiple external task lists could map to a single FluidCalendar project.
 
 **Advantages:**
+
 - More flexible organization options for users
 - Reduces project proliferation
 - Could allow aggregating related tasks from different providers
 
 **Disadvantages:**
+
 - Complex sync logic (which external list should a new task go to?)
 - Ambiguous conflict resolution
 - Difficult to represent in UI without confusion
@@ -251,17 +267,20 @@ Multiple external task lists could map to a single FluidCalendar project.
 ### Project Synchronization Strategy
 
 1. **One-to-One Mapping**:
+
    - Each external task list/project maps to exactly one FluidCalendar project
    - The `TaskListMapping` table maintains this relationship
    - Projects can have tasks from multiple providers through separate 1:1 mappings
    - Example: A project "Work" could be mapped to an Outlook task list AND a separate Asana project, but not multiple Outlook lists
 
 2. **Metadata Synchronization**:
+
    - Project name can be synced bidirectionally when supported by the provider
    - Project color can be synced when available in the external provider
    - Project description can be synced when available
 
 3. **Project Creation Flows**:
+
    - When mapping a new external task list, users can:
      - Map to an existing FluidCalendar project (as long as it doesn't already have a mapping to the same provider)
      - Create a new project with the same name as the external list
@@ -278,10 +297,12 @@ Multiple external task lists could map to a single FluidCalendar project.
 ### Project-aware Task Operations
 
 1. **Task Creation**:
+
    - When a task is created in a synced project, it gets created in the corresponding external list
    - Project field is mandatory for synced tasks
 
 2. **Task Moving**:
+
    - When a task is moved to a different project in FluidCalendar:
      - If target project is mapped to the same provider: move task in external system
      - If target project is mapped to a different provider: remove from original external list, create in new provider if that project is mapped
@@ -290,7 +311,7 @@ Multiple external task lists could map to a single FluidCalendar project.
 3. **Advanced Project Features Handling**:
 
    Some task providers offer advanced project features that don't map directly to our project model:
-   
+
    - **Project Hierarchies**: For providers with nested projects (Asana, Todoist), we'll store the project hierarchy path in the `settings` JSON field of `TaskProvider`
    - **Project Sections/Columns**: For providers with Kanban-style columns (Asana, Jira), we'll map their columns to our task statuses
    - **Project Custom Fields**: Store provider-specific project metadata in the `settings` JSON field
@@ -302,7 +323,7 @@ Add to the `Project` model:
 ```prisma
 model Project {
   // Existing fields...
-  
+
   // Fields for external sync
   externalProjectIds Json?       // Store multiple external IDs for different providers
   lastSyncedAt       DateTime?
@@ -316,14 +337,14 @@ model Project {
 ```prisma
 model TaskListMapping {
   // Existing fields...
-  
+
   // Enhanced mapping fields
   externalListColor  String?
   externalListPath   String?    // For hierarchical providers, the path to this list
   syncProjectName    Boolean    @default(true)  // Whether to sync project name changes
   syncDirection      String     @default("BIDIRECTIONAL") // "TO_PROVIDER", "FROM_PROVIDER", "BIDIRECTIONAL"
   // We'll enforce 1-to-1 mapping at the application level rather than adding a mapping type field
-  
+
   // ... other existing fields
 }
 ```
@@ -335,6 +356,7 @@ To enforce our 1-to-1 mapping strategy:
 1. **Database constraint**: The unique index on `[externalListId, projectId, providerId]` in the `TaskListMapping` model prevents multiple mappings of the same external list.
 
 2. **Application-level constraint**: When creating a new mapping, we'll check:
+
    - That the project doesn't already have a mapping for the same provider
    - That the external list isn't already mapped to another project
 
@@ -354,7 +376,7 @@ export class OutlookTaskProvider implements TaskProviderInterface {
 }
 ```
 
-### 2. CalDAV Tasks Provider 
+### 2. CalDAV Tasks Provider
 
 ```typescript
 // src/lib/task-sync/providers/caldav-provider.ts
@@ -413,10 +435,10 @@ Implement a BullMQ job processor for task sync operations:
 export class TaskSyncProcessor {
   // Process sync job for a specific mapping
   processMappingSync(job: Job): Promise<SyncResult>;
-  
+
   // Process sync job for an entire provider
   processProviderSync(job: Job): Promise<SyncResult[]>;
-  
+
   // Schedule periodic sync jobs based on user settings
   schedulePeriodicSync(userId: string): Promise<void>;
 }
@@ -426,12 +448,12 @@ export class TaskSyncProcessor {
 
 ```typescript
 // src/saas/jobs/queues.ts
-export const taskSyncQueue = new Queue('taskSync', {
+export const taskSyncQueue = new Queue("taskSync", {
   connection: redisConnection,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
-      type: 'exponential',
+      type: "exponential",
       delay: 5000,
     },
   },
@@ -491,11 +513,13 @@ export function TaskConflictResolver({ taskId }) {
 ## Testing Plan
 
 1. **Unit Tests**
+
    - Task provider interface implementations
    - TaskSyncManager methods
    - Conflict resolution strategies
 
 2. **Integration Tests**
+
    - End-to-end sync workflows
    - Error handling and recovery
    - API endpoint functionality
@@ -516,23 +540,27 @@ export function TaskConflictResolver({ taskId }) {
 ### Phase 2: Two-Way Sync for Outlook (2-3 weeks) [IN PROGRESS]
 
 1. Implement change tracking system [COMPLETED]
+
    - ✅ Enhance TaskChangeTracker to record local task changes
    - ✅ Create TaskChange model in database schema
    - ✅ Store timestamp and operation type for each change
    - ✅ Set up efficient change retrieval for sync operations
 
 2. Develop conflict resolution strategies [IN PROGRESS]
+
    - ⚠️ Implement "latest wins" default strategy
    - Add support for manual conflict resolution
    - Store conflict information in task data
 
 3. Implement task change propagation from FluidCalendar to Outlook [IN PROGRESS]
+
    - ✅ Add task create/update/delete operations to OutlookProvider
    - ✅ Respect TaskListMapping direction setting during sync
    - ✅ Update TaskSyncManager for bidirectional flow
    - ✅ Update API endpoints to track task changes
 
 4. Create conflict resolution UI
+
    - Show conflicting task versions
    - Provide options to choose local, remote, or merged version
    - Add visual indicators for conflicted tasks
@@ -568,4 +596,4 @@ export function TaskConflictResolver({ taskId }) {
 1. Sync reliability: >99% successful syncs
 2. Sync performance: <30 seconds for typical task list sync
 3. User adoption: >50% of users configuring at least one task provider
-4. Support inquiries: <5% of sync operations requiring support intervention 
+4. Support inquiries: <5% of sync operations requiring support intervention

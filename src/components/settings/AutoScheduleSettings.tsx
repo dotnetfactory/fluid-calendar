@@ -1,8 +1,5 @@
-import { useSettingsStore } from "@/store/settings";
-import { useCalendarStore } from "@/store/calendar";
-import { SettingsSection, SettingRow } from "./SettingsSection";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
+import { useEffect } from "react";
+
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -11,14 +8,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+
 import {
-  parseWorkDays,
-  parseSelectedCalendars,
-  stringifyWorkDays,
-  stringifySelectedCalendars,
   formatTime,
+  parseSelectedCalendars,
+  parseWorkDays,
+  stringifySelectedCalendars,
+  stringifyWorkDays,
 } from "@/lib/autoSchedule";
-import { useEffect } from "react";
+
+import { useCalendarStore } from "@/store/calendar";
+import { useSettingsStore } from "@/store/settings";
+
+import { SettingRow, SettingsSection } from "./SettingsSection";
 
 export function AutoScheduleSettings() {
   const { autoSchedule, updateAutoScheduleSettings } = useSettingsStore();
@@ -74,7 +78,7 @@ export function AutoScheduleSettings() {
               />
               <Label className="flex items-center gap-2">
                 <span
-                  className="w-3 h-3 rounded-full"
+                  className="h-3 w-3 rounded-full"
                   style={{ backgroundColor: feed.color || "var(--muted)" }}
                 />
                 {feed.name}

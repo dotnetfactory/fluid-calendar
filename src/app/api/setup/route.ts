@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+
 import { hash } from "bcrypt";
-import { prisma } from "@/lib/prisma";
+
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 import { migrateExistingData } from "@/lib/setup-migration";
 
 const LOG_SOURCE = "SetupAPI";

@@ -1,25 +1,25 @@
 // Date formatting and conversion utilities
 import {
+  addDays,
   addMinutes,
+  areIntervalsOverlapping,
+  differenceInHours,
+  differenceInMinutes,
+  endOfDay as fnEndOfDay,
+  parseISO as fnParseISO,
+  startOfDay as fnStartOfDay,
+  format,
+  getDay,
+  isBefore,
+  isSameDay,
+  isThisWeek,
+  isThisYear,
+  isToday,
+  isTomorrow,
   isWithinInterval,
   setHours,
   setMinutes,
-  getDay,
-  differenceInHours,
-  differenceInMinutes,
-  format,
-  isToday,
-  isTomorrow,
-  isThisWeek,
-  isThisYear,
-  addDays,
   subDays,
-  isSameDay,
-  areIntervalsOverlapping,
-  isBefore,
-  startOfDay as fnStartOfDay,
-  endOfDay as fnEndOfDay,
-  parseISO as fnParseISO,
   subMinutes,
 } from "date-fns";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
@@ -183,7 +183,23 @@ export function createAllDayDate(dateString: string): Date {
   const [year, month, day] = dateString.split("T")[0].split("-").map(Number);
 
   // Create a date at midnight local time for the specified day
-  return new Date(year, month - 1, day, 0, 0, 0);
+  // Use setHours(0,0,0,0) to ensure consistent midnight timing
+  const date = new Date(year, month - 1, day);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+/**
+ * Normalizes a date for all-day event display
+ * Ensures the date is set to local midnight and strips any time component
+ * This helps prevent timezone-related display issues with all-day events
+ * @param date The date to normalize
+ * @returns Date object normalized to local midnight
+ */
+export function normalizeAllDayDate(date: Date): Date {
+  const normalizedDate = new Date(date);
+  normalizedDate.setHours(0, 0, 0, 0);
+  return normalizedDate;
 }
 
 /**
@@ -200,6 +216,18 @@ export function createOutlookAllDayDate(dateString: string): Date {
 
   // Create a date at midnight UTC for the specified day
   return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+}
+
+/**
+ * Checks if a date is in the future (tomorrow or later)
+ * @param date The date to check
+ * @returns boolean indicating if the date is tomorrow or later
+ */
+export function isFutureDate(date: Date | string | number | null): boolean {
+  if (!date) return false;
+  const targetDate = startOfDay(newDate(date));
+  const tomorrow = startOfDay(addDays(newDate(), 1));
+  return targetDate >= tomorrow;
 }
 
 // Re-export date-fns functions

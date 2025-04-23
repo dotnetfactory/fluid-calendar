@@ -1,14 +1,15 @@
 "use client";
 
+import { HiDesktopComputer, HiMoon, HiSun } from "react-icons/hi";
+
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HiSun, HiMoon, HiDesktopComputer } from "react-icons/hi";
 
 export function ThemeToggle() {
   const { setTheme } = useTheme();

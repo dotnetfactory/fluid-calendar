@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
-import { logger } from "@/lib/logger";
-import { LogSettings as LogSettingsType } from "@/lib/logger/types";
+import { useEffect, useState } from "react";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Select,
   SelectContent,
@@ -19,7 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+
+import { logger } from "@/lib/logger";
+import { LogSettings as LogSettingsType } from "@/lib/logger/types";
 
 const LOG_SOURCE = "LogSettings";
 
@@ -119,7 +121,7 @@ export function LogSettings() {
 
   if (loading) {
     return (
-      <Card className="min-h-[400px] flex items-center justify-center">
+      <Card className="flex min-h-[400px] items-center justify-center">
         <LoadingSpinner size="lg" />
       </Card>
     );

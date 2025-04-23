@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
 import { BsCalendar, BsListTask } from "react-icons/bs";
 import { HiOutlineLightBulb, HiOutlineSearch } from "react-icons/hi";
-import { cn } from "@/lib/utils";
 import { RiKeyboardLine } from "react-icons/ri";
+
+import { cn } from "@/lib/utils";
+
 import { useShortcutsStore } from "@/store/shortcuts";
+
 import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
 
@@ -38,12 +42,12 @@ export function AppNav({ className }: AppNavProps) {
   return (
     <nav
       className={cn(
-        "h-16 bg-background border-b border-border flex-none z-10",
+        "z-10 h-16 flex-none border-b border-border bg-background",
         className
       )}
     >
       <div className="h-full px-4">
-        <div className="h-full flex items-center justify-between">
+        <div className="flex h-full items-center justify-between">
           <div className="flex items-center gap-8">
             {links.map((link) => {
               const Icon = link.icon;
@@ -54,7 +58,7 @@ export function AppNav({ className }: AppNavProps) {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md",
+                    "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
                     isActive
                       ? "bg-primary/10 text-primary"
                       : "text-foreground hover:bg-muted"
@@ -69,24 +73,24 @@ export function AppNav({ className }: AppNavProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={openCommandPalette}
-              className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
               title="Search or run a command (⌘K)"
             >
               <HiOutlineSearch className="h-4 w-4" />
               <span className="hidden sm:inline">Search</span>
-              <kbd className="hidden sm:inline ml-1 text-xs bg-muted px-1 py-0.5 rounded">
+              <kbd className="ml-1 hidden rounded bg-muted px-1 py-0.5 text-xs sm:inline">
                 ⌘K
               </kbd>
             </button>
             <ThemeToggle />
             <button
               onClick={() => setShortcutsOpen(true)}
-              className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
               title="View Keyboard Shortcuts (Press ?)"
             >
               <RiKeyboardLine className="h-4 w-4" />
               <span className="hidden sm:inline">Shortcuts</span>
-              <kbd className="hidden sm:inline ml-1 text-xs bg-muted px-1 py-0.5 rounded">
+              <kbd className="ml-1 hidden rounded bg-muted px-1 py-0.5 text-xs sm:inline">
                 ?
               </kbd>
             </button>

@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { LogLevel } from "@/lib/logger/types";
+
 import { logger } from "@/lib/logger";
+import { LogLevel } from "@/lib/logger/types";
+
 import { Log } from "@/types/logging";
 
 const LOG_SOURCE = "LogViewStore";

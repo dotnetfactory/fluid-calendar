@@ -1,6 +1,7 @@
-import { logger } from "@/lib/logger";
-import { getPasswordResetTemplate } from "./templates/password-reset";
 import { isSaasEnabled } from "@/lib/config";
+import { logger } from "@/lib/logger";
+
+import { getPasswordResetTemplate } from "./templates/password-reset";
 
 const LOG_SOURCE = "PasswordResetEmail";
 

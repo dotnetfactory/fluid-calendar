@@ -1,4 +1,5 @@
 import { HiChevronDown, HiChevronUp } from "react-icons/hi";
+
 import { cn } from "@/lib/utils";
 
 type SortableColumn =
@@ -34,7 +35,7 @@ export function SortableHeader({
     <th
       scope="col"
       className={cn(
-        "px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer group",
+        "group cursor-pointer px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground",
         className
       )}
       onClick={() => onSort(column)}

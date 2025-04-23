@@ -1,6 +1,6 @@
 import { ClientLogger } from "./client";
 import { ServerLogger } from "./server";
-import { LogLevel, LogStorageConfig, LogMetadata } from "./types";
+import { LogLevel, LogMetadata, LogStorageConfig } from "./types";
 
 class Logger {
   private static instance: Logger;

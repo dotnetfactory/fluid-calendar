@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+
+import { format, isBefore, newDate } from "@/lib/date-utils";
+import { logger } from "@/lib/logger";
+import { cn } from "@/lib/utils";
+
 import { useFocusModeStore } from "@/store/focusMode";
 import { useTaskStore } from "@/store/task";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+
 import { Task, TaskStatus } from "@/types/task";
-import { newDate, format, isBefore } from "@/lib/date-utils";
-import { logger } from "@/lib/logger";
-import { useState } from "react";
 
 export function TaskQueue() {
   const { switchToTask, currentTaskId, getQueuedTasks } = useFocusModeStore();
@@ -94,18 +98,18 @@ export function TaskQueue() {
       key={task.id}
       variant="ghost"
       className={cn(
-        "justify-start h-auto py-2 px-3 w-full",
+        "h-auto w-full justify-start px-3 py-2",
         "hover:bg-accent hover:text-accent-foreground",
         task.id === currentTaskId &&
-          "bg-accent text-accent-foreground font-medium"
+          "bg-accent font-medium text-accent-foreground"
       )}
       onClick={() => switchToTask(task.id)}
     >
-      <div className="flex flex-col items-start text-left w-full">
-        <div className="flex justify-between w-full items-center">
+      <div className="flex w-full flex-col items-start text-left">
+        <div className="flex w-full items-center justify-between">
           <span
             className={cn(
-              "font-medium truncate",
+              "truncate font-medium",
               task.id === currentTaskId && "text-accent-foreground",
               "task-title"
             )}
@@ -114,22 +118,22 @@ export function TaskQueue() {
           </span>
 
           {/* Compact metadata display */}
-          <div className="flex items-center space-x-1 ml-1 shrink-0">
+          <div className="ml-1 flex shrink-0 items-center space-x-1">
             {task.status !== TaskStatus.COMPLETED && task.dueDate && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-red-200 text-red-900 dark:bg-red-900/50 dark:text-red-100 font-medium">
+              <span className="rounded bg-red-200 px-1.5 py-0.5 text-xs font-medium text-red-900 dark:bg-red-900/50 dark:text-red-100">
                 {format(task.dueDate, "MM/dd")}
               </span>
             )}
 
             {task.postponedUntil &&
               newDate(task.postponedUntil) > newDate() && (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100 font-medium">
+                <span className="rounded bg-amber-200 px-1.5 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/50 dark:text-amber-100">
                   {format(task.postponedUntil, "MM/dd")}
                 </span>
               )}
 
             {task.status === TaskStatus.COMPLETED && task.completedAt && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-green-200 text-green-900 dark:bg-green-900/50 dark:text-green-100 font-medium">
+              <span className="rounded bg-green-200 px-1.5 py-0.5 text-xs font-medium text-green-900 dark:bg-green-900/50 dark:text-green-100">
                 ✓
               </span>
             )}
@@ -156,7 +160,7 @@ export function TaskQueue() {
       <div className="mb-4">
         <h3
           className={cn(
-            "text-xs font-medium mb-1 px-3 py-1 rounded-md",
+            "mb-1 rounded-md px-3 py-1 text-xs font-medium",
             accentColor
           )}
         >
@@ -169,7 +173,7 @@ export function TaskQueue() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs text-muted-foreground hover:text-foreground py-1 h-auto"
+              className="h-auto py-1 text-xs text-muted-foreground hover:text-foreground"
               onClick={() => toggleSection(sectionKey)}
             >
               {isExpanded
@@ -183,7 +187,7 @@ export function TaskQueue() {
   };
 
   return (
-    <div className="flex flex-col p-3 h-full overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden p-3">
       <div className="flex flex-col space-y-2 overflow-y-auto">
         {renderSection(
           "Top Tasks",
@@ -214,7 +218,7 @@ export function TaskQueue() {
           pastDueTasks.length === 0 &&
           postponedTasks.length === 0 &&
           recentlyCompletedTasks.length === 0 && (
-            <div className="text-sm text-muted-foreground text-center py-4">
+            <div className="py-4 text-center text-sm text-muted-foreground">
               No tasks available
             </div>
           )}

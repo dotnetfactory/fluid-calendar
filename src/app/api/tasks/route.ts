@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+
 import { RRule } from "rrule";
-import { TaskStatus, EnergyLevel, TimePreference } from "@/types/task";
-import { newDate } from "@/lib/date-utils";
-import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
-import { logger } from "@/lib/logger";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { newDate } from "@/lib/date-utils";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 import {
-  TaskChangeTracker,
   ChangeType,
+  TaskChangeTracker,
 } from "@/lib/task-sync/task-change-tracker";
+import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
+
+import { EnergyLevel, TaskStatus, TimePreference } from "@/types/task";
 
 const LOG_SOURCE = "tasks-route";
 

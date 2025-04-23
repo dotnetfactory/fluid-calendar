@@ -5,6 +5,7 @@ This document outlines the steps to migrate data from SQLite to PostgreSQL using
 ## Prerequisites
 
 1. Node.js dependencies:
+
    ```bash
    npm install better-sqlite3 pg
    ```
@@ -18,6 +19,7 @@ This document outlines the steps to migrate data from SQLite to PostgreSQL using
 
 1. **Prepare Migration Script**
    The migration script (`migrate.js`) handles:
+
    - Proper table migration order based on foreign key dependencies
    - Data type conversions between SQLite and PostgreSQL
    - Timestamp normalization and validation
@@ -26,27 +28,28 @@ This document outlines the steps to migrate data from SQLite to PostgreSQL using
 
 2. **Migration Order**
    Tables are migrated in the following order to respect dependencies:
+
    ```
    1. Independent tables:
       - Tag
       - User
       - SystemSettings
-   
+
    2. User-dependent tables:
       - Account
       - Session
       - AutoScheduleSettings
       - ConnectedAccount
-   
+
    3. Project and related tables:
       - Project
       - Task
       - _TagToTask
-   
+
    4. Calendar-related tables:
       - CalendarFeed
       - CalendarEvent (with feed validation)
-   
+
    5. Final tables:
       - OutlookTaskListMapping
       - VerificationToken
@@ -60,6 +63,7 @@ This document outlines the steps to migrate data from SQLite to PostgreSQL using
 ## Data Type Handling
 
 ### Timestamps
+
 - All timestamp fields are normalized to ISO 8601 format
 - Values are capped between Jan 1, 2000 and Dec 31, 2037
 - Supported fields:
@@ -79,10 +83,12 @@ This document outlines the steps to migrate data from SQLite to PostgreSQL using
   ```
 
 ### Boolean Values
+
 - SQLite boolean values are converted to PostgreSQL integers (0/1)
 - Handles both boolean and string boolean ("true"/"false") values
 
 ### Foreign Keys
+
 - Foreign key constraints are validated before insertion
 - Parent records are ensured to exist before child records
 - Special handling for CalendarEvent-CalendarFeed relationship
@@ -90,13 +96,15 @@ This document outlines the steps to migrate data from SQLite to PostgreSQL using
 ## Verification
 
 After migration, verify the following row counts match the source database:
+
 ```sql
-SELECT schemaname, relname, n_live_tup 
-FROM pg_stat_user_tables 
+SELECT schemaname, relname, n_live_tup
+FROM pg_stat_user_tables
 ORDER BY n_live_tup DESC;
 ```
 
 Expected row counts (example):
+
 - CalendarEvent: ~1387 rows
 - Task: ~167 rows
 - Project: ~10 rows
@@ -110,11 +118,13 @@ Expected row counts (example):
 ### Common Issues
 
 1. **Foreign Key Violations**
+
    - Check parent table records exist
    - Verify feedId references in CalendarEvent table
    - Ensure Project records exist for Tasks and OutlookTaskListMapping
 
 2. **Timestamp Errors**
+
    - Check for out-of-range timestamps
    - Verify timestamp format in source data
    - Look for invalid date strings
@@ -127,6 +137,7 @@ Expected row counts (example):
 ### Recovery Steps
 
 If migration fails:
+
 1. Truncate affected tables:
    ```sql
    TRUNCATE TABLE table_name CASCADE;
@@ -138,6 +149,7 @@ If migration fails:
 ## Backup Plan
 
 Before starting:
+
 1. Backup SQLite database:
    ```bash
    cp data/dev.db data/dev.db.backup
@@ -160,4 +172,4 @@ Before starting:
 - [better-sqlite3 Documentation](https://github.com/JoshuaWise/better-sqlite3)
 - [node-postgres Documentation](https://node-postgres.com/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [SQLite Documentation](https://sqlite.org/docs.html) 
+- [SQLite Documentation](https://sqlite.org/docs.html)

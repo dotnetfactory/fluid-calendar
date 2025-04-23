@@ -1,7 +1,7 @@
 "use client";
 
-import { SettingsSection } from "./SettingsSection";
-import PublicSignupSettings from "./PublicSignupSettings";
+import AccessDeniedMessage from "@/components/auth/AccessDeniedMessage";
+import AdminOnly from "@/components/auth/AdminOnly";
 import {
   Card,
   CardContent,
@@ -9,8 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import AdminOnly from "@/components/auth/AdminOnly";
-import AccessDeniedMessage from "@/components/auth/AccessDeniedMessage";
+
+import PublicSignupSettings from "./PublicSignupSettings";
+import { SettingsSection } from "./SettingsSection";
 
 /**
  * User management settings component

@@ -1,19 +1,25 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
+
+import { BsArrowRepeat } from "react-icons/bs";
+import { HiFolderOpen, HiPencil, HiPlus } from "react-icons/hi";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+import { isSaasEnabled } from "@/lib/config";
+import { cn } from "@/lib/utils";
+
 import { useProjectStore } from "@/store/project";
 import { useTaskStore } from "@/store/task";
-import { useEffect, useState, useCallback } from "react";
-import { HiPlus, HiPencil, HiFolderOpen } from "react-icons/hi";
-import { BsArrowRepeat } from "react-icons/bs";
-import { ProjectStatus, Project } from "@/types/project";
-import { ProjectModal } from "./ProjectModal";
-import { useDroppableProject } from "../dnd/useDragAndDrop";
+
+import { Project, ProjectStatus } from "@/types/project";
 import { TaskStatus } from "@/types/task";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { toast } from "sonner";
-import { isSaasEnabled } from "@/lib/config";
+
+import { useDroppableProject } from "../dnd/useDragAndDrop";
+import { ProjectModal } from "./ProjectModal";
 
 // Special project object to represent "no project" state
 const NO_PROJECT: Partial<Project> = {
@@ -148,9 +154,9 @@ export function ProjectSidebar() {
 
   return (
     <>
-      <div className="w-64 h-full bg-background border-r flex flex-col">
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between mb-4">
+      <div className="flex h-full w-64 flex-col border-r bg-background">
+        <div className="border-b p-4">
+          <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">Projects</h2>
             <Button
               size="icon"
@@ -188,13 +194,13 @@ export function ProjectSidebar() {
 
         <ScrollArea className="flex-1 p-4">
           {loading ? (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex h-full items-center justify-center">
               <div className="text-sm text-muted-foreground">
                 Loading projects...
               </div>
             </div>
           ) : error ? (
-            <div className="text-sm text-destructive p-2">{error.message}</div>
+            <div className="p-2 text-sm text-destructive">{error.message}</div>
           ) : (
             <div className="space-y-4">
               {activeProjects.length > 0 && (
@@ -215,7 +221,7 @@ export function ProjectSidebar() {
 
               {archivedProjects.length > 0 && (
                 <div className="space-y-1">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider py-2">
+                  <div className="py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     Archived
                   </div>
                   {archivedProjects.map((project) => (
@@ -233,7 +239,7 @@ export function ProjectSidebar() {
               )}
 
               {projects.length === 0 && (
-                <div className="text-sm text-muted-foreground text-center py-4">
+                <div className="py-4 text-center text-sm text-muted-foreground">
                   No projects yet
                 </div>
               )}
@@ -242,7 +248,7 @@ export function ProjectSidebar() {
               <div
                 {...removeProjectProps}
                 className={cn(
-                  "mt-4 border-2 border-dashed rounded-md p-4 text-center",
+                  "mt-4 rounded-md border-2 border-dashed p-4 text-center",
                   isOverRemove
                     ? "border-destructive bg-destructive/10"
                     : "border-muted hover:border-muted-foreground/50"
@@ -303,7 +309,7 @@ function ProjectItem({
     <div
       {...droppableProps}
       className={cn(
-        "w-full px-3 py-2 rounded-md flex items-center space-x-2 group cursor-pointer",
+        "group flex w-full cursor-pointer items-center space-x-2 rounded-md px-3 py-2",
         isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-muted",
         isOver && "ring-2 ring-ring"
       )}
@@ -311,18 +317,18 @@ function ProjectItem({
     >
       {project.color && (
         <div
-          className="w-2 h-2 rounded-full flex-shrink-0"
+          className="h-2 w-2 flex-shrink-0 rounded-full"
           style={{ backgroundColor: project.color }}
         />
       )}
-      <span className="truncate flex-1 project-name">{project.name}</span>
+      <span className="project-name flex-1 truncate">{project.name}</span>
       <span className="text-xs text-muted-foreground">{taskCount}</span>
 
       {hasMappings && (
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-6 w-6 p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
           disabled={isSyncing}
           onClick={(e) => {
             e.stopPropagation();
@@ -338,7 +344,7 @@ function ProjectItem({
       <Button
         variant="ghost"
         size="icon"
-        className="h-6 w-6 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="h-6 w-6 p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
         onClick={(e) => {
           e.stopPropagation();
           onEdit(project);

@@ -1,6 +1,8 @@
-import { FieldMapper } from "../field-mapper";
-import { TaskStatus, Priority } from "@/types/task";
 import { newDate } from "@/lib/date-utils";
+
+import { Priority, TaskStatus } from "@/types/task";
+
+import { FieldMapper } from "../field-mapper";
 import { FieldMapping } from "../types";
 
 /**

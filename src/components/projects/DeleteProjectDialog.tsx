@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
+
 import * as Dialog from "@radix-ui/react-dialog";
 import { IoClose } from "react-icons/io5";
-import { Project } from "@/types/project";
+
 import { useProjectStore } from "@/store/project";
-import { useState } from "react";
+
+import { Project } from "@/types/project";
 
 interface DeleteProjectDialogProps {
   isOpen: boolean;
@@ -38,16 +41,16 @@ export function DeleteProjectDialog({
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 data-[state=open]:animate-overlayShow z-[60]" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] max-h-[85vh] w-[90vw] max-w-[450px] translate-x-[-50%] translate-y-[-50%] rounded-[6px] bg-white p-[25px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] focus:outline-none data-[state=open]:animate-contentShow z-[61]">
+        <Dialog.Overlay className="data-[state=open]:animate-overlayShow fixed inset-0 z-[60] bg-black/50" />
+        <Dialog.Content className="data-[state=open]:animate-contentShow fixed left-[50%] top-[50%] z-[61] max-h-[85vh] w-[90vw] max-w-[450px] translate-x-[-50%] translate-y-[-50%] rounded-[6px] bg-white p-[25px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] focus:outline-none">
           <Dialog.Title className="m-0 text-[17px] font-medium">
             Delete Project
           </Dialog.Title>
-          <Dialog.Description className="mt-4 mb-5 text-[15px] leading-normal">
+          <Dialog.Description className="mb-5 mt-4 text-[15px] leading-normal">
             <p className="mb-3">
               Are you sure you want to delete <strong>{project.name}</strong>?
             </p>
-            <p className="font-bold text-red-600 mb-3">
+            <p className="mb-3 font-bold text-red-600">
               ⚠️ This action cannot be undone. The project will be permanently
               deleted.
             </p>
@@ -61,14 +64,14 @@ export function DeleteProjectDialog({
 
           <div className="mt-6 flex justify-end gap-4">
             <button
-              className="inline-flex h-[35px] items-center justify-center rounded-[4px] px-[15px] text-[15px] leading-none outline-none focus:shadow-[0_0_0_2px] focus:shadow-black bg-gray-200 hover:bg-gray-300"
+              className="inline-flex h-[35px] items-center justify-center rounded-[4px] bg-gray-200 px-[15px] text-[15px] leading-none outline-none hover:bg-gray-300 focus:shadow-[0_0_0_2px] focus:shadow-black"
               onClick={onClose}
               disabled={isDeleting}
             >
               Cancel
             </button>
             <button
-              className="inline-flex h-[35px] items-center justify-center rounded-[4px] px-[15px] text-[15px] leading-none text-white outline-none focus:shadow-[0_0_0_2px] focus:shadow-red-700 bg-red-600 hover:bg-red-700 disabled:opacity-50"
+              className="inline-flex h-[35px] items-center justify-center rounded-[4px] bg-red-600 px-[15px] text-[15px] leading-none text-white outline-none hover:bg-red-700 focus:shadow-[0_0_0_2px] focus:shadow-red-700 disabled:opacity-50"
               onClick={handleDelete}
               disabled={isDeleting}
             >
@@ -78,7 +81,7 @@ export function DeleteProjectDialog({
 
           <Dialog.Close asChild>
             <button
-              className="absolute right-[10px] top-[10px] inline-flex h-[25px] w-[25px] appearance-none items-center justify-center rounded-full focus:shadow-[0_0_0_2px] focus:shadow-black hover:bg-gray-100"
+              className="absolute right-[10px] top-[10px] inline-flex h-[25px] w-[25px] appearance-none items-center justify-center rounded-full hover:bg-gray-100 focus:shadow-[0_0_0_2px] focus:shadow-black"
               aria-label="Close"
               disabled={isDeleting}
             >

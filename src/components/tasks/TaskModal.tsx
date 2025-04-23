@@ -1,28 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { RRule } from "rrule";
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
-import {
-  Task,
-  NewTask,
-  TaskStatus,
-  EnergyLevel,
-  TimePreference,
-  Tag,
-  Priority,
-} from "@/types/task";
-import { useProjectStore } from "@/store/project";
-import { RRule } from "rrule";
-import { Switch } from "@/components/ui/switch";
-import { format, newDate } from "@/lib/date-utils";
-import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import {
   Select,
   SelectContent,
@@ -30,9 +20,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+
+import { format, newDate } from "@/lib/date-utils";
 import { RecurrenceConverterFactory } from "@/lib/task-sync/recurrence/recurrence-converter-factory";
+import { cn } from "@/lib/utils";
+
+import { useProjectStore } from "@/store/project";
+
+import {
+  EnergyLevel,
+  NewTask,
+  Priority,
+  Tag,
+  Task,
+  TaskStatus,
+  TimePreference,
+} from "@/types/task";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -227,7 +232,7 @@ export function TaskModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col">
+      <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-[500px]">
         {isSubmitting && <LoadingOverlay />}
         <DialogHeader>
           <DialogTitle>{task ? "Edit Task" : "New Task"}</DialogTitle>
@@ -381,7 +386,7 @@ export function TaskModal({
             </div>
           </div>
 
-          <div className="space-y-4 pt-2 border-t">
+          <div className="space-y-4 border-t pt-2">
             <div className="flex items-center justify-between">
               <div>
                 <Label>Auto-Schedule</Label>
@@ -418,7 +423,7 @@ export function TaskModal({
                       {format(newDate(task.scheduledEnd), "p")}
                     </div>
                     {task.scheduleScore && (
-                      <div className="text-sm text-primary/70 mt-1">
+                      <div className="mt-1 text-sm text-primary/70">
                         Confidence: {Math.round(task.scheduleScore * 100)}%
                       </div>
                     )}
@@ -459,7 +464,7 @@ export function TaskModal({
                 <label
                   key={tag.id}
                   className={cn(
-                    "inline-flex items-center px-3 py-1.5 rounded-full text-sm cursor-pointer transition-colors",
+                    "inline-flex cursor-pointer items-center rounded-full px-3 py-1.5 text-sm transition-colors",
                     selectedTagIds.includes(tag.id)
                       ? "bg-primary/20 text-primary"
                       : "bg-muted text-muted-foreground hover:bg-muted/70"
@@ -479,7 +484,7 @@ export function TaskModal({
                     }}
                   />
                   <span
-                    className="w-2 h-2 rounded-full mr-2"
+                    className="mr-2 h-2 w-2 rounded-full"
                     style={{ backgroundColor: tag.color || "var(--muted)" }}
                   />
                   {tag.name}
@@ -537,7 +542,7 @@ export function TaskModal({
               <Label htmlFor="recurring">Make this a recurring task</Label>
             </div>
             {isRecurring && !dueDate && (
-              <div className="text-sm text-primary mt-1 ml-6">
+              <div className="ml-6 mt-1 text-sm text-primary">
                 A recurring task needs a start date. Today has been set as the
                 default.
               </div>
@@ -634,7 +639,7 @@ export function TaskModal({
             )}
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex justify-end gap-3 border-t pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>

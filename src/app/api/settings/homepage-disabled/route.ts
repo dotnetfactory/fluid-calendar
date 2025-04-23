@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "HomepageSettingAPI";
 

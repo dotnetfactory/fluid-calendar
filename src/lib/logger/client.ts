@@ -1,11 +1,12 @@
 import { newDate } from "@/lib/date-utils";
+
 import {
-  LogLevel,
   BufferedLogEntry,
-  LogStorageConfig,
   DEFAULT_STORAGE_CONFIG,
   LogBatchResponse,
+  LogLevel,
   LogMetadata,
+  LogStorageConfig,
 } from "./types";
 
 /**

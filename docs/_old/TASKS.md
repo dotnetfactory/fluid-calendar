@@ -1,9 +1,11 @@
 # Task Management Implementation Plan
 
 ## Overview
+
 This document outlines the implementation plan for adding task management capabilities to FluidCalendar. The implementation focuses on creating a standalone task system that can later integrate with time blocking and auto-scheduling features. This is designed as a single-user application without authentication requirements.
 
 ## Core Principles
+
 - Simple to start, but extensible for future features
 - Seamless integration with calendar views
 - Support for time blocking concepts
@@ -12,28 +14,29 @@ This document outlines the implementation plan for adding task management capabi
 ## 1. Data Model
 
 ### Task Schema
+
 ```prisma
 model Task {
   id            String    @id @default(cuid())
   title         String
   description   String?
   status        String    // enum: 'todo', 'in_progress', 'completed'
-  
+
   // Time Management
   dueDate       DateTime?
   duration      Int?      // estimated duration in minutes
   energyLevel   String?   // enum: 'high', 'medium', 'low'
   preferredTime String?   // enum: 'morning', 'afternoon', 'evening'
-  
+
   // Organization
   tags          Tag[]
   project       Project?  @relation(fields: [projectId], references: [id])
   projectId     String?
-  
+
   // Recurrence
   isRecurring   Boolean   @default(false)
   recurrenceRule String?
-  
+
   // Metadata
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -66,6 +69,7 @@ model Project {
 ```
 
 ### TypeScript Interfaces
+
 ```typescript
 interface Task {
   id: string;
@@ -86,21 +90,21 @@ interface Task {
 }
 
 enum TaskStatus {
-  TODO = 'todo',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed'
+  TODO = "todo",
+  IN_PROGRESS = "in_progress",
+  COMPLETED = "completed",
 }
 
 enum EnergyLevel {
-  HIGH = 'high',
-  MEDIUM = 'medium',
-  LOW = 'low'
+  HIGH = "high",
+  MEDIUM = "medium",
+  LOW = "low",
 }
 
 enum TimePreference {
-  MORNING = 'morning',
-  AFTERNOON = 'afternoon',
-  EVENING = 'evening'
+  MORNING = "morning",
+  AFTERNOON = "afternoon",
+  EVENING = "evening",
 }
 
 interface Tag {
@@ -120,14 +124,15 @@ interface Project {
 }
 
 enum ProjectStatus {
-  ACTIVE = 'active',
-  ARCHIVED = 'archived'
+  ACTIVE = "active",
+  ARCHIVED = "archived",
 }
 ```
 
 ## 2. Implementation Status
 
 ### Phase 1: Core Task Management ✅
+
 - [x] Database schema implementation
 - [x] Basic API endpoints
   - [x] CRUD operations for tasks
@@ -150,6 +155,7 @@ enum ProjectStatus {
   - [x] Success/error notifications
 
 ### Phase 2: Task Organization & Views ✅
+
 - [x] Task filtering system
   - [x] Filter by status
   - [x] Filter by tags
@@ -170,6 +176,7 @@ enum ProjectStatus {
   - [ ] Calendar view integration
 
 ### Phase 3: Time Management Features 🚧
+
 - [x] Duration estimation UI
 - [x] Due date handling
 - [x] Energy level assignment
@@ -185,6 +192,7 @@ enum ProjectStatus {
   - [ ] Time block visualization
 
 ### Phase 4: Advanced Features ⏳
+
 - [ ] Time Blocking
   - [ ] Manual task-to-block assignment
   - [ ] Smart block suggestions
@@ -204,6 +212,7 @@ enum ProjectStatus {
 ## 3. API Endpoints (✅ Implemented)
 
 ### Tasks
+
 ```typescript
 // GET /api/tasks ✅
 // GET /api/tasks/:id ✅
@@ -215,6 +224,7 @@ enum ProjectStatus {
 ```
 
 ### Tags
+
 ```typescript
 // GET /api/tags ✅
 // POST /api/tags ✅
@@ -223,6 +233,7 @@ enum ProjectStatus {
 ```
 
 ### Projects
+
 ```typescript
 // GET /api/projects ✅
 // POST /api/projects ✅
@@ -259,13 +270,16 @@ TaskManagement/
 ## 5. Next Steps and Priorities
 
 ### Immediate Priority (Sprint 1)
+
 1. Calendar Integration
+
    - Time block visualization
    - Drag-and-drop task scheduling
    - Smart block suggestions
    - Conflict resolution
 
 2. Board View Implementation
+
    - Kanban-style view for tasks
    - Project-based columns
    - Visual task cards
@@ -278,13 +292,16 @@ TaskManagement/
    - Task templates
 
 ### Short-term Goals (Sprint 2)
+
 1. Performance Optimizations
+
    - Virtual scrolling for large lists
    - Better data caching
    - Optimistic updates
    - Error boundaries
 
 2. Advanced Time Management
+
    - Smart scheduling suggestions
    - Calendar conflict resolution
    - Resource balancing
@@ -297,6 +314,7 @@ TaskManagement/
    - Advanced filtering
 
 ### Future Considerations
+
 - Task analytics and insights
 - Import/export functionality
 - Advanced auto-scheduling
@@ -308,6 +326,7 @@ TaskManagement/
 ## 6. Testing Strategy
 
 ### Unit Tests (Priority)
+
 - Task operations
 - Project operations
 - Tag operations
@@ -315,13 +334,15 @@ TaskManagement/
 - UI components
 
 ### Integration Tests
+
 - API endpoints
 - Database operations
 - UI flows
 - Calendar integration
 
 ### E2E Tests
+
 - Task creation flow
 - Project management
 - Calendar scheduling
-- Time blocking 
+- Time blocking

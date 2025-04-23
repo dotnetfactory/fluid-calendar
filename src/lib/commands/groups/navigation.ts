@@ -1,11 +1,13 @@
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+
 import {
   HiOutlineCalendar,
   HiOutlineClipboardList,
   HiOutlineCog,
   HiOutlineLightningBolt,
 } from "react-icons/hi";
+
 import { Command } from "../types";
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 export function useNavigationCommands(): Command[] {
   return [

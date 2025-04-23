@@ -30,6 +30,7 @@ If you find FluidCalendar useful, please consider supporting its development. Yo
 [![GitHub Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa.svg?style=for-the-badge&logo=github)](https://github.com/sponsors/eibrahim)
 
 By becoming a sponsor, you:
+
 - Help keep the project actively maintained
 - Get early access to new features
 - Support open-source software development
@@ -71,17 +72,20 @@ Don't want to self-host? We're currently beta testing our hosted version at [Flu
 To enable Google Calendar integration:
 
 1. Create a Project:
+
    - Go to [Google Cloud Console](https://console.cloud.google.com)
    - Click "New Project" and follow the prompts
    - Note your Project ID
 
 2. Enable Required APIs:
+
    - In your project, go to "APIs & Services" > "Library"
    - Search for and enable:
      - Google Calendar API
      - Google People API (for user profile information)
 
 3. Configure OAuth Consent Screen:
+
    - Go to "APIs & Services" > "OAuth consent screen"
    - Choose "External" user type
    - Fill in the required information:
@@ -96,6 +100,7 @@ To enable Google Calendar integration:
    - Add test users if in testing mode
 
 4. Create OAuth 2.0 Credentials:
+
    - Go to "APIs & Services" > "Credentials"
    - Click "Create Credentials" > "OAuth client ID"
    - Choose "Web application"
@@ -118,6 +123,7 @@ To enable Google Calendar integration:
      ```
 
 Note: For production deployment, you'll need to:
+
 - Verify your domain ownership
 - Submit your application for verification if you plan to have more than 100 users
 - Add your production domain to the authorized origins and redirect URIs
@@ -127,6 +133,7 @@ Note: For production deployment, you'll need to:
 To enable Outlook Calendar integration:
 
 1. Create an Azure AD Application:
+
    - Go to [Azure Portal](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
    - Click "New registration"
    - Name your application (e.g., "FluidCalendar")
@@ -134,6 +141,7 @@ To enable Outlook Calendar integration:
    - Click "Register"
 
 2. Configure Platform Settings:
+
    - In your registered app, go to "Authentication"
    - Click "Add a platform"
    - Choose "Web"
@@ -144,6 +152,7 @@ To enable Outlook Calendar integration:
    - Click "Configure"
 
 3. Add API Permissions:
+
    - Go to "API permissions"
    - Click "Add a permission"
    - Choose "Microsoft Graph"
@@ -157,6 +166,7 @@ To enable Outlook Calendar integration:
    - Click "Grant admin consent" (if you're an admin)
 
 4. Create Client Secret:
+
    - Go to "Certificates & secrets"
    - Click "New client secret"
    - Add a description and choose expiry
@@ -177,6 +187,7 @@ To enable Outlook Calendar integration:
      ```
 
 Note: For production deployment:
+
 - Update the redirect URIs to include your production domain
 - Ensure all required permissions are granted
 - Consider implementing additional security measures based on your needs
@@ -187,24 +198,28 @@ Note: For production deployment:
 
 1. Install Docker on your machine
 2. Clone the repository (or just download the docker-compose.yml file):
+
    ```bash
    git clone https://github.com/dotnetfactory/fluid-calendar.git
    cd fluid-calendar
    ```
 
 3. Copy the example environment file and configure it:
+
    ```bash
    cp .env.example .env
    ```
-   
+
    Edit the `.env` file and set at minimum these values:
+
    ```
    DATABASE_URL=postgresql://fluid:fluid@db:5432/fluid_calendar
    NEXTAUTH_URL=http://localhost:3000
    NEXTAUTH_SECRET=your-random-secret-key
    ```
-   
+
 4. Run the application:
+
    ```bash
    docker compose up -d
    ```
@@ -218,12 +233,14 @@ That's it! The application will be running with a PostgreSQL database automatica
 If you want to develop FluidCalendar:
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/dotnetfactory/fluid-calendar.git
    cd fluid-calendar
    ```
 
 2. Start the development environment:
+
    ```bash
    docker compose -f docker-compose.yml up -d
    ```
@@ -231,6 +248,7 @@ If you want to develop FluidCalendar:
 3. Visit http://localhost:3000
 
 The development environment includes:
+
 - Hot reloading
 - PostgreSQL database
 - Development tools
@@ -260,15 +278,16 @@ docker compose exec db psql -U fluid -d fluid_calendar
 ## Environment Setup
 
 1. Copy `.env.example` to `.env`:
+
 ```bash
 cp .env.example .env
 ```
 
 2. Configure the following environment variables:
+
 - `DATABASE_URL`: Your database connection string
 - `NEXTAUTH_URL`: Your application URL
 - `NEXTAUTH_SECRET`: Random string for session encryption
-
 
 Note: Google credentials and logging settings can be managed through the UI in Settings > System. Environment variables will be used as fallback if system settings are not configured.
 
@@ -287,7 +306,6 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
 
 ## Need Professional Help?
 
@@ -323,25 +341,27 @@ FluidCalendar is available as both an open source self-hosted solution and a man
 
 ### Open Source vs SAAS Features
 
-| Feature | Open Source | SAAS |
-|---------|------------|------|
-| Calendar Management | ✅ | ✅ |
-| Task Management | ✅ | ✅ |
-| Google Calendar Integration | ✅ | ✅ |
-| Outlook Calendar Integration | ✅ | ✅ |
-| CalDAV Integration | ✅ | ✅ |
-| Billing & Subscription Management | ❌ | ✅ |
+| Feature                           | Open Source | SAAS |
+| --------------------------------- | ----------- | ---- |
+| Calendar Management               | ✅          | ✅   |
+| Task Management                   | ✅          | ✅   |
+| Google Calendar Integration       | ✅          | ✅   |
+| Outlook Calendar Integration      | ✅          | ✅   |
+| CalDAV Integration                | ✅          | ✅   |
+| Billing & Subscription Management | ❌          | ✅   |
 
 ### SAAS Development Setup
 
 If you're a contributor to the SAAS version, follow these steps to set up your development environment:
 
 1. Clone the private SAAS repository:
+
    ```
    git clone https://github.com/dotnetfactory/fluid-calendar-saas.git
    ```
 
 2. Enable SAAS features in your environment:
+
    ```
    # .env.local
    ENABLE_SAAS_FEATURES=true
@@ -357,6 +377,7 @@ If you're a contributor to the SAAS version, follow these steps to set up your d
 To sync changes from the private SAAS repository to the public open source repository:
 
 1. Use the provided sync script:
+
    ```
    ./scripts/sync-repos.sh /path/to/private/repo /path/to/public/repo
    ```

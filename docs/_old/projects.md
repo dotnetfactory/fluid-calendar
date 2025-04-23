@@ -1,17 +1,20 @@
 # Project Management Implementation Plan
 
 ## Overview
+
 This document outlines the implementation plan for adding project management capabilities to FluidCalendar's task system. Projects provide a way to organize related tasks together, while maintaining simplicity and flexibility in the system.
 
 ## Core Decisions
 
 ### Project Structure
+
 - Flat structure (no nesting/sub-projects)
 - Projects are optional for tasks
 - Tasks can belong to at most one project
 - Projects can be archived but maintain their tasks
 
 ### Project Model
+
 ```prisma
 model Project {
   id          String    @id @default(cuid())
@@ -20,7 +23,7 @@ model Project {
   color       String?   // Hex color code
   status      String    @default("active") // enum: 'active', 'archived'
   tasks       Task[]
-  
+
   // Metadata
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -33,12 +36,13 @@ model Task {
   // ... existing fields ...
   projectId   String?
   project     Project?  @relation(fields: [projectId], references: [id])
-  
+
   @@index([projectId])
 }
 ```
 
 ### TypeScript Interfaces
+
 ```typescript
 interface Project {
   id: string;
@@ -51,8 +55,8 @@ interface Project {
 }
 
 enum ProjectStatus {
-  ACTIVE = 'active',
-  ARCHIVED = 'archived'
+  ACTIVE = "active",
+  ARCHIVED = "archived",
 }
 
 // Updated Task interface
@@ -66,6 +70,7 @@ interface Task {
 ## Implementation Phases
 
 ### Phase 1: Core Project Management ✅
+
 - [x] Database schema updates
   - [x] Add Project model
   - [x] Update Task model with project reference
@@ -80,6 +85,7 @@ interface Task {
   - [x] Project filtering
 
 ### Phase 2: Basic UI Components ✅
+
 - [x] Project Components
   - [x] Project sidebar with active/archived sections
   - [x] Create/edit project modal with color picker
@@ -94,6 +100,7 @@ interface Task {
   - [x] Project color indicators
 
 ### Phase 3: Enhanced Features 🚧
+
 - [ ] Project Views
   - [ ] Project-specific task list
   - [ ] Project metrics (task counts, completion)
@@ -108,6 +115,7 @@ interface Task {
   - [ ] Time tracking per project
 
 ### Phase 4: Advanced Features ⏳
+
 - [ ] Project Templates
   - [ ] Template creation from existing projects
   - [ ] Quick project setup
@@ -123,13 +131,16 @@ interface Task {
 ## Current Status
 
 ### Completed Features ✅
+
 1. Core Project Management
+
    - Full CRUD operations for projects
    - Project-task relationships
    - Status management (active/archived)
    - API endpoints and store integration
 
 2. User Interface
+
    - Project sidebar with filtering
    - Project creation/edit modal
    - Color selection and indicators
@@ -142,10 +153,10 @@ interface Task {
    - Updated task list with project context
 
 ### Known Issues 🐛
+
 1. Performance
    - Task count updates require full refresh
    - Project filtering could be optimized
-   
 2. User Experience
    - Limited keyboard shortcuts
    - No drag-and-drop support
@@ -154,18 +165,22 @@ interface Task {
 ## Recommendations
 
 ### Immediate Priorities
+
 1. Project Analytics Dashboard
+
    - Task completion metrics
    - Project progress tracking
    - Time tracking integration
    - Visual progress indicators
 
 2. Bulk Operations
+
    - Multi-task project assignment
    - Batch status updates
    - Mass task migration
 
 3. Project Templates
+
    - Template creation interface
    - Quick project setup
    - Default task sets
@@ -178,13 +193,16 @@ interface Task {
    - Advanced search options
 
 ### Future Considerations
+
 1. Project Organization
+
    - Project categories/tags
    - Custom sorting options
    - Project dependencies
    - Milestone tracking
 
 2. User Experience
+
    - Keyboard shortcuts
    - Drag-and-drop support
    - Quick actions menu
@@ -196,19 +214,18 @@ interface Task {
    - Comments system
 
 ## Next Steps
+
 1. Begin Phase 3 implementation
    - Focus on project analytics
    - Implement bulk operations
    - Add basic metrics dashboard
-   
 2. Improve existing features
    - Optimize performance
    - Add keyboard shortcuts
    - Enhance project indicators
-   
 3. Plan for advanced features
    - Design template system
    - Plan collaboration features
    - Outline analytics requirements
 
-Would you like to proceed with any specific part of Phase 3 or focus on improving existing features? 
+Would you like to proceed with any specific part of Phase 3 or focus on improving existing features?

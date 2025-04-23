@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { RRule } from "rrule";
-import { TaskStatus } from "@/types/task";
-import { newDate } from "@/lib/date-utils";
-import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
-import { logger } from "@/lib/logger";
-import { authenticateRequest } from "@/lib/auth/api-auth";
-import {
-  TaskChangeTracker,
-  ChangeType,
-} from "@/lib/task-sync/task-change-tracker";
+
 import { Task } from "@prisma/client";
+import { RRule } from "rrule";
+
+import { authenticateRequest } from "@/lib/auth/api-auth";
+import { newDate } from "@/lib/date-utils";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+import {
+  ChangeType,
+  TaskChangeTracker,
+} from "@/lib/task-sync/task-change-tracker";
+import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
+
+import { TaskStatus } from "@/types/task";
 
 const LOG_SOURCE = "task-route";
 export async function GET(
@@ -242,8 +245,8 @@ export async function PUT(
           projectId === null
             ? { disconnect: true }
             : projectId
-            ? { connect: { id: projectId } }
-            : undefined,
+              ? { connect: { id: projectId } }
+              : undefined,
       },
       include: {
         tags: true,

@@ -1,10 +1,15 @@
-import { Task, AutoScheduleSettings } from "@prisma/client";
-import { TimeSlotManagerImpl, TimeSlotManager } from "./TimeSlotManager";
-import { CalendarServiceImpl } from "./CalendarServiceImpl";
-import { useSettingsStore } from "@/store/settings";
+import { AutoScheduleSettings, Task } from "@prisma/client";
+
 import { addDays, newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
-import { prisma } from "@/lib/prisma"; // Import the global Prisma instance
+import { prisma } from "@/lib/prisma";
+
+import { useSettingsStore } from "@/store/settings";
+
+import { CalendarServiceImpl } from "./CalendarServiceImpl";
+import { TimeSlotManager, TimeSlotManagerImpl } from "./TimeSlotManager";
+
+// Import the global Prisma instance
 
 const DEFAULT_TASK_DURATION = 30; // Default duration in minutes
 const LOG_SOURCE = "SchedulingService";

@@ -1,14 +1,16 @@
-import { NextResponse, NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { logger } from "@/lib/logger";
-import {
-  formatAbsoluteUrl,
-  createCalDAVClient,
-  loginToCalDAVServer,
-  handleFastmailPath,
-  fetchCalDAVCalendars,
-} from "../utils";
+import { NextRequest, NextResponse } from "next/server";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+
+import {
+  createCalDAVClient,
+  fetchCalDAVCalendars,
+  formatAbsoluteUrl,
+  handleFastmailPath,
+  loginToCalDAVServer,
+} from "../utils";
 
 const LOG_SOURCE = "CalDAVAuth";
 

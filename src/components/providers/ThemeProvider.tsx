@@ -2,11 +2,13 @@
 
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
-  useCallback,
 } from "react";
+
 import { useSettingsStore } from "@/store/settings";
+
 import { ThemeMode } from "@/types/settings";
 
 type ThemeContextType = {

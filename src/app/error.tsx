@@ -1,9 +1,12 @@
 "use client";
 
-import { inter } from "@/lib/fonts";
-import "../app/globals.css";
-import Link from "next/link";
 import { useEffect, useState } from "react";
+
+import Link from "next/link";
+
+import { inter } from "@/lib/fonts";
+
+import "../app/globals.css";
 
 export default function Error({
   error,
@@ -34,19 +37,19 @@ export default function Error({
         <meta name="description" content="An error occurred" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
-          <h1 className="text-4xl font-bold mb-4">Something went wrong!</h1>
+        <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+          <h1 className="mb-4 text-4xl font-bold">Something went wrong!</h1>
           <p className="mb-6">An unexpected error has occurred.</p>
           <div className="flex space-x-4">
             <button
               onClick={reset}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              className="rounded bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
             >
               Try again
             </button>
             <Link
               href="/"
-              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+              className="rounded bg-gray-500 px-4 py-2 text-white transition-colors hover:bg-gray-600"
             >
               Return Home
             </Link>

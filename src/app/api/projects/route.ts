@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { ProjectStatus } from "@/types/project";
-import { logger } from "@/lib/logger";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+
+import { ProjectStatus } from "@/types/project";
 
 const LOG_SOURCE = "projects-route";
 

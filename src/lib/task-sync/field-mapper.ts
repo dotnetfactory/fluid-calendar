@@ -1,11 +1,13 @@
+import { newDate } from "@/lib/date-utils";
+
 import { Task, TaskStatus } from "@/types/task";
+
 import {
   ExternalTask,
   TaskToCreate,
   TaskUpdates,
 } from "./providers/task-provider.interface";
 import { FieldMapping, FieldMappingDirection, TaskWithSync } from "./types";
-import { newDate } from "@/lib/date-utils";
 
 /**
  * FieldMapper

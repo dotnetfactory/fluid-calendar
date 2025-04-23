@@ -1,8 +1,9 @@
-import { prisma } from "@/lib/prisma";
-import { createGoogleOAuthClient } from "@/lib/google";
-import { MICROSOFT_GRAPH_AUTH_ENDPOINTS } from "./outlook";
 import { getOutlookCredentials } from "@/lib/auth";
+import { createGoogleOAuthClient } from "@/lib/google";
+import { prisma } from "@/lib/prisma";
+
 import { newDate } from "./date-utils";
+import { MICROSOFT_GRAPH_AUTH_ENDPOINTS } from "./outlook";
 
 export type Provider = "GOOGLE" | "OUTLOOK" | "CALDAV";
 

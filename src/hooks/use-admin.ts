@@ -1,7 +1,8 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+
+import { useSession } from "next-auth/react";
 
 /**
  * Hook to check if the current user is an admin

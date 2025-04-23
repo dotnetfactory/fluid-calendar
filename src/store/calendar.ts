@@ -1,18 +1,22 @@
+import { RRule } from "rrule";
+import { v4 as uuidv4 } from "uuid";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { v4 as uuidv4 } from "uuid";
-import { RRule } from "rrule";
+
+import { newDate, normalizeAllDayDate } from "@/lib/date-utils";
+import { DEFAULT_TASK_COLOR } from "@/lib/task-utils";
+
+import { useTaskStore } from "@/store/task";
+
 import {
-  CalendarState,
-  CalendarFeed,
   CalendarEvent,
+  CalendarFeed,
+  CalendarState,
   CalendarView,
   CalendarViewState,
 } from "@/types/calendar";
-import { useTaskStore } from "@/store/task";
-import { newDate } from "@/lib/date-utils";
-import { DEFAULT_TASK_COLOR } from "@/lib/task-utils";
 import { TaskStatus } from "@/types/task";
+
 // Separate store for view preferences that will be persisted in localStorage
 interface ViewStore extends CalendarViewState {
   setView: (view: CalendarView) => void;
@@ -150,10 +154,15 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
 
     events.forEach((event) => {
       // Convert event dates to Date objects if they're not already
-      const eventStart =
+      let eventStart =
         event.start instanceof Date ? event.start : newDate(event.start);
-      const eventEnd =
-        event.end instanceof Date ? event.end : newDate(event.end);
+      let eventEnd = event.end instanceof Date ? event.end : newDate(event.end);
+
+      // For all-day events, normalize the dates to prevent timezone issues
+      if (event.allDay) {
+        eventStart = normalizeAllDayDate(eventStart);
+        eventEnd = normalizeAllDayDate(eventEnd);
+      }
 
       // If it's a non-recurring event or an instance, add it directly
       if (!event.isRecurring || !event.isMaster) {
@@ -774,8 +783,8 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         feed.type === "GOOGLE"
           ? `/api/calendar/google/${feedId}`
           : feed.type === "CALDAV"
-          ? `/api/calendar/caldav/sync`
-          : `/api/calendar/outlook/sync`;
+            ? `/api/calendar/caldav/sync`
+            : `/api/calendar/outlook/sync`;
 
       const response = await fetch(endpoint, {
         method: "PUT",

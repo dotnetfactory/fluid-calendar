@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { CalendarEvent } from "@/types/calendar";
-import { useCalendarStore } from "@/store/calendar";
-import { useSettingsStore } from "@/store/settings";
-import { cn } from "@/lib/utils";
-import { formatToLocalISOString, newDate } from "@/lib/date-utils";
-import { LoadingOverlay } from "@/components/ui/loading-overlay";
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -15,9 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import {
   Select,
   SelectContent,
@@ -26,6 +23,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+
+import { formatToLocalISOString, newDate } from "@/lib/date-utils";
+import { cn } from "@/lib/utils";
+
+import { useCalendarStore } from "@/store/calendar";
+import { useSettingsStore } from "@/store/settings";
+
+import { CalendarEvent } from "@/types/calendar";
 
 interface EventModalProps {
   isOpen: boolean;
@@ -136,15 +141,15 @@ export function EventModal({
     event?.start
       ? newDate(event.start)
       : defaultDate
-      ? newDate(defaultDate)
-      : newDate()
+        ? newDate(defaultDate)
+        : newDate()
   );
   const [endDate, setEndDate] = useState<Date>(
     event?.end
       ? newDate(event.end)
       : defaultEndDate
-      ? newDate(defaultEndDate)
-      : newDate(Date.now() + 3600000)
+        ? newDate(defaultEndDate)
+        : newDate(Date.now() + 3600000)
   );
   const [selectedFeedId, setSelectedFeedId] = useState<string>(
     event?.feedId || calendar.defaultCalendarId || ""
@@ -166,15 +171,15 @@ export function EventModal({
         event?.start
           ? newDate(event.start)
           : defaultDate
-          ? newDate(defaultDate)
-          : newDate()
+            ? newDate(defaultDate)
+            : newDate()
       );
       setEndDate(
         event?.end
           ? newDate(event.end)
           : defaultEndDate
-          ? newDate(defaultEndDate)
-          : newDate(Date.now() + 3600000)
+            ? newDate(defaultEndDate)
+            : newDate(Date.now() + 3600000)
       );
       setSelectedFeedId(event?.feedId || calendar.defaultCalendarId || "");
       setIsAllDay(event?.allDay || false);
@@ -356,15 +361,15 @@ export function EventModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-[500px] p-0 max-h-[90vh] flex flex-col">
+        <DialogContent className="flex max-h-[90vh] max-w-[500px] flex-col p-0">
           {isSubmitting && <LoadingOverlay />}
-          <DialogHeader className="px-6 pt-6 pb-4 space-y-1.5">
+          <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6">
             <DialogTitle>{event?.id ? "Edit Event" : "New Event"}</DialogTitle>
           </DialogHeader>
 
           <form
             onSubmit={handleSubmit}
-            className="px-6 pb-6 space-y-4 overflow-y-auto"
+            className="space-y-4 overflow-y-auto px-6 pb-6"
           >
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
@@ -519,7 +524,7 @@ export function EventModal({
 
             {renderRecurrenceOptions()}
 
-            <div className="flex justify-between items-center pt-4">
+            <div className="flex items-center justify-between pt-4">
               {event?.id ? (
                 <Button
                   type="button"
@@ -554,12 +559,12 @@ export function EventModal({
         }}
       >
         <AlertDialog.Portal>
-          <AlertDialog.Overlay className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[10001]" />
-          <AlertDialog.Content className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background p-6 shadow-lg z-[10002] border">
-            <AlertDialog.Title className="text-lg font-semibold mb-4">
+          <AlertDialog.Overlay className="fixed inset-0 z-[10001] bg-background/80 backdrop-blur-sm" />
+          <AlertDialog.Content className="fixed left-1/2 top-1/2 z-[10002] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-background p-6 shadow-lg">
+            <AlertDialog.Title className="mb-4 text-lg font-semibold">
               Edit Recurring Event
             </AlertDialog.Title>
-            <AlertDialog.Description className="text-sm text-muted-foreground mb-6">
+            <AlertDialog.Description className="mb-6 text-sm text-muted-foreground">
               Would you like to edit this event or the entire series?
             </AlertDialog.Description>
             <div className="flex justify-end gap-3">

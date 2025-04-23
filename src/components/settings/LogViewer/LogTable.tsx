@@ -1,5 +1,3 @@
-import { Log } from "@/types/logging";
-import { LogMetadataView } from "./LogMetadata";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
@@ -10,6 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+import { Log } from "@/types/logging";
+
+import { LogMetadataView } from "./LogMetadata";
 
 interface Pagination {
   total: number;
@@ -52,7 +54,7 @@ export function LogTable({
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex h-64 items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     );

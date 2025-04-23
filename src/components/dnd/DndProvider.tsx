@@ -1,17 +1,19 @@
 "use client";
 
+import { type ReactNode } from "react";
+
 import {
   DndContext,
+  DragEndEvent,
   DragOverlay,
-  useSensor,
-  useSensors,
   MouseSensor,
   TouchSensor,
-  DragEndEvent,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
-import { type ReactNode } from "react";
-import { useTaskStore } from "@/store/task";
+
 import { useProjectStore } from "@/store/project";
+import { useTaskStore } from "@/store/task";
 
 interface DndProviderProps {
   children: ReactNode;

@@ -1,23 +1,29 @@
 import { AutoScheduleSettings } from "@prisma/client";
-import { TimeSlot, Conflict } from "@/types/scheduling";
-import { parseWorkDays, parseSelectedCalendars } from "@/lib/autoSchedule";
+import { Task } from "@prisma/client";
+
+import { parseSelectedCalendars, parseWorkDays } from "@/lib/autoSchedule";
 import {
-  addMinutes,
-  setHours,
-  setMinutes,
-  getDay,
-  differenceInHours,
-  toZonedTime,
   addDays,
+  addMinutes,
+  areIntervalsOverlapping,
+  differenceInHours,
+  getDay,
   newDate,
   roundDateUp,
-  areIntervalsOverlapping,
+  setHours,
+  setMinutes,
+  toZonedTime,
 } from "@/lib/date-utils";
+import { prisma } from "@/lib/prisma";
+
+import { useSettingsStore } from "@/store/settings";
+
+import { Conflict, TimeSlot } from "@/types/scheduling";
+
 import { CalendarService } from "./CalendarService";
 import { SlotScorer } from "./SlotScorer";
-import { Task } from "@prisma/client";
-import { useSettingsStore } from "@/store/settings";
-import { prisma } from "@/lib/prisma"; // Import the global Prisma instance
+
+// Import the global Prisma instance
 
 const DEFAULT_TASK_DURATION = 30;
 

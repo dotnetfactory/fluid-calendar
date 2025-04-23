@@ -1,24 +1,30 @@
-import { useEffect, useState, useRef, useCallback } from "react";
-import FullCalendar from "@fullcalendar/react";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import type {
-  EventClickArg,
   DatesSetArg,
+  EventClickArg,
   EventContentArg,
 } from "@fullcalendar/core";
 import type { DateSelectArg } from "@fullcalendar/core";
+import interactionPlugin from "@fullcalendar/interaction";
+import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid";
+
+import { TaskModal } from "@/components/tasks/TaskModal";
+
+import { useEventModalStore } from "@/lib/commands/groups/calendar";
+import { newDate } from "@/lib/date-utils";
+
 import { useCalendarStore } from "@/store/calendar";
 import { useSettingsStore } from "@/store/settings";
 import { useTaskStore } from "@/store/task";
-import { EventModal } from "./EventModal";
-import { TaskModal } from "@/components/tasks/TaskModal";
+
 import { CalendarEvent, ExtendedEventProps } from "@/types/calendar";
 import { Task } from "@/types/task";
-import { EventQuickView } from "./EventQuickView";
+
 import { CalendarEventContent } from "./CalendarEventContent";
-import { newDate } from "@/lib/date-utils";
-import { useEventModalStore } from "@/lib/commands/groups/calendar";
+import { EventModal } from "./EventModal";
+import { EventQuickView } from "./EventQuickView";
 
 interface WeekViewProps {
   currentDate: Date;
@@ -246,7 +252,7 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
   );
 
   return (
-    <div className="h-full [&_.fc-timegrid-slot]:!h-[35px] [&_.fc-timegrid-axis-cushion]:!py-1 [&_.fc-timegrid-slot-label]:!py-1 [&_.fc-daygrid-day-frame]:!min-h-0 [&_.fc-daygrid-day-events]:!min-h-0">
+    <div className="h-full [&_.fc-daygrid-day-events]:!min-h-0 [&_.fc-daygrid-day-frame]:!min-h-0 [&_.fc-timegrid-axis-cushion]:!py-1 [&_.fc-timegrid-slot-label]:!py-1 [&_.fc-timegrid-slot]:!h-[35px]">
       <FullCalendar
         ref={calendarRef}
         plugins={[timeGridPlugin, interactionPlugin]}

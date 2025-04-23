@@ -11,10 +11,10 @@
     "noEmit": false
   },
   "include": [
-    "src/saas/jobs/**/*", 
+    "src/saas/jobs/**/*",
     "src/lib/logger/**/*",
     "src/lib/prisma.ts",
     "src/lib/date-utils.ts"
   ],
   "exclude": ["node_modules"]
-} 
+}

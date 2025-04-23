@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+
 import { getAuthOptions } from "@/lib/auth/auth-options";
 
 declare module "next-auth" {

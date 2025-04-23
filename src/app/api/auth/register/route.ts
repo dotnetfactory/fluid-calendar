@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { hash } from "bcrypt";
-import { prisma } from "@/lib/prisma";
-import { logger } from "@/lib/logger";
+
 import { isPublicSignupEnabled } from "@/lib/auth/public-signup";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "RegisterAPI";
 

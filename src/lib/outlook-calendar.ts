@@ -1,11 +1,14 @@
 import { Client } from "@microsoft/microsoft-graph-client";
 import { ConnectedAccount } from "@prisma/client";
+import { Frequency, RRule } from "rrule";
+
+import { logger } from "@/lib/logger";
+
+import { useSettingsStore } from "@/store/settings";
+
+import { createOutlookAllDayDate, newDate, newDateFromYMD } from "./date-utils";
 import { MSGraphCalendar, MSGraphUser } from "./outlook";
 import { TokenManager } from "./token-manager";
-import { logger } from "@/lib/logger";
-import { RRule, Frequency } from "rrule";
-import { useSettingsStore } from "@/store/settings";
-import { newDate, newDateFromYMD, createOutlookAllDayDate } from "./date-utils";
 
 const LOG_SOURCE = "OutlookCalendar";
 

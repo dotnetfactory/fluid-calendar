@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRef } from "react";
+
+import { Download, Loader2, Upload } from "lucide-react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,9 +16,6 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { Loader2, Download, Upload } from "lucide-react";
-import { useRef } from "react";
 
 export function ImportExportSettings() {
   const [includeCompleted, setIncludeCompleted] = useState(false);
@@ -150,7 +152,7 @@ export function ImportExportSettings() {
               <Label htmlFor="includeCompleted">Include completed tasks</Label>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row">
               <Button
                 onClick={handleExport}
                 disabled={isExporting}
@@ -188,7 +190,7 @@ export function ImportExportSettings() {
             </div>
           </div>
 
-          <div className="text-sm text-muted-foreground space-y-2">
+          <div className="space-y-2 text-sm text-muted-foreground">
             <p>
               <strong>Export:</strong> Creates a JSON file containing all your
               tasks, projects, and tags.

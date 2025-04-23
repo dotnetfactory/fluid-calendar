@@ -1,8 +1,11 @@
 import { CalendarEvent } from "@prisma/client";
-import { TimeSlot, Conflict } from "@/types/scheduling";
-import { BatchConflictCheck, CalendarService } from "./CalendarService";
+
 import { areIntervalsOverlapping } from "@/lib/date-utils";
 import { prisma } from "@/lib/prisma";
+
+import { Conflict, TimeSlot } from "@/types/scheduling";
+
+import { BatchConflictCheck, CalendarService } from "./CalendarService";
 
 interface EventCache {
   events: CalendarEvent[];

@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { Task, TaskStatus, EnergyLevel, TimePreference } from "@/types/task";
-import { newDate } from "@/lib/date-utils";
-import { useTaskListViewSettings } from "@/store/taskListViewSettings";
-import { useProjectStore } from "@/store/project";
-import { Input } from "@/components/ui/input";
+
+import { HiX } from "react-icons/hi";
+
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -12,7 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HiX } from "react-icons/hi";
+
+import { newDate } from "@/lib/date-utils";
+
+import { useProjectStore } from "@/store/project";
+import { useTaskListViewSettings } from "@/store/taskListViewSettings";
+
+import { EnergyLevel, Task, TaskStatus, TimePreference } from "@/types/task";
+
 import { SortableHeader, StatusFilter, TaskRow } from "./components";
 import { formatEnumValue } from "./utils/task-list-utils";
 
@@ -208,8 +215,8 @@ export function TaskList({
     search;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-4 mb-4">
+    <div className="flex h-full flex-col">
+      <div className="mb-4 flex items-center gap-4">
         <StatusFilter
           value={status || []}
           onChange={(value) => setFilters({ status: value })}
@@ -259,7 +266,7 @@ export function TaskList({
           </SelectContent>
         </Select>
 
-        <div className="flex-1 flex gap-2">
+        <div className="flex flex-1 gap-2">
           <Input
             value={search || ""}
             onChange={(e) =>
@@ -275,35 +282,36 @@ export function TaskList({
               onClick={resetFilters}
               className="h-9"
             >
-              <HiX className="h-4 w-4 mr-1" />
+              <HiX className="mr-1 h-4 w-4" />
               Clear Filters
             </Button>
           )}
         </div>
 
         <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
+          <Checkbox
             id="hideUpcomingTasks"
             checked={hideUpcomingTasks}
-            onChange={(e) =>
-              setFilters({ hideUpcomingTasks: e.target.checked })
+            onCheckedChange={(checked) =>
+              setFilters({ hideUpcomingTasks: checked as boolean })
             }
-            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/80"
           />
-          <label htmlFor="hideUpcomingTasks" className="text-sm">
+          <label
+            htmlFor="hideUpcomingTasks"
+            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
             Hide upcoming tasks
           </label>
         </div>
       </div>
 
-      <div className="flex-1 bg-background border rounded-lg">
+      <div className="flex-1 rounded-lg border bg-background">
         <div
           className="overflow-auto"
           style={{ maxHeight: "calc(100vh - 250px)" }}
         >
           <table className="min-w-full divide-y divide-border">
-            <thead className="bg-muted sticky top-0">
+            <thead className="sticky top-0 bg-muted">
               <tr>
                 <th
                   scope="col"
@@ -389,12 +397,12 @@ export function TaskList({
                   onSort={handleSort}
                   className="w-40"
                 />
-                <th scope="col" className="relative px-3 py-2 w-10">
+                <th scope="col" className="relative w-10 px-3 py-2">
                   <span className="sr-only">Actions</span>
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-background divide-y divide-border">
+            <tbody className="divide-y divide-border bg-background">
               {sortedTasks.map((task) => (
                 <TaskRow
                   key={task.id}
@@ -408,7 +416,7 @@ export function TaskList({
             </tbody>
           </table>
           {sortedTasks.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground text-sm">
+            <div className="py-8 text-center text-sm text-muted-foreground">
               No tasks found. Try adjusting your filters or create a new task.
             </div>
           )}

@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 
-
 /**
  * Get the position of a waitlist entry based on priority score and creation date
  * @param userId The ID of the waitlist entry

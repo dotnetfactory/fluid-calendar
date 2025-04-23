@@ -1,20 +1,22 @@
-import { NextResponse, NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import getGoogleEvent, {
-  createGoogleEvent,
-  updateGoogleEvent,
-  deleteGoogleEvent,
-} from "@/lib/google-calendar";
+import { NextRequest, NextResponse } from "next/server";
+
 import { GaxiosError } from "gaxios";
 import { calendar_v3 } from "googleapis";
+
+import { authenticateRequest } from "@/lib/auth/api-auth";
 import {
   deleteCalendarEvent,
   getEvent,
   validateEvent,
 } from "@/lib/calendar-db";
-import { newDate, createAllDayDate } from "@/lib/date-utils";
+import { createAllDayDate, newDate } from "@/lib/date-utils";
+import getGoogleEvent, {
+  createGoogleEvent,
+  deleteGoogleEvent,
+  updateGoogleEvent,
+} from "@/lib/google-calendar";
 import { logger } from "@/lib/logger";
-import { authenticateRequest } from "@/lib/auth/api-auth";
+import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "GoogleEventsAPI";
 

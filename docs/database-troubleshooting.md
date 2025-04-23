@@ -63,6 +63,7 @@ npx prisma migrate reset
 ```
 
 This will:
+
 - Drop the database schema
 - Create a new schema
 - Apply all migrations from scratch
@@ -73,11 +74,13 @@ This will:
 If you need to preserve your data:
 
 1. Create a database backup first:
+
    ```bash
    pg_dump -U username -d database_name > backup.sql
    ```
 
 2. Fix the migration history without modifying data:
+
    ```bash
    npx prisma migrate resolve --applied 20250309034054_update_waitlist_entries
    ```
@@ -160,15 +163,17 @@ npx prisma migrate resolve --rolled-back 20250309034054_update_waitlist_entries
 #### Solution
 
 1. Generate a schema drift report:
+
    ```bash
    npx prisma migrate diff --from-schema-datasource=prisma/schema.prisma --to-schema-datamodel=prisma/schema.prisma
    ```
 
 2. Apply necessary changes:
+
    ```bash
    # For development
    npx prisma migrate dev --name sync_schema
-   
+
    # For production (after testing in staging)
    npx prisma migrate deploy
    ```
@@ -178,11 +183,13 @@ npx prisma migrate resolve --rolled-back 20250309034054_update_waitlist_entries
 To prevent data loss when updating your database schema:
 
 1. **Always back up before major changes**:
+
    ```bash
    pg_dump -U username -d database_name > backup_$(date +%Y%m%d).sql
    ```
 
 2. **Use safe migration patterns**:
+
    - Add nullable columns first, then add data, then add constraints
    - Use multiple migrations for complex changes
    - Test migrations on a copy of production data
@@ -201,6 +208,7 @@ To prevent data loss when updating your database schema:
 ### Development
 
 Prioritize rapid iteration:
+
 ```bash
 # Quick schema push (caution: can cause data loss)
 npx prisma db push
@@ -212,6 +220,7 @@ npx prisma migrate dev
 ### Staging/Testing
 
 Simulate production upgrades:
+
 ```bash
 # Apply migrations as production would
 npx prisma migrate deploy
@@ -220,6 +229,7 @@ npx prisma migrate deploy
 ### Production
 
 Controlled, safe updates:
+
 ```bash
 # Deploy migrations in production
 npx prisma migrate deploy
@@ -256,5 +266,7 @@ If you continue to experience issues, please:
    - The exact error message
    - Steps to reproduce the issue
    - Any environment-specific details
+
+```
 
 ```

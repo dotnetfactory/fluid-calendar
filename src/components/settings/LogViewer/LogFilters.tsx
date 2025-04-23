@@ -1,8 +1,8 @@
-import { useLogViewStore } from "@/store/logview";
-import { LogLevel } from "@/types/logging";
+import { Search } from "lucide-react";
+
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -10,7 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react";
+
+import { useLogViewStore } from "@/store/logview";
+
+import { LogLevel } from "@/types/logging";
 
 interface LogFiltersProps {
   filters: {
@@ -41,8 +44,8 @@ export function LogFilters({ filters, onChange, disabled }: LogFiltersProps) {
 
   return (
     <Card>
-      <CardContent className="p-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <CardContent className="space-y-4 p-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-2">
             <Label htmlFor="level">Log Level</Label>
             <Select
@@ -118,7 +121,7 @@ export function LogFilters({ filters, onChange, disabled }: LogFiltersProps) {
               placeholder="Search in messages and sources..."
               className="pl-3 pr-10"
             />
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
               <Search className="h-4 w-4 text-muted-foreground" />
             </div>
           </div>

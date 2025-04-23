@@ -1,8 +1,11 @@
 "use client";
 
 import React from "react";
+
+import { RiEyeLine, RiEyeOffLine } from "react-icons/ri";
+
 import { usePrivacy } from "@/components/providers/PrivacyProvider";
-import { RiEyeOffLine, RiEyeLine } from "react-icons/ri";
+
 import { cn } from "@/lib/utils";
 
 interface PrivacyToggleProps {
@@ -16,10 +19,10 @@ export function PrivacyToggle({ className }: PrivacyToggleProps) {
     <button
       onClick={togglePrivacyMode}
       className={cn(
-        "privacy-mode-toggle flex items-center gap-1 px-2 py-1.5 text-xs rounded-md",
+        "privacy-mode-toggle flex items-center gap-1 rounded-md px-2 py-1.5 text-xs",
         isPrivacyModeActive
           ? "bg-warning/10 text-warning-foreground"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted",
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
         className
       )}
       title={

@@ -1,6 +1,8 @@
-import { SignInForm } from "@/components/auth/SignInForm";
-import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
+import { redirect } from "next/navigation";
+
+import { SignInForm } from "@/components/auth/SignInForm";
+
 import { getAuthOptions } from "@/lib/auth/auth-options";
 
 export const metadata = {
@@ -18,7 +20,7 @@ export default async function SignInPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold">Sign in to FluidCalendar</h1>

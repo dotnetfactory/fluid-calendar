@@ -1,4 +1,4 @@
-import { roundDateUp, newDateFromYMD } from "../date-utils";
+import { newDateFromYMD, roundDateUp } from "../date-utils";
 
 describe("roundDateUp", () => {
   test("should round up to next 30 minutes by default", () => {

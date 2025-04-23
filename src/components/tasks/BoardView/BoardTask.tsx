@@ -1,18 +1,21 @@
 "use client";
 
-import { Task, TimePreference } from "@/types/task";
 import { useDraggable } from "@dnd-kit/core";
-import { HiPencil, HiTrash, HiClock, HiLockClosed } from "react-icons/hi";
+import { HiClock, HiLockClosed, HiPencil, HiTrash } from "react-icons/hi";
+
 import {
   format,
-  isToday,
-  isTomorrow,
+  isFutureDate,
   isThisWeek,
   isThisYear,
-  newDateFromYMD,
+  isToday,
+  isTomorrow,
   newDate,
+  newDateFromYMD,
 } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
+
+import { Task, TimePreference } from "@/types/task";
 
 interface BoardTaskProps {
   task: Task;
@@ -52,7 +55,8 @@ const formatContextualDate = (date: Date) => {
   const now = newDate();
   now.setHours(0, 0, 0, 0);
 
-  const isOverdue = localDate < now;
+  const isOverdue = localDate < now && !isToday(localDate);
+  const isFuture = isFutureDate(localDate);
   let text = "";
   if (isToday(localDate)) {
     text = "Today";
@@ -67,8 +71,10 @@ const formatContextualDate = (date: Date) => {
   }
   if (isOverdue) {
     text = `Overdue: ${text}`;
+  } else if (isFuture) {
+    text = `Upcoming: ${text}`;
   }
-  return { text, isOverdue };
+  return { text, isOverdue, isFuture };
 };
 
 export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
@@ -88,14 +94,14 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
     : undefined;
 
   return (
-    <div className="relative group">
+    <div className="group relative">
       <div
         ref={setNodeRef}
         {...attributes}
         {...listeners}
         style={style}
         className={cn(
-          "bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-grab p-3",
+          "cursor-grab rounded-lg border bg-card p-3 shadow-sm transition-shadow hover:shadow-md",
           isDragging && "opacity-50"
         )}
       >
@@ -113,12 +119,12 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
                   )}
                 </div>
               )}
-              <h3 className="text-sm font-medium task-title">{task.title}</h3>
+              <h3 className="task-title text-sm font-medium">{task.title}</h3>
             </div>
           </div>
 
           {task.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2 task-description">
+            <p className="task-description line-clamp-2 text-xs text-muted-foreground">
               {task.description}
             </p>
           )}
@@ -128,7 +134,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
               {task.tags.map((tag) => (
                 <span
                   key={tag.id}
-                  className="inline-flex items-center px-1.5 py-0.5 rounded text-xs"
+                  className="inline-flex items-center rounded px-1.5 py-0.5 text-xs"
                   style={{
                     backgroundColor: `${tag.color}20` || "var(--muted)",
                     color: tag.color || "var(--muted-foreground)",
@@ -140,11 +146,11 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
             </div>
           )}
 
-          <div className="flex items-center gap-2 flex-wrap text-xs">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             {task.energyLevel && (
               <span
                 className={cn(
-                  "px-2 py-1 rounded-full",
+                  "rounded-full px-2 py-1",
                   energyLevelColors[task.energyLevel]
                 )}
               >
@@ -155,7 +161,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
             {task.preferredTime && (
               <span
                 className={cn(
-                  "px-2 py-1 rounded-full",
+                  "rounded-full px-2 py-1",
                   timePreferenceColors[task.preferredTime]
                 )}
               >
@@ -182,7 +188,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
             {task.project && (
               <div className="flex items-center gap-1">
                 <div
-                  className="w-2 h-2 rounded-full"
+                  className="h-2 w-2 rounded-full"
                   style={{
                     backgroundColor: task.project.color || "var(--muted)",
                   }}
@@ -209,11 +215,11 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
           </div>
         </div>
       </div>
-      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           type="button"
           onClick={() => onEdit(task)}
-          className="p-1 text-muted-foreground hover:text-primary rounded-md hover:bg-muted"
+          className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-primary"
           title="Edit task"
         >
           <HiPencil className="h-4 w-4" />
@@ -221,7 +227,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
         <button
           type="button"
           onClick={() => onDelete(task.id)}
-          className="p-1 text-muted-foreground hover:text-destructive rounded-md hover:bg-muted"
+          className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
           title="Delete task"
         >
           <HiTrash className="h-4 w-4" />

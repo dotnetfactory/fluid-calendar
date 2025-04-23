@@ -1,18 +1,22 @@
 import { CalendarEvent, ConnectedAccount, Prisma } from "@prisma/client";
-import { createDAVClient, DAVResponse, DAVDepth } from "tsdav";
 import ICAL from "ical.js";
-import { logger } from "@/lib/logger";
+import { DAVDepth, DAVResponse, createDAVClient } from "tsdav";
+
 import { newDate, newDateFromYMD } from "@/lib/date-utils";
-import {
-  ExtendedDAVClient,
-  CalendarQueryParams,
-  CalDAVCalendarObject,
-  SyncResult,
-  CalendarEventInput,
-} from "./caldav-interfaces";
-import { convertVEventToCalendarEvent } from "./caldav-helpers";
-import { CalendarEventWithFeed } from "@/types/calendar";
+import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+
+import { CalendarEventWithFeed } from "@/types/calendar";
+
+import { convertVEventToCalendarEvent } from "./caldav-helpers";
+import {
+  CalDAVCalendarObject,
+  CalendarEventInput,
+  CalendarQueryParams,
+  ExtendedDAVClient,
+  SyncResult,
+} from "./caldav-interfaces";
+
 const LOG_SOURCE = "CalDAVCalendar";
 
 /**

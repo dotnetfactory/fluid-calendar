@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { OutlookCalendarService } from "@/lib/outlook-calendar";
-import { logger } from "@/lib/logger";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { logger } from "@/lib/logger";
+import { OutlookCalendarService } from "@/lib/outlook-calendar";
+import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "OutlookAvailableCalendarsAPI";
 

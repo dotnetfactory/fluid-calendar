@@ -8,11 +8,11 @@ Our application currently supports Google Calendar and Outlook Calendar integrat
 
 1. **Service Interface**: `CalendarService` interface defines the contract for calendar operations
 2. **Service Implementation**: `CalendarServiceImpl` implements this interface and handles caching and database operations
-3. **Provider-Specific Implementations**: 
+3. **Provider-Specific Implementations**:
    - `google-calendar.ts` for Google Calendar integration
    - `outlook-calendar.ts` for Outlook Calendar integration
 4. **Authentication**: `TokenManager` handles OAuth tokens for different providers
-5. **Database Schema**: 
+5. **Database Schema**:
    - `ConnectedAccount` stores account credentials
    - `CalendarFeed` represents a calendar source
    - `CalendarEvent` stores calendar events
@@ -116,26 +116,44 @@ Create a new file `src/lib/caldav-calendar.ts` with the following structure:
 
 ```typescript
 export class CalDAVCalendarService {
-  constructor(private prisma: PrismaClient, private account: ConnectedAccount) {
+  constructor(
+    private prisma: PrismaClient,
+    private account: ConnectedAccount
+  ) {
     // Initialize CalDAV client
   }
 
   // Authentication and discovery
-  async testConnection(): Promise<boolean>
-  async discoverCalendars(): Promise<CalDAVCalendar[]>
-  
+  async testConnection(): Promise<boolean>;
+  async discoverCalendars(): Promise<CalDAVCalendar[]>;
+
   // Event operations
-  async getEvents(start: Date, end: Date, calendarPath: string): Promise<CalendarEvent[]>
-  async createEvent(calendarPath: string, event: CalendarEventInput): Promise<CalendarEvent>
-  async updateEvent(calendarPath: string, eventId: string, event: CalendarEventInput): Promise<CalendarEvent>
-  async deleteEvent(calendarPath: string, eventId: string, mode: "single" | "series"): Promise<void>
-  
+  async getEvents(
+    start: Date,
+    end: Date,
+    calendarPath: string
+  ): Promise<CalendarEvent[]>;
+  async createEvent(
+    calendarPath: string,
+    event: CalendarEventInput
+  ): Promise<CalendarEvent>;
+  async updateEvent(
+    calendarPath: string,
+    eventId: string,
+    event: CalendarEventInput
+  ): Promise<CalendarEvent>;
+  async deleteEvent(
+    calendarPath: string,
+    eventId: string,
+    mode: "single" | "series"
+  ): Promise<void>;
+
   // Sync operations
-  async syncCalendar(calendarPath: string): Promise<SyncResult>
-  
+  async syncCalendar(calendarPath: string): Promise<SyncResult>;
+
   // Helper methods
-  private convertToICalendar(event: CalendarEventInput): string
-  private convertFromICalendar(icalData: string): CalendarEvent
+  private convertToICalendar(event: CalendarEventInput): string;
+  private convertFromICalendar(icalData: string): CalendarEvent;
 }
 ```
 
@@ -146,25 +164,25 @@ Example of converting between internal format and iCalendar:
 ```typescript
 // Internal event to iCalendar
 function convertToICalendar(event: CalendarEventInput): string {
-  const calendar = new ICAL.Component(['vcalendar', [], []]);
-  calendar.updatePropertyWithValue('prodid', '-//FluidCalendar//EN');
-  calendar.updatePropertyWithValue('version', '2.0');
-  
-  const vevent = new ICAL.Component(['vevent', [], []]);
-  vevent.updatePropertyWithValue('uid', event.id || crypto.randomUUID());
-  vevent.updatePropertyWithValue('summary', event.title);
-  
+  const calendar = new ICAL.Component(["vcalendar", [], []]);
+  calendar.updatePropertyWithValue("prodid", "-//FluidCalendar//EN");
+  calendar.updatePropertyWithValue("version", "2.0");
+
+  const vevent = new ICAL.Component(["vevent", [], []]);
+  vevent.updatePropertyWithValue("uid", event.id || crypto.randomUUID());
+  vevent.updatePropertyWithValue("summary", event.title);
+
   if (event.description) {
-    vevent.updatePropertyWithValue('description', event.description);
+    vevent.updatePropertyWithValue("description", event.description);
   }
-  
+
   // Add start and end times
-  const dtstart = new ICAL.Property('dtstart');
-  const dtend = new ICAL.Property('dtend');
-  
+  const dtstart = new ICAL.Property("dtstart");
+  const dtend = new ICAL.Property("dtend");
+
   if (event.allDay) {
-    dtstart.setParameter('value', 'date');
-    dtend.setParameter('value', 'date');
+    dtstart.setParameter("value", "date");
+    dtend.setParameter("value", "date");
     // Format as YYYYMMDD
     dtstart.setValue(formatDateToYYYYMMDD(event.start));
     dtend.setValue(formatDateToYYYYMMDD(event.end));
@@ -173,15 +191,15 @@ function convertToICalendar(event: CalendarEventInput): string {
     dtstart.setValue(ICAL.Time.fromJSDate(event.start, false));
     dtend.setValue(ICAL.Time.fromJSDate(event.end, false));
   }
-  
+
   vevent.addProperty(dtstart);
   vevent.addProperty(dtend);
-  
+
   // Handle recurring events
   if (event.isRecurring && event.recurrenceRule) {
-    vevent.updatePropertyWithValue('rrule', event.recurrenceRule);
+    vevent.updatePropertyWithValue("rrule", event.recurrenceRule);
   }
-  
+
   calendar.addSubcomponent(vevent);
   return calendar.toString();
 }
@@ -190,6 +208,7 @@ function convertToICalendar(event: CalendarEventInput): string {
 ## Recommended Libraries
 
 1. **tsdav**: A TypeScript library for CalDAV/CardDAV
+
    - https://github.com/natelindev/tsdav
    - Modern TypeScript support
    - Handles both CalDAV protocol and authentication
@@ -211,4 +230,4 @@ function convertToICalendar(event: CalendarEventInput): string {
 
 - [RFC 4791: CalDAV](https://datatracker.ietf.org/doc/html/rfc4791)
 - [RFC 5545: iCalendar](https://datatracker.ietf.org/doc/html/rfc5545)
-- [CalConnect: CalDAV Resources](https://devguide.calconnect.org/CalDAV/) 
+- [CalConnect: CalDAV Resources](https://devguide.calconnect.org/CalDAV/)

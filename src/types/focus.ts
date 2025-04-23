@@ -1,4 +1,3 @@
-
 /**
  * Represents the state of a focus mode session
  */
@@ -15,7 +14,6 @@ export interface FocusSessionStats {
   sessionStart: Date;
   sessionEnd: Date | null;
 }
-
 
 /**
  * Default values for a new focus mode session

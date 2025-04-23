@@ -1,20 +1,22 @@
 import * as Popover from "@radix-ui/react-popover";
-import { CalendarEvent, AttendeeStatus } from "@/types/calendar";
-import { Task, TaskStatus, Priority } from "@/types/task";
-import { format, newDate } from "@/lib/date-utils";
-import { isTaskOverdue } from "@/lib/task-utils";
-import {
-  IoTimeOutline,
-  IoLocationOutline,
-  IoRepeat,
-  IoPeopleOutline,
-  IoCalendarOutline,
-  IoLockClosedOutline,
-  IoFolderOutline,
-  IoFlagOutline,
-} from "react-icons/io5";
 import { HiPencil, HiTrash } from "react-icons/hi";
+import {
+  IoCalendarOutline,
+  IoFlagOutline,
+  IoFolderOutline,
+  IoLocationOutline,
+  IoLockClosedOutline,
+  IoPeopleOutline,
+  IoRepeat,
+  IoTimeOutline,
+} from "react-icons/io5";
+
+import { format, isFutureDate, newDate } from "@/lib/date-utils";
+import { isTaskOverdue } from "@/lib/task-utils";
 import { cn } from "@/lib/utils";
+
+import { AttendeeStatus, CalendarEvent } from "@/types/calendar";
+import { Priority, Task, TaskStatus } from "@/types/task";
 
 interface Attendee {
   name?: string;
@@ -81,7 +83,7 @@ export function EventQuickView({
     <Popover.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Popover.Portal>
         <Popover.Content
-          className="rounded-lg bg-background shadow-lg border border-border w-80 p-4 z-[10000]"
+          className="z-[10000] w-80 rounded-lg border border-border bg-background p-4 shadow-lg"
           style={{
             position: "fixed",
             left: position.x,
@@ -94,7 +96,7 @@ export function EventQuickView({
         >
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-medium text-foreground flex items-center gap-2 event-title">
+              <h3 className="event-title flex items-center gap-2 font-medium text-foreground">
                 {item.title}
                 {isTask ? (
                   <>
@@ -123,14 +125,14 @@ export function EventQuickView({
               <div className="flex items-center gap-1">
                 <button
                   onClick={onEdit}
-                  className="p-1.5 text-muted-foreground hover:text-primary rounded-md hover:bg-muted"
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"
                   title="Edit"
                 >
                   <HiPencil className="h-4 w-4" />
                 </button>
                 <button
                   onClick={onDelete}
-                  className="p-1.5 text-muted-foreground hover:text-destructive rounded-md hover:bg-muted"
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive"
                   title="Delete"
                 >
                   <HiTrash className="h-4 w-4" />
@@ -153,21 +155,21 @@ export function EventQuickView({
                 {eventItem.location && (
                   <div className="flex items-center gap-2">
                     <IoLocationOutline className="h-4 w-4 flex-shrink-0" />
-                    <span className="line-clamp-2 event-location">
+                    <span className="event-location line-clamp-2">
                       {eventItem.location}
                     </span>
                   </div>
                 )}
                 {eventItem.attendees && eventItem.attendees.length > 0 && (
                   <div className="flex items-start gap-2">
-                    <IoPeopleOutline className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <IoPeopleOutline className="mt-0.5 h-4 w-4 flex-shrink-0" />
                     <div className="flex-1">
                       {eventItem.attendees.map((attendee) => (
                         <div
                           key={attendee.email}
                           className="flex items-center justify-between text-xs"
                         >
-                          <span className="truncate flex-1 event-attendees">
+                          <span className="event-attendees flex-1 truncate">
                             {attendee.name || attendee.email}
                           </span>
                           <span
@@ -184,7 +186,7 @@ export function EventQuickView({
                   </div>
                 )}
                 {eventItem.description && (
-                  <div className="text-xs mt-2 text-muted-foreground line-clamp-2 event-description">
+                  <div className="event-description mt-2 line-clamp-2 text-xs text-muted-foreground">
                     {eventItem.description}
                   </div>
                 )}
@@ -200,19 +202,22 @@ export function EventQuickView({
                       <span
                         className={cn(
                           isOverdue &&
-                            "text-destructive dark:text-destructive font-medium"
+                            "text-destructive dark:text-destructive font-medium",
+                          isFutureDate(taskItem.dueDate) &&
+                            "text-primary font-medium"
                         )}
                       >
                         Due {format(newDate(taskItem.dueDate), "PPp")}
                         {isOverdue && " (OVERDUE)"}
+                        {isFutureDate(taskItem.dueDate) && " (UPCOMING)"}
                       </span>
                     ) : (
                       <span>No due date</span>
                     )}
                   </div>
                   <span
-                    className={cn("text-xs px-2 py-0.5 rounded-full", {
-                      "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100":
+                    className={cn("rounded-full px-2 py-0.5 text-xs", {
+                      "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100":
                         taskItem.status === TaskStatus.COMPLETED,
                       "bg-warning/10 text-warning":
                         taskItem.status === TaskStatus.IN_PROGRESS,
@@ -227,8 +232,14 @@ export function EventQuickView({
                 {taskItem.startDate && (
                   <div className="flex items-center gap-2">
                     <IoCalendarOutline className="h-4 w-4 flex-shrink-0" />
-                    <span>
+                    <span
+                      className={cn(
+                        isFutureDate(taskItem.startDate) &&
+                          "text-primary font-medium"
+                      )}
+                    >
                       Starts {format(newDate(taskItem.startDate), "PPp")}
+                      {isFutureDate(taskItem.startDate) && " (UPCOMING)"}
                     </span>
                   </div>
                 )}
@@ -274,7 +285,7 @@ export function EventQuickView({
                   <div className="flex items-center gap-2">
                     <IoFolderOutline className="h-4 w-4 flex-shrink-0" />
                     <span
-                      className="px-2 py-0.5 rounded text-xs"
+                      className="rounded px-2 py-0.5 text-xs"
                       style={{
                         backgroundColor:
                           (taskItem.project.color || "hsl(var(--primary))") +
@@ -295,11 +306,11 @@ export function EventQuickView({
                 )}
 
                 {taskItem.tags && taskItem.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
+                  <div className="mt-2 flex flex-wrap gap-1">
                     {taskItem.tags.map((tag) => (
                       <span
                         key={tag.id}
-                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs"
+                        className="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
                         style={{
                           backgroundColor:
                             (tag.color || "hsl(var(--primary))") + "20",
@@ -313,7 +324,7 @@ export function EventQuickView({
                 )}
 
                 {taskItem.description && (
-                  <div className="text-xs mt-2 text-muted-foreground line-clamp-2 task-description">
+                  <div className="task-description mt-2 line-clamp-2 text-xs text-muted-foreground">
                     {taskItem.description}
                   </div>
                 )}

@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+
 import { useRouter, useSearchParams } from "next/navigation";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
+
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -16,7 +18,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 import { logger } from "@/lib/logger";
 
 const LOG_SOURCE = "PasswordResetForm";
@@ -151,7 +155,7 @@ export function PasswordResetForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader>
         <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
         <CardDescription>

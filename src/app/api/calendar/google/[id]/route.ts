@@ -1,7 +1,9 @@
-import { NextResponse, NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+
 import { GaxiosError } from "gaxios";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "GoogleCalendarIdAPI";
 

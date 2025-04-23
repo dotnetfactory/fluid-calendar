@@ -1,7 +1,8 @@
-import { useSettingsStore } from "@/store/settings";
-import { useCalendarStore } from "@/store/calendar";
-import { SettingsSection, SettingRow } from "./SettingsSection";
 import { useEffect } from "react";
+
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -9,9 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
+import { useCalendarStore } from "@/store/calendar";
+import { useSettingsStore } from "@/store/settings";
+
+import { SettingRow, SettingsSection } from "./SettingsSection";
 
 export function CalendarSettings() {
   const { calendar, updateCalendarSettings, user, updateUserSettings } =

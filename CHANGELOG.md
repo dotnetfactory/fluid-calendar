@@ -8,11 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Added visual indicator for externally synced tasks in task list view
 
 ### Changed
 
+- Updated future task detection to consider tasks as "upcoming" only if they are scheduled for tomorrow or later
+- Added new `isFutureDate` utility function in date-utils
+- Improved date formatting in task views to consistently show "Upcoming" label for future tasks
+- Fixed task overdue check to not mark today's tasks as overdue
+- Modified auto-scheduling to exclude tasks that are in progress, preventing them from being automatically rescheduled
+
 ### Fixed
+
 - Improved all-day event UI by removing time selection when "All day" is checked, showing only date picker instead
 - Fixed Google Calendar event deletion by adding missing userId parameter for authentication
 - Fixed Outlook task sync issues with recurring tasks
@@ -23,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] 2025-03-25
 
 ### Added
+
 - Comprehensive bidirectional task synchronization system with support for Outlook
   - Field mapping system for consistent task property synchronization
   - Recurrence rule conversion for recurring tasks
@@ -35,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resend API key management through SystemSettings
 
 ### Changed
+
 - Enhanced task sync manager for true bidirectional synchronization
 - Improved date and timezone handling across calendar and task systems
 - Moved sensitive credentials from environment variables to SystemSettings
@@ -45,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created synchronous version in `route.open.ts` for open source edition
 
 ### Fixed
+
 - Multiple task synchronization issues:
   - Prevented duplicate task creation in Outlook
   - Fixed task deletion synchronization
@@ -54,12 +65,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Various TypeScript and linter errors throughout the task sync system
 
 ### Removed
+
 - Legacy one-way Outlook task import system and related components
 - OutlookTaskListMapping model in favor of new TaskListMapping
 - RESEND_API_KEY from environment variables
 
 ## [1.2.3]
+
 ### Added
+
 - Added task start date feature to specify when a task should become active
   - Tasks with future start dates won't appear in focus mode
   - Auto-scheduling respects start dates, not scheduling tasks before their start date
@@ -72,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added "Resend Invitation" button to individual user actions in waitlist management
 
 ### Changed
+
 - Updated email templates to use "FluidCalendar" instead of "Fluid Calendar" for consistent branding
 - Refactored task scheduling logic into a common service to reduce code duplication
   - Created `TaskSchedulingService` with shared scheduling functionality
@@ -83,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated client-side code to use the correct endpoints based on version
 
 ### Fixed
+
 - Fixed type errors in the job retry API by using the correct compound unique key (queueName + jobId)
 - Fixed database connection exhaustion issue in task scheduling:
   - Refactored SchedulingService to use the global Prisma instance instead of creating new connections
@@ -91,7 +107,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Resolved "Too many database connections" errors in production
 
 ## [1.2.2] 2025-03-18
+
 ### Added
+
 - Added rate limiting to email queue to limit processing to 2 emails per second
 - Added additional logging to email processor to monitor rate limiting effectiveness
 - Added ability to manually retry failed jobs from the admin jobs interface
@@ -112,6 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added data retention and deletion information to privacy policy to comply with Google's app verification requirements
 
 ### Changed
+
 - Modified job retry functionality to update existing job records instead of creating new ones
 - Updated email templates to use "FluidCalendar" instead of "Fluid Calendar" for consistent branding
 - Refactored task scheduling logic into a common service to reduce code duplication
@@ -124,6 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated client-side code to use the correct endpoints based on version
 
 ### Fixed
+
 - Fixed type errors in the job retry API by using the correct compound unique key (queueName + jobId)
 - Fixed database connection exhaustion issue in task scheduling:
   - Refactored SchedulingService to use the global Prisma instance instead of creating new connections
@@ -132,6 +152,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Resolved "Too many database connections" errors in production
 
 ### Technical Debt
+
 - Added proper TypeScript types to replace `any` types
 - Added eslint-disable comments only where absolutely necessary
 - Fixed linter and TypeScript compiler errors
@@ -140,25 +161,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standardized error handling across the codebase
 
 ### Removed
+
 - Separate one-way sync methods in favor of a more efficient bidirectional approach
 
 ## [1.2.1] 2025-03-13
+
 ### Added
+
 - Added login button to SAAS home page that redirects to signin screen or app root based on authentication status
 - Added SessionProvider to SAAS layout to support authentication state across SAAS pages
 - Added pre-commit hooks with husky and lint-staged to run linting and type checking before commits
 
 ### Changed
+
 - Removed Settings option from the main navigation bar since it's already available in the user dropdown menu
 - Improved dark mode by replacing black with dark gray colors for better visual comfort and reduced contrast
 
 ### Fixed
+
 - Fixed event title alignment in calendar events to be top-aligned instead of vertically centered
 - Removed minimum height constraint for all-day events in WeekView and DayView components to improve space utilization
 - Made EventModal and TaskModal content scrollable on small screens to ensure buttons remain accessible
 
 ## [1.2.0] 2025-03-13
+
 ### Added
+
 - Added background job processing system with BullMQ
   - Implemented BaseProcessor for handling job processing
   - Added DailySummaryProcessor for generating and sending daily summary emails
@@ -186,6 +214,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Email queue system for better reliability and performance
 
 ### Fixed
+
 - Fixed TypeScript errors in the job processing system:
   - Replaced `any` types with proper type constraints in BaseProcessor, job-creator, and job-tracker
   - Added proper type handling for job data and results
@@ -208,6 +237,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced potential for rate limiting by queueing emails
 
 ### Changed
+
 - Updated job tracking system to be more robust:
   - Improved error handling in job tracker
   - Added better type safety for job data and results

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { logger } from "@/lib/logger";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { logger } from "@/lib/logger";
 import { getMsGraphClient } from "@/lib/outlook-utils";
+import { prisma } from "@/lib/prisma";
 import { OutlookTaskProvider } from "@/lib/task-sync/providers/outlook-provider";
 import { TaskProviderInterface } from "@/lib/task-sync/providers/task-provider.interface";
 

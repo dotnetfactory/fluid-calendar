@@ -1,15 +1,18 @@
-import { NextResponse, NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { logger } from "@/lib/logger";
+import { NextRequest, NextResponse } from "next/server";
+
 import { formatISO } from "date-fns";
-import {
-  createCalDAVClient,
-  loginToCalDAVServer,
-  fetchCalDAVCalendars,
-} from "./utils";
+
+import { authenticateRequest } from "@/lib/auth/api-auth";
 import { CalDAVCalendarService } from "@/lib/caldav-calendar";
 import { newDate } from "@/lib/date-utils";
-import { authenticateRequest } from "@/lib/auth/api-auth";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+
+import {
+  createCalDAVClient,
+  fetchCalDAVCalendars,
+  loginToCalDAVServer,
+} from "./utils";
 
 const LOG_SOURCE = "CalDAVCalendar";
 

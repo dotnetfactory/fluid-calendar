@@ -1,6 +1,8 @@
 import { HiOutlinePlus } from "react-icons/hi";
-import { Command } from "../types";
+
 import { useTaskModalStore } from "@/store/taskModal";
+
+import { Command } from "../types";
 
 export function useTaskCommands(): Command[] {
   return [

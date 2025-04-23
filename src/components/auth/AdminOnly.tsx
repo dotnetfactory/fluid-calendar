@@ -1,8 +1,10 @@
 "use client";
 
 import { ReactNode } from "react";
-import { useAdmin } from "@/hooks/use-admin";
+
 import { Skeleton } from "@/components/ui/skeleton";
+
+import { useAdmin } from "@/hooks/use-admin";
 
 interface AdminOnlyProps {
   children: ReactNode;

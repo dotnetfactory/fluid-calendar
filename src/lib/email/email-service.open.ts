@@ -1,5 +1,6 @@
-import { logger } from "@/lib/logger";
 import { Resend } from "resend";
+
+import { logger } from "@/lib/logger";
 
 const LOG_SOURCE = "EmailService";
 const resend = new Resend(process.env.RESEND_API_KEY);

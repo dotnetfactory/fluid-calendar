@@ -1,8 +1,10 @@
-import { google, calendar_v3 } from "googleapis";
+import { calendar_v3, google } from "googleapis";
+
 import { useSettingsStore } from "@/store/settings";
-import { TokenManager } from "./token-manager";
-import { createGoogleOAuthClient } from "./google";
+
 import { newDate, newDateFromYMD } from "./date-utils";
+import { createGoogleOAuthClient } from "./google";
+import { TokenManager } from "./token-manager";
 
 type GoogleEvent = calendar_v3.Schema$Event;
 

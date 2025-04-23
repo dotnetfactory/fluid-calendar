@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { ServerLogger } from "@/lib/logger/server";
 import { LogEntry } from "@/lib/logger/types";
 

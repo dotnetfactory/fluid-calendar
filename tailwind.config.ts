@@ -1,6 +1,6 @@
+import tailwindcssForms from "@tailwindcss/forms";
 import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
-import tailwindcssForms from "@tailwindcss/forms";
 
 const config: Config = {
   darkMode: ["class", "[data-theme='dark']"],

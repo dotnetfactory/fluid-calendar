@@ -1,11 +1,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { FocusMode } from "@/types/focus";
-import { addHours, addDays, newDate } from "@/lib/date-utils";
-import { logger } from "@/lib/logger";
-import { useTaskStore } from "@/store/task";
-import { Task, TaskStatus } from "@/types/task";
+
 import { ActionType } from "@/components/ui/action-overlay";
+
+import { addDays, addHours, newDate } from "@/lib/date-utils";
+import { logger } from "@/lib/logger";
+
+import { useTaskStore } from "@/store/task";
+
+import { FocusMode } from "@/types/focus";
+import { Task, TaskStatus } from "@/types/task";
 
 const LOG_SOURCE = "focusMode";
 

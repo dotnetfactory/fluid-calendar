@@ -1,10 +1,11 @@
-import { NextResponse, NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { CalDAVCalendarService } from "@/lib/caldav-calendar";
-import { logger } from "@/lib/logger";
-import { newDate } from "@/lib/date-utils";
-import { getEvent, validateEvent } from "@/lib/calendar-db";
+import { NextRequest, NextResponse } from "next/server";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { CalDAVCalendarService } from "@/lib/caldav-calendar";
+import { getEvent, validateEvent } from "@/lib/calendar-db";
+import { newDate } from "@/lib/date-utils";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "CalDAVEventsAPI";
 
@@ -81,13 +82,15 @@ export async function POST(request: NextRequest) {
     const caldavService = new CalDAVCalendarService(feed.account);
 
     // Create event in CalDAV calendar
-    const createdEvent = await caldavService.createEvent(calendarPath, {
-      title: eventData.title,
-      description: eventData.description,
-      location: eventData.location,
-      start: newDate(eventData.start),
-      end: newDate(eventData.end),
-      allDay: eventData.allDay,
+    const createdEvent = await caldavService.createEvent(
+      calendarPath,
+      {
+        title: eventData.title,
+        description: eventData.description,
+        location: eventData.location,
+        start: newDate(eventData.start),
+        end: newDate(eventData.end),
+        allDay: eventData.allDay,
         isRecurring: eventData.isRecurring,
         recurrenceRule: eventData.recurrenceRule,
       },

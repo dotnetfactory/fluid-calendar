@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { getOutlookCredentials } from "@/lib/auth";
-import { MICROSOFT_GRAPH_AUTH_ENDPOINTS } from "@/lib/outlook";
-import { TokenManager } from "@/lib/token-manager";
-import { OutlookCalendarService } from "@/lib/outlook-calendar";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
-import { authenticateRequest } from "@/lib/auth/api-auth";
+import { MICROSOFT_GRAPH_AUTH_ENDPOINTS } from "@/lib/outlook";
+import { OutlookCalendarService } from "@/lib/outlook-calendar";
+import { TokenManager } from "@/lib/token-manager";
 
 const LOG_SOURCE = "OutlookCalendarAPI";
 

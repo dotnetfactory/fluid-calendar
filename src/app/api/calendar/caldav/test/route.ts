@@ -1,14 +1,17 @@
-import { NextResponse, NextRequest } from "next/server";
-import { logger } from "@/lib/logger";
-import {
-  formatAbsoluteUrl,
-  createCalDAVClient,
-  loginToCalDAVServer,
-  handleFastmailPath,
-  fetchCalDAVCalendars,
-} from "../utils";
-import { DAVCalendar } from "tsdav";
 import { getToken } from "next-auth/jwt";
+import { NextRequest, NextResponse } from "next/server";
+
+import { DAVCalendar } from "tsdav";
+
+import { logger } from "@/lib/logger";
+
+import {
+  createCalDAVClient,
+  fetchCalDAVCalendars,
+  formatAbsoluteUrl,
+  handleFastmailPath,
+  loginToCalDAVServer,
+} from "../utils";
 
 const LOG_SOURCE = "CalDAVTest";
 

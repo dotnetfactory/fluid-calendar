@@ -1,5 +1,6 @@
 import { useSettingsStore } from "@/store/settings";
-import { SettingsSection, SettingRow } from "./SettingsSection";
+
+import { SettingRow, SettingsSection } from "./SettingsSection";
 
 export function DataSettings() {
   const { data, updateDataSettings } = useSettingsStore();

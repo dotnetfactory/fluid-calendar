@@ -1,5 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { IoClose } from "react-icons/io5";
+
 import { commandRegistry } from "@/lib/commands/registry";
 import { Command } from "@/lib/commands/types";
 import { formatShortcut } from "@/lib/utils";
@@ -11,22 +12,25 @@ interface ShortcutsModalProps {
 
 export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
   // Group commands by section
-  const commandsBySection = commandRegistry.getAll().reduce((acc, command) => {
-    if (command.shortcut) {
-      if (!acc[command.section]) {
-        acc[command.section] = [];
+  const commandsBySection = commandRegistry.getAll().reduce(
+    (acc, command) => {
+      if (command.shortcut) {
+        if (!acc[command.section]) {
+          acc[command.section] = [];
+        }
+        acc[command.section].push(command);
       }
-      acc[command.section].push(command);
-    }
-    return acc;
-  }, {} as Record<Command["section"], Command[]>);
+      return acc;
+    },
+    {} as Record<Command["section"], Command[]>
+  );
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background border p-6 shadow-lg z-50">
-          <div className="flex items-center justify-between mb-4">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-background p-6 shadow-lg">
+          <div className="mb-4 flex items-center justify-between">
             <Dialog.Title className="text-lg font-semibold text-foreground">
               Keyboard Shortcuts
             </Dialog.Title>
@@ -38,19 +42,19 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
           <div className="space-y-6">
             {Object.entries(commandsBySection).map(([section, commands]) => (
               <div key={section}>
-                <h3 className="text-sm font-medium text-muted-foreground uppercase mb-2">
+                <h3 className="mb-2 text-sm font-medium uppercase text-muted-foreground">
                   {section}
                 </h3>
                 <div className="space-y-2">
                   {commands.map((command) => (
                     <div
                       key={command.id}
-                      className="flex justify-between items-center text-sm"
+                      className="flex items-center justify-between text-sm"
                     >
                       <span className="text-foreground">{command.title}</span>
                       {formatShortcut(command.shortcut) && (
                         <div className="flex-shrink-0">
-                          <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">
+                          <kbd className="rounded bg-muted px-1.5 py-0.5 text-xs">
                             {formatShortcut(command.shortcut)}
                           </kbd>
                         </div>

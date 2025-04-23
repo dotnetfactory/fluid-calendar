@@ -1,13 +1,15 @@
 import { useEffect, useMemo } from "react";
-import { Command } from "@/lib/commands/types";
-import { commandRegistry } from "@/lib/commands/registry";
-import { useCalendarCommands } from "@/lib/commands/groups/calendar";
-import { useNavigationCommands } from "@/lib/commands/groups/navigation";
-import { useTaskCommands } from "@/lib/commands/groups/tasks";
-import { useSystemCommands } from "@/lib/commands/groups/system";
-import { useFocusCommands } from "@/lib/commands/groups/focus";
-import { usePrivacyCommands } from "@/lib/commands/groups/privacy";
+
 import { usePathname, useRouter } from "next/navigation";
+
+import { useCalendarCommands } from "@/lib/commands/groups/calendar";
+import { useFocusCommands } from "@/lib/commands/groups/focus";
+import { useNavigationCommands } from "@/lib/commands/groups/navigation";
+import { usePrivacyCommands } from "@/lib/commands/groups/privacy";
+import { useSystemCommands } from "@/lib/commands/groups/system";
+import { useTaskCommands } from "@/lib/commands/groups/tasks";
+import { commandRegistry } from "@/lib/commands/registry";
+import { Command } from "@/lib/commands/types";
 
 export function useCommands() {
   const calendarCommands = useCalendarCommands();

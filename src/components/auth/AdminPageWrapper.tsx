@@ -1,9 +1,12 @@
 "use client";
 
 import { ReactNode } from "react";
-import { useAdmin } from "@/hooks/use-admin";
-import AdminAccessDenied from "./AdminAccessDenied";
+
 import { Skeleton } from "@/components/ui/skeleton";
+
+import { useAdmin } from "@/hooks/use-admin";
+
+import AdminAccessDenied from "./AdminAccessDenied";
 
 interface AdminPageWrapperProps {
   children: ReactNode;
@@ -19,11 +22,11 @@ export default function AdminPageWrapper({ children }: AdminPageWrapperProps) {
 
   if (isLoading) {
     return (
-      <div className="container py-8 space-y-4">
+      <div className="container space-y-4 py-8">
         <Skeleton className="h-8 w-1/3" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-3/4" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
         </div>

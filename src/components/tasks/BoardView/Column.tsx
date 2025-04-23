@@ -1,9 +1,12 @@
 "use client";
 
-import { Task, TaskStatus } from "@/types/task";
 import { useDroppable } from "@dnd-kit/core";
-import { BoardTask } from "./BoardTask";
+
 import { cn } from "@/lib/utils";
+
+import { Task, TaskStatus } from "@/types/task";
+
+import { BoardTask } from "./BoardTask";
 
 interface ColumnProps {
   status: TaskStatus;
@@ -42,17 +45,17 @@ export function Column({ status, tasks, onEdit, onDelete }: ColumnProps) {
     <div
       ref={setNodeRef}
       className={cn(
-        "flex-shrink-0 w-80 flex flex-col bg-background rounded-lg border",
+        "flex w-80 flex-shrink-0 flex-col rounded-lg border bg-background",
         statusColors[status],
         isOver && "ring-2 ring-ring"
       )}
     >
-      <div className="p-2 border-b border-border">
+      <div className="border-b border-border p-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span
               className={cn(
-                "px-2.5 py-0.5 rounded-full text-sm font-medium",
+                "rounded-full px-2.5 py-0.5 text-sm font-medium",
                 statusHeaderColors[status]
               )}
             >
@@ -64,7 +67,7 @@ export function Column({ status, tasks, onEdit, onDelete }: ColumnProps) {
           </div>
         </div>
       </div>
-      <div className="flex-1 min-h-0 p-2 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
         <div className="space-y-2">
           {tasks.map((task) => (
             <BoardTask

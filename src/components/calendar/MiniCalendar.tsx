@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+
 import {
-  format,
-  startOfMonth,
-  endOfMonth,
   eachDayOfInterval,
-  isSameMonth,
+  endOfMonth,
+  format,
   isSameDay,
+  isSameMonth,
   isToday,
+  startOfMonth,
 } from "date-fns";
+import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+
 import { cn } from "@/lib/utils";
 
 interface MiniCalendarProps {
@@ -55,22 +57,22 @@ export function MiniCalendar({ currentDate, onDateClick }: MiniCalendarProps) {
   return (
     <div className="mx-auto p-2">
       {/* Month Navigation */}
-      <div className="flex items-center justify-between mb-2 px-1">
+      <div className="mb-2 flex items-center justify-between px-1">
         <h2 className="text-sm font-medium text-foreground">
           {format(calendarDate, "MMMM yyyy")}
         </h2>
         <div className="flex items-center gap-1">
           <button
             onClick={handlePrevMonth}
-            className="p-1 hover:bg-muted/50 rounded-full text-foreground"
+            className="rounded-full p-1 text-foreground hover:bg-muted/50"
           >
-            <IoChevronBack className="w-4 h-4" />
+            <IoChevronBack className="h-4 w-4" />
           </button>
           <button
             onClick={handleNextMonth}
-            className="p-1 hover:bg-muted/50 rounded-full text-foreground"
+            className="rounded-full p-1 text-foreground hover:bg-muted/50"
           >
-            <IoChevronForward className="w-4 h-4" />
+            <IoChevronForward className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -81,7 +83,7 @@ export function MiniCalendar({ currentDate, onDateClick }: MiniCalendarProps) {
         {weekDays.map((day) => (
           <div
             key={day.key}
-            className="h-7 flex items-center justify-center text-xs font-medium text-muted-foreground"
+            className="flex h-7 items-center justify-center text-xs font-medium text-muted-foreground"
           >
             {day.label}
           </div>
@@ -98,14 +100,14 @@ export function MiniCalendar({ currentDate, onDateClick }: MiniCalendarProps) {
             key={day.toISOString()}
             onClick={() => onDateClick?.(day)}
             className={cn(
-              "h-7 text-xs flex items-center justify-center rounded-full mx-0.5",
+              "mx-0.5 flex h-7 items-center justify-center rounded-full text-xs",
               isSameDay(day, currentDate)
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : isToday(day)
-                ? "bg-accent text-accent-foreground hover:bg-accent/90"
-                : isSameMonth(day, calendarDate)
-                ? "text-foreground hover:bg-muted/50"
-                : "text-muted-foreground/50 hover:bg-muted/50"
+                  ? "bg-accent text-accent-foreground hover:bg-accent/90"
+                  : isSameMonth(day, calendarDate)
+                    ? "text-foreground hover:bg-muted/50"
+                    : "text-muted-foreground/50 hover:bg-muted/50"
             )}
           >
             {format(day, "d")}

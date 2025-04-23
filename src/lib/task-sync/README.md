@@ -24,6 +24,7 @@ This allows users to customize their tasks in FluidCalendar without worrying abo
 #### Field Categories
 
 **External-owned fields** (updated during sync):
+
 - Title
 - Description
 - Status (todo, completed, etc.)
@@ -31,6 +32,7 @@ This allows users to customize their tasks in FluidCalendar without worrying abo
 - Recurrence settings (isRecurring, recurrenceRule)
 
 **Local-owned fields** (preserved during sync):
+
 - Start Date
 - Duration
 - Priority
@@ -42,10 +44,12 @@ This allows users to customize their tasks in FluidCalendar without worrying abo
 ## How It Works
 
 1. When a sync is triggered (manually or via scheduled job):
+
    - We fetch all tasks from the external provider for a given list
    - We compare them with existing tasks in our database
-  
+
 2. For new tasks (not in our database):
+
    - We create them with all fields from the external source
    - Default values are applied for any missing required fields
 
@@ -61,4 +65,4 @@ In Phase 2, we plan to implement bidirectional sync that will allow changes made
 ## API Endpoints
 
 - `POST /api/task-providers/:providerId/sync` - Trigger sync for a specific provider
-- `POST /api/task-list-mappings/:mappingId/sync` - Trigger sync for a specific task list mapping 
+- `POST /api/task-list-mappings/:mappingId/sync` - Trigger sync for a specific task list mapping

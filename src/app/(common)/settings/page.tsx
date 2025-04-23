@@ -1,25 +1,29 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { UserSettings } from "@/components/settings/UserSettings";
-import { CalendarSettings } from "@/components/settings/CalendarSettings";
-import { AccountManager } from "@/components/settings/AccountManager";
-import { AutoScheduleSettings } from "@/components/settings/AutoScheduleSettings";
-import { SystemSettings } from "@/components/settings/SystemSettings";
-import { TaskSyncSettings } from "@/components/settings/TaskSyncSettings";
-import { LogViewer } from "@/components/settings/LogViewer";
-import { UserManagement } from "@/components/settings/UserManagement";
-import { ImportExportSettings } from "@/components/settings/ImportExportSettings";
-import { NotificationSettings } from "@/components/settings/NotificationSettings";
-import { useSettingsStore } from "@/store/settings";
-import { cn } from "@/lib/utils";
-import { Card } from "@/components/ui/card";
-import { useAdmin } from "@/hooks/use-admin";
+import { useEffect, useMemo, useState } from "react";
 import { Suspense } from "react";
-import { Button } from "@/components/ui/button";
 
 import dynamic from "next/dynamic";
+
+import { AccountManager } from "@/components/settings/AccountManager";
+import { AutoScheduleSettings } from "@/components/settings/AutoScheduleSettings";
+import { CalendarSettings } from "@/components/settings/CalendarSettings";
+import { ImportExportSettings } from "@/components/settings/ImportExportSettings";
+import { LogViewer } from "@/components/settings/LogViewer";
+import { NotificationSettings } from "@/components/settings/NotificationSettings";
+import { SystemSettings } from "@/components/settings/SystemSettings";
+import { TaskSyncSettings } from "@/components/settings/TaskSyncSettings";
+import { UserManagement } from "@/components/settings/UserManagement";
+import { UserSettings } from "@/components/settings/UserSettings";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+
 import { isSaasEnabled } from "@/lib/config";
+import { cn } from "@/lib/utils";
+
+import { useAdmin } from "@/hooks/use-admin";
+
+import { useSettingsStore } from "@/store/settings";
 
 // Add dynamic import for the waitlist page
 const WaitlistPage = dynamic(
@@ -166,7 +170,7 @@ export default function SettingsPage() {
     if (adminOnlyTabs.includes(activeTab) && !isAdmin) {
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center">
-          <h2 className="text-2xl font-bold mb-4">Admin Access Required</h2>
+          <h2 className="mb-4 text-2xl font-bold">Admin Access Required</h2>
           <p className="text-muted-foreground">
             You need administrator privileges to access this section.
           </p>
@@ -204,8 +208,8 @@ export default function SettingsPage() {
       case "admin-dashboard":
         return (
           <div className="flex flex-col items-center justify-center p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">Admin Dashboard</h2>
-            <p className="text-muted-foreground mb-4">
+            <h2 className="mb-4 text-2xl font-bold">Admin Dashboard</h2>
+            <p className="mb-4 text-muted-foreground">
               Access the full admin dashboard to manage the application.
             </p>
             <Button asChild>
@@ -246,7 +250,7 @@ export default function SettingsPage() {
             </nav>
           </Card>
         </aside>
-        <div className="flex-1 mt-6 lg:mt-0">
+        <div className="mt-6 flex-1 lg:mt-0">
           <div className="space-y-6">
             <div className={cn("space-y-8", !isHydrated && "opacity-0")}>
               {renderContent()}

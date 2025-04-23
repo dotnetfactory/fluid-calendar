@@ -1,5 +1,6 @@
 import { CalendarEvent } from "@prisma/client";
-import { TimeSlot, Conflict } from "@/types/scheduling";
+
+import { Conflict, TimeSlot } from "@/types/scheduling";
 
 export interface BatchConflictCheck {
   slot: TimeSlot;

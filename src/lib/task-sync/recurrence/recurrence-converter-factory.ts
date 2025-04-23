@@ -1,5 +1,5 @@
-import { RecurrenceConverter } from "./recurrence-converter";
 import { OutlookRecurrenceConverter } from "./outlook-recurrence-converter";
+import { RecurrenceConverter } from "./recurrence-converter";
 
 /**
  * RecurrenceConverterFactory

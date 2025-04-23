@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
+
 import { signOut, useSession } from "next-auth/react";
+import Link from "next/link";
+
+import { LogOut, Settings } from "lucide-react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,9 +17,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { LogOut, Settings } from "lucide-react";
-import Link from "next/link";
 
 export function UserMenu() {
   const { data: session } = useSession();

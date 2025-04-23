@@ -1,19 +1,22 @@
 import { Client } from "@microsoft/microsoft-graph-client";
-import { logger } from "@/lib/logger";
+
 import { newDate } from "@/lib/date-utils";
+import { logger } from "@/lib/logger";
+
+import { Priority, Task, TaskStatus } from "@/types/task";
+
 import { RecurrenceConverterFactory } from "../recurrence/recurrence-converter-factory";
 import { OutlookTaskRecurrence } from "../recurrence/recurrence-types";
 import { PartialTaskWithSync } from "../types";
 import {
-  TaskProviderInterface,
-  ExternalTaskList,
   ExternalTask,
-  TaskToCreate,
-  TaskUpdates,
+  ExternalTaskList,
   SyncOptions,
   TaskChange,
+  TaskProviderInterface,
+  TaskToCreate,
+  TaskUpdates,
 } from "./task-provider.interface";
-import { TaskStatus, Priority, Task } from "@/types/task";
 
 // Import interfaces from the original OutlookTasksService
 interface OutlookDateTime {

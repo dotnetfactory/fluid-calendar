@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { TaskStatus, EnergyLevel, TimePreference } from "@/types/task";
+
+import { EnergyLevel, TaskStatus, TimePreference } from "@/types/task";
 
 interface TaskListViewSettings {
   // Sort settings

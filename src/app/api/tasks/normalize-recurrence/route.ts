@@ -1,9 +1,11 @@
-import { NextResponse, NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+
 import { RRule } from "rrule";
-import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
-import { logger } from "@/lib/logger";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
 
 const LOG_SOURCE = "normalize-recurrence-route";
 

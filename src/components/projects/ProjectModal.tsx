@@ -1,20 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Project, ProjectStatus } from "@/types/project";
-import { useProjectStore } from "@/store/project";
-import { DeleteProjectDialog } from "./DeleteProjectDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
+import { Textarea } from "@/components/ui/textarea";
+
+import { useProjectStore } from "@/store/project";
+
+import { Project, ProjectStatus } from "@/types/project";
+
+import { DeleteProjectDialog } from "./DeleteProjectDialog";
 
 interface ProjectModalProps {
   isOpen: boolean;
@@ -104,7 +108,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
 
             <div>
               <Label htmlFor="color">Color</Label>
-              <div className="flex gap-2 items-center">
+              <div className="flex items-center gap-2">
                 <Input
                   type="color"
                   id="color"
@@ -130,7 +134,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
                   Delete Project
                 </Button>
               )}
-              <div className="flex gap-2 ml-auto">
+              <div className="ml-auto flex gap-2">
                 <Button
                   type="button"
                   variant="outline"

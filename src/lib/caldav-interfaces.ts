@@ -1,7 +1,8 @@
 import { CalendarEvent } from "@prisma/client";
+import ICAL from "ical.js";
 import { DAVResponse } from "tsdav";
 import { DAVCalendar } from "tsdav";
-import ICAL from "ical.js";
+
 // Define a type for iCalendar recurrence rules
 export interface ICalRRule {
   freq?: string;
@@ -96,4 +97,3 @@ export interface CalendarEventInput {
   isRecurring?: boolean;
   recurrenceRule?: string;
 }
-

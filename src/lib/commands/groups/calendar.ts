@@ -5,10 +5,13 @@ import {
   HiOutlineMenu,
   HiOutlinePlus,
 } from "react-icons/hi";
-import { Command } from "../types";
-import { useViewStore, useCalendarUIStore } from "@/store/calendar";
-import { addDays, newDate, subDays } from "@/lib/date-utils";
 import { create } from "zustand";
+
+import { addDays, newDate, subDays } from "@/lib/date-utils";
+
+import { useCalendarUIStore, useViewStore } from "@/store/calendar";
+
+import { Command } from "../types";
 
 // Create a store for managing event modal state
 interface EventModalStore {

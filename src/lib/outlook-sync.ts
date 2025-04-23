@@ -1,9 +1,10 @@
 import { Client } from "@microsoft/microsoft-graph-client";
-import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
+
+import { convertToUTC, newDate, newDateFromYMD } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { convertOutlookRecurrenceToRRule } from "@/lib/outlook-calendar";
-import type { Prisma } from "@prisma/client";
-import { convertToUTC, newDate, newDateFromYMD } from "@/lib/date-utils";
+import { prisma } from "@/lib/prisma";
 
 interface OutlookAttendee {
   emailAddress: {

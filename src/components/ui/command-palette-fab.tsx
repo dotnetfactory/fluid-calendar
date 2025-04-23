@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+
 import { HiOutlineSearch } from "react-icons/hi";
+
 import { cn } from "@/lib/utils";
 
 export function CommandPaletteFab() {
@@ -35,12 +37,12 @@ export function CommandPaletteFab() {
     <button
       onClick={openCommandPalette}
       className={cn(
-        "fixed bottom-4 right-4 z-40 p-3 rounded-full bg-primary text-primary-foreground shadow-lg",
+        "fixed bottom-4 right-4 z-40 rounded-full bg-primary p-3 text-primary-foreground shadow-lg",
         "hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
         "transition-all duration-300 ease-in-out",
         isVisible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-10 pointer-events-none"
+          ? "translate-y-0 opacity-100"
+          : "pointer-events-none translate-y-10 opacity-0"
       )}
       aria-label="Open command palette"
       title="Search or run a command (⌘K)"

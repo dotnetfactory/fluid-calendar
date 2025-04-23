@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Settings } from "@/types/settings";
+
 import { logger } from "@/lib/logger";
+
+import { Settings } from "@/types/settings";
 
 const LOG_SOURCE = "SettingsStore";
 

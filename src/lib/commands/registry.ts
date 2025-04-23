@@ -1,11 +1,11 @@
-import { Command, CommandRegistry } from "./types";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+
+import { Command, CommandRegistry } from "./types";
 
 class CommandRegistryImpl {
   private commands: CommandRegistry = new Map();
 
   register(command: Command) {
-
     if (!command.id) {
       console.error("Attempted to register command without ID:", command);
       return;
@@ -55,7 +55,6 @@ class CommandRegistryImpl {
 
       // If we're not on the required path
       if (currentPath !== command.context.requiredPath) {
-
         // If navigateIfNeeded is true and we have a router, navigate
         if (command.context.navigateIfNeeded && router) {
           await router.push(command.context.requiredPath);

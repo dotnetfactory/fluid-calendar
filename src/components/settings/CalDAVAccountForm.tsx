@@ -1,15 +1,17 @@
 import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
 import { logger } from "@/lib/logger";
 
 const LOG_SOURCE = "CalDAVAccountForm";
@@ -217,8 +219,8 @@ export function CalDAVAccountForm({
     if (!testResults) return null;
 
     return (
-      <div className="mt-4 p-4 border rounded-md bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
-        <h3 className="font-medium mb-2">Connection Test Results</h3>
+      <div className="mt-4 rounded-md border bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="mb-2 font-medium">Connection Test Results</h3>
 
         {testResults.steps &&
           testResults.steps.map((step, index) => (
@@ -229,15 +231,15 @@ export function CalDAVAccountForm({
                     step.status === "success"
                       ? "text-green-500"
                       : step.status === "failed"
-                      ? "text-red-500"
-                      : "text-yellow-500"
+                        ? "text-red-500"
+                        : "text-yellow-500"
                   }`}
                 >
                   {step.status === "success"
                     ? "✓"
                     : step.status === "failed"
-                    ? "✗"
-                    : "⟳"}
+                      ? "✗"
+                      : "⟳"}
                 </span>
                 <span className="font-medium">{step.step}</span>
                 {step.status === "success" && step.calendars !== undefined && (
@@ -248,7 +250,7 @@ export function CalDAVAccountForm({
               </div>
 
               {step.error && (
-                <div className="ml-6 mt-1 text-sm text-red-600 dark:text-red-400 whitespace-pre-wrap">
+                <div className="ml-6 mt-1 whitespace-pre-wrap text-sm text-red-600 dark:text-red-400">
                   Error: {step.error}
                 </div>
               )}
@@ -262,16 +264,16 @@ export function CalDAVAccountForm({
           ))}
 
         {testResults.error && !testResults.steps?.some((s) => s.error) && (
-          <div className="text-red-600 dark:text-red-400 mt-2">
+          <div className="mt-2 text-red-600 dark:text-red-400">
             <div className="font-medium">Error:</div>
-            <div className="text-sm whitespace-pre-wrap">
+            <div className="whitespace-pre-wrap text-sm">
               {testResults.error}
             </div>
           </div>
         )}
 
         {testResults.success && (
-          <div className="text-green-600 dark:text-green-400 mt-2 font-medium">
+          <div className="mt-2 font-medium text-green-600 dark:text-green-400">
             Connection successful! You can now connect your account.
           </div>
         )}
@@ -291,14 +293,14 @@ export function CalDAVAccountForm({
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           {errorMessage && (
-            <div className="p-3 mb-3 text-sm border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-md">
+            <div className="mb-3 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
               {errorMessage}
             </div>
           )}
 
           <fieldset className="mb-4">
             <Label
-              className="text-[15px] leading-normal mb-2.5"
+              className="mb-2.5 text-[15px] leading-normal"
               htmlFor="serverUrl"
             >
               Server URL <span className="text-red-500">*</span>
@@ -311,14 +313,14 @@ export function CalDAVAccountForm({
               onChange={handleChange}
               required
             />
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-sm text-muted-foreground">
               For Fastmail: https://caldav.fastmail.com
             </p>
           </fieldset>
 
           <fieldset className="mb-4">
             <Label
-              className="text-[15px] leading-normal mb-2.5"
+              className="mb-2.5 text-[15px] leading-normal"
               htmlFor="username"
             >
               Username <span className="text-red-500">*</span>
@@ -331,14 +333,14 @@ export function CalDAVAccountForm({
               onChange={handleChange}
               required
             />
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-sm text-muted-foreground">
               For Fastmail: Use your full email address
             </p>
           </fieldset>
 
           <fieldset className="mb-4">
             <Label
-              className="text-[15px] leading-normal mb-2.5"
+              className="mb-2.5 text-[15px] leading-normal"
               htmlFor="password"
             >
               Password <span className="text-red-500">*</span>
@@ -352,14 +354,14 @@ export function CalDAVAccountForm({
               onChange={handleChange}
               required
             />
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-sm text-muted-foreground">
               For Fastmail: Use an app-specific password from Settings →
               Password & Security
             </p>
           </fieldset>
 
           <fieldset className="mb-4">
-            <Label className="text-[15px] leading-normal mb-2.5" htmlFor="path">
+            <Label className="mb-2.5 text-[15px] leading-normal" htmlFor="path">
               Path (Optional)
             </Label>
             <Input
@@ -369,7 +371,7 @@ export function CalDAVAccountForm({
               value={formData.path}
               onChange={handleChange}
             />
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-sm text-muted-foreground">
               For Fastmail: /dav/calendars/user/youremail@fastmail.com
             </p>
           </fieldset>

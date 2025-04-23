@@ -1,13 +1,18 @@
 "use client";
 
 import { useState } from "react";
+
+import { HiClock, HiPencil, HiTrash } from "react-icons/hi";
+
+import { TaskModal } from "@/components/tasks/TaskModal";
+import { Button } from "@/components/ui/button";
+
+import { logger } from "@/lib/logger";
+
 import { useFocusModeStore } from "@/store/focusMode";
 import { useTaskStore } from "@/store/task";
-import { Button } from "@/components/ui/button";
-import { TaskModal } from "@/components/tasks/TaskModal";
-import { HiClock, HiPencil, HiTrash } from "react-icons/hi";
+
 import { NewTask } from "@/types/task";
-import { logger } from "@/lib/logger";
 
 export function QuickActions() {
   const { completeCurrentTask, postponeTask, getCurrentTask } =
@@ -50,7 +55,7 @@ export function QuickActions() {
   };
 
   return (
-    <div className="flex flex-col p-4 space-y-4">
+    <div className="flex flex-col space-y-4 p-4">
       <h2 className="text-lg font-semibold">Quick Actions</h2>
 
       <div className="flex flex-col space-y-2">
@@ -93,7 +98,7 @@ export function QuickActions() {
           </span>
         </Button>
 
-        <div className="h-px bg-border my-2" />
+        <div className="my-2 h-px bg-border" />
         <h3 className="text-sm font-medium">Postpone Task</h3>
 
         {/* Postpone Actions */}

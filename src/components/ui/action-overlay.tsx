@@ -1,5 +1,7 @@
 import { useEffect } from "react";
+
 import confetti from "canvas-confetti";
+
 import { logger } from "@/lib/logger";
 
 export type ActionType = "loading" | "celebration" | "error";
@@ -79,9 +81,9 @@ export function ActionOverlay({
   }, [type, message, onComplete, autoHideDuration]);
 
   return (
-    <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-[10000]">
+    <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
       {type === "loading" && (
-        <div className="animate-spin h-12 w-12 text-blue-600 mb-4">
+        <div className="mb-4 h-12 w-12 animate-spin text-blue-600">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -104,12 +106,12 @@ export function ActionOverlay({
         </div>
       )}
 
-      {type === "celebration" && <div className="text-5xl mb-4">🎉</div>}
+      {type === "celebration" && <div className="mb-4 text-5xl">🎉</div>}
 
-      {type === "error" && <div className="text-5xl mb-4 text-red-500">❌</div>}
+      {type === "error" && <div className="mb-4 text-5xl text-red-500">❌</div>}
 
       {message && (
-        <p className="text-lg font-medium text-center px-4">{message}</p>
+        <p className="px-4 text-center text-lg font-medium">{message}</p>
       )}
     </div>
   );

@@ -1,9 +1,12 @@
 import { memo } from "react";
-import { IoRepeat, IoCheckmarkCircle, IoTimeOutline } from "react-icons/io5";
-import { cn } from "@/lib/utils";
+
 import type { EventContentArg } from "@fullcalendar/core";
-import { Priority, TaskStatus } from "@/types/task";
+import { IoCheckmarkCircle, IoRepeat, IoTimeOutline } from "react-icons/io5";
+
 import { isTaskOverdue } from "@/lib/task-utils";
+import { cn } from "@/lib/utils";
+
+import { Priority, TaskStatus } from "@/types/task";
 
 interface CalendarEventContentProps {
   eventInfo: EventContentArg;
@@ -36,7 +39,7 @@ export const CalendarEventContent = memo(function CalendarEventContent({
     <div
       data-testid={isTask ? "calendar-task" : "calendar-event"}
       className={cn(
-        "flex flex-col justify-start p-1.5 gap-1 text-[11px] overflow-hidden h-full",
+        "flex h-full flex-col justify-start gap-1 overflow-hidden p-1.5 text-[11px]",
         isTask && "border-l-4",
         isTask && "text-gray-700",
         isTask && priority && priorityColors[priority as Priority],
@@ -46,22 +49,22 @@ export const CalendarEventContent = memo(function CalendarEventContent({
             "border-yellow-500": status === TaskStatus.IN_PROGRESS,
             "border-gray-500": status === TaskStatus.TODO,
           },
-        isOverdue && "text-red-600 font-medium border-red-500",
+        isOverdue && "border-red-500 font-medium text-red-600",
         status === TaskStatus.COMPLETED && "text-gray-500 line-through"
       )}
     >
-      <div className="flex items-center gap-1.5 w-full">
+      <div className="flex w-full items-center gap-1.5">
         {isTask ? (
-          <IoCheckmarkCircle className="flex-shrink-0 h-3.5 w-3.5 text-current opacity-75" />
+          <IoCheckmarkCircle className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
         ) : isRecurring ? (
-          <IoRepeat className="flex-shrink-0 h-3.5 w-3.5 text-current opacity-75" />
+          <IoRepeat className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
         ) : (
-          <IoTimeOutline className="flex-shrink-0 h-3.5 w-3.5 text-current opacity-75" />
+          <IoTimeOutline className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
         )}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div
             className={cn(
-              "font-medium leading-snug calendar-event-title",
+              "calendar-event-title font-medium leading-snug",
               duration <= 1800000 ? "truncate" : "line-clamp-2 break-words"
             )}
           >
@@ -70,7 +73,7 @@ export const CalendarEventContent = memo(function CalendarEventContent({
         </div>
       </div>
       {location && duration > 1800000 && (
-        <div className="truncate opacity-80 text-[10px] leading-snug event-location pl-5">
+        <div className="event-location truncate pl-5 text-[10px] leading-snug opacity-80">
           {location}
         </div>
       )}

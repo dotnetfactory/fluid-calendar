@@ -1,11 +1,15 @@
 "use client";
 
-import { Task, TaskStatus } from "@/types/task";
+import { useMemo } from "react";
+
+import { DndContext, DragEndEvent } from "@dnd-kit/core";
+
 import { useProjectStore } from "@/store/project";
 import { useTaskListViewSettings } from "@/store/taskListViewSettings";
-import { useMemo } from "react";
+
+import { Task, TaskStatus } from "@/types/task";
+
 import { Column } from "./Column";
-import { DndContext, DragEndEvent } from "@dnd-kit/core";
 
 interface BoardViewProps {
   tasks: Task[];
@@ -74,10 +78,13 @@ export function BoardView({
 
   // Group tasks by status
   const columns = useMemo(() => {
-    const grouped = Object.values(TaskStatus).reduce((acc, status) => {
-      acc[status] = filteredTasks.filter((task) => task.status === status);
-      return acc;
-    }, {} as Record<TaskStatus, Task[]>);
+    const grouped = Object.values(TaskStatus).reduce(
+      (acc, status) => {
+        acc[status] = filteredTasks.filter((task) => task.status === status);
+        return acc;
+      },
+      {} as Record<TaskStatus, Task[]>
+    );
     return grouped;
   }, [filteredTasks]);
 
@@ -95,8 +102,8 @@ export function BoardView({
   };
 
   return (
-    <div className="h-full flex flex-col bg-background p-4">
-      <div className="flex-1 flex gap-4 overflow-auto">
+    <div className="flex h-full flex-col bg-background p-4">
+      <div className="flex flex-1 gap-4 overflow-auto">
         <DndContext onDragEnd={handleDragEnd}>
           {Object.values(TaskStatus).map((status) => (
             <Column

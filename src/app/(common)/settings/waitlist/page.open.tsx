@@ -6,9 +6,9 @@
  */
 export default function WaitlistPage() {
   return (
-    <div className="p-6 bg-muted rounded-lg">
-      <h2 className="text-2xl font-bold mb-4">Beta Waitlist Management</h2>
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+    <div className="rounded-lg bg-muted p-6">
+      <h2 className="mb-4 text-2xl font-bold">Beta Waitlist Management</h2>
+      <div className="mb-6 border-l-4 border-yellow-400 bg-yellow-50 p-4">
         <div className="flex">
           <div className="flex-shrink-0">
             <svg
@@ -31,10 +31,10 @@ export default function WaitlistPage() {
           </div>
         </div>
       </div>
-      <p className="text-gray-700 mb-4">
+      <p className="mb-4 text-gray-700">
         The Beta Waitlist Management feature allows you to:
       </p>
-      <ul className="list-disc pl-5 space-y-2 text-gray-700 mb-6">
+      <ul className="mb-6 list-disc space-y-2 pl-5 text-gray-700">
         <li>Manage a waitlist for your beta program</li>
         <li>Send invitations to users on the waitlist</li>
         <li>Track referrals and prioritize users</li>

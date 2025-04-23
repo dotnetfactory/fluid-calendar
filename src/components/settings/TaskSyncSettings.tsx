@@ -1,9 +1,29 @@
-import { useState, useEffect, useCallback } from "react";
-import { SettingsSection, SettingRow } from "./SettingsSection";
-import { useSettingsStore } from "@/store/settings";
-import { useProjectStore } from "@/store/project";
-import { format } from "@/lib/date-utils";
-import { logger } from "@/lib/logger";
+import { useCallback, useEffect, useState } from "react";
+
+import {
+  Calendar,
+  ExternalLink,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -11,30 +31,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import {
-  Loader2,
-  RefreshCw,
-  ExternalLink,
-  Calendar,
-  Trash2,
-  Plus,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+
+import { format } from "@/lib/date-utils";
+import { logger } from "@/lib/logger";
+
+import { useProjectStore } from "@/store/project";
+import { useSettingsStore } from "@/store/settings";
+
+import { SettingRow, SettingsSection } from "./SettingsSection";
 
 // Logging source
 const LOG_SOURCE = "TaskSyncSettings";
@@ -643,7 +648,7 @@ export function TaskSyncSettings() {
         description="View and manage provider settings"
       >
         <Card>
-          <CardContent className="pt-6 space-y-3">
+          <CardContent className="space-y-3 pt-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="text-sm text-muted-foreground">
@@ -698,7 +703,7 @@ export function TaskSyncSettings() {
               onClick={() => deleteProvider(selectedProvider.id)}
               disabled={isLoading}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Trash2 className="mr-2 h-4 w-4" />
               Delete Provider
             </Button>
 
@@ -708,7 +713,7 @@ export function TaskSyncSettings() {
               onClick={() => triggerSync(selectedProvider.id)}
               disabled={isLoading}
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className="mr-2 h-4 w-4" />
               Sync Now
             </Button>
           </CardFooter>
@@ -754,9 +759,9 @@ export function TaskSyncSettings() {
             <div className="space-y-3">
               {taskLists.map((list) => (
                 <Card key={list.id}>
-                  <CardContent className="pt-6 flex items-start justify-between">
+                  <CardContent className="flex items-start justify-between pt-6">
                     <div>
-                      <div className="font-medium text-sm">
+                      <div className="text-sm font-medium">
                         {list.name}
                         {list.isDefaultFolder && (
                           <span className="ml-2 text-xs text-muted-foreground">
@@ -776,7 +781,7 @@ export function TaskSyncSettings() {
                               {format(new Date(list.lastSyncedAt), "PPp")}
                             </div>
                           )}
-                          <div className="flex space-x-2 mt-2 items-center">
+                          <div className="mt-2 flex items-center space-x-2">
                             <Button
                               variant="outline"
                               size="sm"
@@ -786,7 +791,7 @@ export function TaskSyncSettings() {
                               }
                               disabled={isLoading || !list.mappingId}
                             >
-                              <RefreshCw className="h-4 w-4 mr-1" />
+                              <RefreshCw className="mr-1 h-4 w-4" />
                               Sync
                             </Button>
                           </div>
@@ -805,7 +810,7 @@ export function TaskSyncSettings() {
                         </div>
                       ) : (
                         <div className="mt-1">
-                          <div className="text-sm text-muted-foreground mb-2">
+                          <div className="mb-2 text-sm text-muted-foreground">
                             Not mapped to any project
                           </div>
                           <div className="flex flex-col space-y-2">
@@ -843,7 +848,7 @@ export function TaskSyncSettings() {
                               onClick={() => createMapping(list.id, "", true)}
                               disabled={isLoading}
                             >
-                              <Plus className="h-4 w-4 mr-1" />
+                              <Plus className="mr-1 h-4 w-4" />
                               Create New Project
                             </Button>
                           </div>
@@ -872,7 +877,7 @@ export function TaskSyncSettings() {
         label="Sync History"
         description="View recent sync activities and results"
       >
-        <div className="text-center p-4 text-muted-foreground">
+        <div className="p-4 text-center text-muted-foreground">
           <p>Sync history will be available in a future update.</p>
         </div>
       </SettingRow>
@@ -906,13 +911,13 @@ export function TaskSyncSettings() {
                 onValueChange={setActiveTab}
                 className="w-full"
               >
-                <TabsList className="w-full mb-4">
+                <TabsList className="mb-4 w-full">
                   <TabsTrigger value="task-lists" className="flex-1">
-                    <Calendar className="h-4 w-4 mr-2" />
+                    <Calendar className="mr-2 h-4 w-4" />
                     Task Lists
                   </TabsTrigger>
                   <TabsTrigger value="sync-history" className="flex-1">
-                    <ExternalLink className="h-4 w-4 mr-2" />
+                    <ExternalLink className="mr-2 h-4 w-4" />
                     Sync History
                   </TabsTrigger>
                 </TabsList>

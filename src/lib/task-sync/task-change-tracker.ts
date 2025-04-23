@@ -4,11 +4,11 @@
  * Service to track changes to tasks for efficient synchronization.
  * Phase 2 implementation with database persistence.
  */
+import { Task } from "@prisma/client";
 
+import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { Task } from "@prisma/client";
-import { newDate } from "@/lib/date-utils";
 
 const LOG_SOURCE = "TaskChangeTracker";
 

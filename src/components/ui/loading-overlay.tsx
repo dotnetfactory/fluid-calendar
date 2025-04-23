@@ -1,7 +1,7 @@
 export function LoadingOverlay() {
   return (
-    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="animate-spin h-8 w-8 text-blue-600">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+      <div className="h-8 w-8 animate-spin text-blue-600">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle
             className="opacity-25"
