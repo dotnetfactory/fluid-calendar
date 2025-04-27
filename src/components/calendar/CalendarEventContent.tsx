@@ -39,7 +39,7 @@ export const CalendarEventContent = memo(function CalendarEventContent({
     <div
       data-testid={isTask ? "calendar-task" : "calendar-event"}
       className={cn(
-        "flex h-full flex-col justify-start gap-1 overflow-hidden p-1.5 text-[11px]",
+        "flex h-full flex-col justify-start gap-1 overflow-hidden text-[11px]",
         isTask && "border-l-4",
         isTask && "text-gray-700",
         isTask && priority && priorityColors[priority as Priority],

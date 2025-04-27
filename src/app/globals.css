@@ -139,6 +139,10 @@
   @apply p-1;
 }
 
+.fc .fc-daygrid-day-events {
+  margin-bottom: 0;
+}
+
 .fc .fc-event-title {
   @apply font-medium;
 }
