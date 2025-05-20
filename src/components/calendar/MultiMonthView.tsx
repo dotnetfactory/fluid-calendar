@@ -20,7 +20,7 @@ import { useSettingsStore } from "@/store/settings";
 import { useTaskStore } from "@/store/task";
 
 import { CalendarEvent, ExtendedEventProps } from "@/types/calendar";
-import { Task } from "@/types/task";
+import { Task, TaskStatus } from "@/types/task";
 
 import { CalendarEventContent } from "./CalendarEventContent";
 import { EventModal } from "./EventModal";
@@ -38,6 +38,7 @@ export function MultiMonthView({
   const { feeds, getAllCalendarItems, isLoading, removeEvent } =
     useCalendarStore();
   const { user: userSettings } = useSettingsStore();
+  const { updateTask } = useTaskStore();
   const [selectedEvent, setSelectedEvent] = useState<Partial<CalendarEvent>>();
   const [selectedTask, setSelectedTask] = useState<Task>();
   const [selectedDate, setSelectedDate] = useState<Date>();
@@ -232,6 +233,25 @@ export function MultiMonthView({
     }
   };
 
+  const handleQuickViewStatusChange = async (
+    taskId: string,
+    status: TaskStatus
+  ) => {
+    if (!quickViewItem) return;
+
+    await updateTask(taskId, { status });
+
+    // Update the quick view item to reflect the new status
+    if (isTask) {
+      const updatedTask = useTaskStore
+        .getState()
+        .tasks.find((t) => t.id === taskId);
+      if (updatedTask) {
+        setQuickViewItem(updatedTask);
+      }
+    }
+  };
+
   const renderEventContent = useCallback(
     (arg: EventContentArg) => <CalendarEventContent eventInfo={arg} />,
     []
@@ -294,6 +314,7 @@ export function MultiMonthView({
           item={quickViewItem}
           onEdit={handleQuickViewEdit}
           onDelete={handleQuickViewDelete}
+          onStatusChange={handleQuickViewStatusChange}
           position={quickViewPosition}
           isTask={isTask}
         />

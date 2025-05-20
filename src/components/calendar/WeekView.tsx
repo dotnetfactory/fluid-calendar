@@ -20,7 +20,7 @@ import { useSettingsStore } from "@/store/settings";
 import { useTaskStore } from "@/store/task";
 
 import { CalendarEvent, ExtendedEventProps } from "@/types/calendar";
-import { Task } from "@/types/task";
+import { Task, TaskStatus } from "@/types/task";
 
 import { CalendarEventContent } from "./CalendarEventContent";
 import { EventModal } from "./EventModal";
@@ -117,7 +117,6 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
 
   // Initial data load
   useEffect(() => {
-    console.log("Loading initial data...");
     Promise.all([
       useCalendarStore.getState().loadFromDatabase(),
       useTaskStore.getState().fetchTasks(),
@@ -246,6 +245,25 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
     }
   };
 
+  const handleQuickViewStatusChange = async (
+    taskId: string,
+    status: TaskStatus
+  ) => {
+    if (!quickViewItem) return;
+
+    await updateTask(taskId, { status });
+
+    // Update the quick view item to reflect the new status
+    if (isTask) {
+      const updatedTask = useTaskStore
+        .getState()
+        .tasks.find((t) => t.id === taskId);
+      if (updatedTask) {
+        setQuickViewItem(updatedTask);
+      }
+    }
+  };
+
   const renderEventContent = useCallback(
     (arg: EventContentArg) => <CalendarEventContent eventInfo={arg} />,
     []
@@ -313,6 +331,7 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
           item={quickViewItem}
           onEdit={handleQuickViewEdit}
           onDelete={handleQuickViewDelete}
+          onStatusChange={handleQuickViewStatusChange}
           position={quickViewPosition}
           isTask={isTask}
         />

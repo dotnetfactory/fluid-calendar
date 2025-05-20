@@ -82,6 +82,7 @@ export function UserSettings() {
     "Asia/Hong_Kong",
     "Asia/Jakarta",
     "Asia/Jerusalem",
+    "Asia/Karachi",
     "Asia/Kolkata",
     "Asia/Kuala_Lumpur",
     "Asia/Manila",

@@ -9,15 +9,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a button to mark tasks as completed directly from the task quick view popup
 - Added visual indicator for externally synced tasks in task list view
+- Added Stripe configuration file (`src/lib/stripe.saas.ts`) for SAAS payment processing
+- Lifetime access purchase feature
+  - Added Stripe integration for one-time payments
+  - Implemented early bird 50% discount for first 50 purchases
+  - Added lifetime access status tracking for users
+  - Created webhook handler for Stripe events
+  - Added server actions and API routes for purchase flow
+- Lifetime access subscription plan with special early bird pricing
+- Server actions for handling lifetime access purchases
+- Early bird discount for first 50 lifetime subscribers ($200 instead of $400)
+- Lifetime Access subscription plan with early bird pricing
+  - Early bird offer: $200 for first 50 subscribers
+  - Regular price: $400 after early bird period
+  - Includes all Pro features with perpetual access
+- Lifetime subscription success page with modern design and animations
+- New reusable PageHeader component for consistent page headers
+- Enhanced payment success flow with session verification
+- New success page for lifetime subscription purchases
+- API endpoint to verify Stripe checkout sessions
+- Refactored the lifetime subscription success page (`src/app/(saas)/subscription/lifetime/success/page.tsx`) to use the new pattern for `searchParams` and `params` as Promise types, updating usages accordingly.
+- Added a password setup page at /subscription/lifetime/setup-password for new users after successful payment (SAAS only).
+- Updated the 'Set Up Your Account' button on the lifetime success page to redirect to the password setup page.
+- The 'Set Up Your Account' button now sends name and email in query params to the password setup page, which displays them if present.
+- Implemented backend API route and service for password setup at /subscription/lifetime/setup-password/api (SAAS only).
+- Added client service to call the backend API for password setup.
+- Integrated password setup form with the backend using Tanstack Query, including loading, error, and success states.
+- Made `/subscription/lifetime/success` route public in middleware so it no longer requires authentication after successful payment.
+- Made `/subscription/lifetime/setup-password` route public in middleware so users can set their password after payment without authentication.
+- Enhanced lifetime subscription success page with automatic user verification and redirection
+- Added subscription status verification and automatic updates for existing users
+- Improved payment verification with early bird discount detection
+- Updated LifetimeSuccessPage and LifetimeSuccessClient to show 'Go to login' or 'Go to Calendar' for existing users after successful lifetime subscription payment, based on whether the user is logged in or not. The setup button is now only shown for new users.
+- Added a dismissible "Buy Lifetime Access" banner at the top of the main calendar/dashboard view for SAAS users who have not purchased lifetime access. The banner links to /beta for payment.
+- The "Upgrade to Lifetime Access" banner is now only shown if the user does not have a lifetime subscription. Added `/api/subscription/lifetime/status` endpoint for this check.
+- Fixed "Upgrade to Lifetime Access" banner to remain hidden initially until verification confirms user doesn't have lifetime access, preventing banner flash for lifetime subscribers
+- Added Asia/Karachi to the timezone options in user settings
+- Improved calendar rendering performance with Server Components
+  - Added server-side pre-fetching of calendar feeds and events data
+  - Modified client components to hydrate with server-fetched data
+  - Reduced client-side data loading operations and API calls
+  - Eliminated loading delay for initial calendar view rendering
 
 ### Changed
 
+- Removed "Upcoming:" prefix from due dates in task views to reduce confusion with the "upcoming" label used for tasks with future start dates
 - Updated future task detection to consider tasks as "upcoming" only if they are scheduled for tomorrow or later
 - Added new `isFutureDate` utility function in date-utils
 - Improved date formatting in task views to consistently show "Upcoming" label for future tasks
 - Fixed task overdue check to not mark today's tasks as overdue
 - Modified auto-scheduling to exclude tasks that are in progress, preventing them from being automatically rescheduled
+- Updated User model to track lifetime access status
+- Added new LifetimeAccessPurchase model for purchase tracking
+- Updated success URL in checkout session to include session ID
+- Improved UX for payment success confirmation
+- Updated lifetime subscription checkout to use Stripe price IDs instead of inline product data
+- Added new environment variables:
+  - `STRIPE_LIFETIME_EARLY_BIRD_PRICE_ID`: Price ID for early bird lifetime access
+  - `STRIPE_LIFETIME_REGULAR_PRICE_ID`: Price ID for regular lifetime access
+- Updated verifyPaymentStatus to include additional payment information
+- Improved error handling and logging in subscription flow
+- Improved SAAS/open source code separation:
+  - Renamed subscription-related files to include `.saas.ts` extension:
+    - `/src/lib/actions/subscription.ts` → `/src/lib/actions/subscription.saas.ts`
+    - `/src/lib/services/subscription.ts` → `/src/lib/services/subscription.saas.ts`
+    - `/src/lib/hooks/useSubscription.ts` → `/src/lib/hooks/useSubscription.saas.ts`
+    - `/src/app/api/subscription/lifetime/route.ts` → `/src/app/api/subscription/lifetime/route.saas.ts`
+    - `/src/app/api/subscription/lifetime/status/route.ts` → `/src/app/api/subscription/lifetime/status/route.saas.ts`
+    - `/src/app/api/subscription/lifetime/verify/route.ts` → `/src/app/api/subscription/lifetime/verify/route.saas.ts`
+    - `/src/app/(saas)/subscription/lifetime/success/page.tsx` → `/src/app/(saas)/subscription/lifetime/success/page.saas.tsx`
+  - Updated all imports referencing these files to use the new paths
+  - Created separate implementations of components with SAAS-specific code:
+    - Split `LifetimeAccessBanner` into `.saas.tsx` and `.open.tsx` versions
+    - Modified Calendar component to use dynamic imports based on `isSaasEnabled` flag
+    - Removed direct SAAS imports from common components
 
 ### Fixed
 
@@ -25,6 +92,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Google Calendar event deletion by adding missing userId parameter for authentication
 - Fixed Outlook task sync issues with recurring tasks
 - Fixed Caldav feed failing to add when syncToken is an integer
+- Fixed: Updated Stripe checkout session success_url in lifetime subscription API to use double curly braces ({{CHECKOUT_SESSION_ID}}) so users are redirected to the success page after payment.
+- Fixed lifetime subscription error toast to show the actual error message ("User already has lifetime access") instead of generic "request failed with status code 400" message.
+- Fixed name input in account setup page after payment to allow users to enter their complete name without the input disappearing after first character.
+- Fixed infinite login redirect loop in staging environment by:
+  - Correcting the login URL from "/login" to "/auth/signin" in lifetime success page
+  - Adding explicit handling in middleware to redirect "/login" to the correct authentication route
+  - Preventing redirect loops between /auth/signin and /setup pages by improving middleware and setup check logic
+  - Adding special handling in middleware to detect and break circular redirects
+- Fixed edge case where sign-in button remained visible after user logged in by adding proper session loading state handling in UserMenu component
+- Fixed calendar page authentication to use JWT tokens instead of session-based authentication, maintaining consistency with the rest of the application
+- Fixed authentication in subscription API routes by replacing session-based auth with JWT tokens:
+  - Updated `/api/subscription/lifetime/status` to use getToken instead of getServerSession
+  - Updated `/api/subscription/lifetime/verify` to use getToken instead of getServerSession
+  - Updated `/subscription/lifetime/success` page to use JWT token authentication
+- Fixed all linting errors related to usage of 'any' in API routes for subscription lifetime status and verify endpoints.
+- Refactored usage of getToken in (saas) subscription lifetime success page and API routes to use NextRequest and proper cookie handling.
+- Replaced console.log with logger.error in (common)/calendar/page.tsx for proper logging.
 
 ### Removed
 
@@ -87,51 +171,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Updated email templates to use "FluidCalendar" instead of "Fluid Calendar" for consistent branding
-- Refactored task scheduling logic into a common service to reduce code duplication
-  - Created `TaskSchedulingService` with shared scheduling functionality
-  - Updated both API route and background job processor to use the common service
-- Improved SAAS/open source code separation
-  - Moved SAAS-specific API routes to use `.saas.ts` extension
-  - Renamed NotificationProvider to NotificationProvider.saas.tsx
-  - Relocated NotificationProvider to SAAS layout for better code organization
-  - Updated client-side code to use the correct endpoints based on version
-
-### Fixed
-
-- Fixed type errors in the job retry API by using the correct compound unique key (queueName + jobId)
-- Fixed database connection exhaustion issue in task scheduling:
-  - Refactored SchedulingService to use the global Prisma instance instead of creating new connections
-  - Updated CalendarServiceImpl and TimeSlotManagerImpl to use the global Prisma instance
-  - Added proper cleanup of resources in task scheduling API route
-  - Resolved "Too many database connections" errors in production
-
-## [1.2.2] 2025-03-18
-
-### Added
-
-- Added rate limiting to email queue to limit processing to 2 emails per second
-- Added additional logging to email processor to monitor rate limiting effectiveness
-- Added ability to manually retry failed jobs from the admin jobs interface
-- Added View Details button to jobs in the admin interface to inspect job data, results, and errors
-- Added lifetime subscription interest tracking to waitlist system
-  - Implemented `interestedInLifetime` flag in Waitlist and PendingWaitlist models
-  - Added admin notification emails when users express interest in lifetime subscription
-  - Added background task scheduling system with real-time notifications
-  - Implemented task scheduling queue with BullMQ for asynchronous processing
-  - Added debouncing mechanism to prevent duplicate scheduling jobs
-  - Created SSE (Server-Sent Events) endpoint with Redis-backed notifications
-  - Integrated with existing notification system for toast messages
-  - Added fallback to direct scheduling for open source version without Redis
-- Docker image now available on GitHub Container Registry (ghcr.io)
-- GitHub workflow for automatic Docker image publication
-- Documentation for using the Docker image in README.md
-- Added `scripts/sync-repos-reverse.sh` for syncing changes from open source repository back to SAAS repository
-- Added data retention and deletion information to privacy policy to comply with Google's app verification requirements
-
-### Changed
-
-- Modified job retry functionality to update existing job records instead of creating new ones
 - Updated email templates to use "FluidCalendar" instead of "Fluid Calendar" for consistent branding
 - Refactored task scheduling logic into a common service to reduce code duplication
   - Created `TaskSchedulingService` with shared scheduling functionality
@@ -254,3 +293,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced admin interface with better job visualization
 - Refactored all direct email sending to use the queue system
 - Updated waitlist email functions to use the new email service
+
+### Security
+
+- Added Stripe webhook signature verification
+- Secure handling of payment processing
+- Protected routes with authentication checks
+
+## [0.1.0] - 2024-04-01
+
+### Added
+
+- Initial release

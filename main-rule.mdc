@@ -1,0 +1,13 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+## Subscription Plans
+
+The application offers the following subscription plans:
+- Free: Basic features with limited usage
+- Pro: Full access to all features with monthly/yearly billing
+- Lifetime: One-time payment for permanent access to all features
+  - Early bird pricing: $200 for first 50 subscribers
+  - Regular pricing: $400 after early bird period

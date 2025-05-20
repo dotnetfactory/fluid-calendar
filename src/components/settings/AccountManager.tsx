@@ -150,7 +150,7 @@ export function AccountManager() {
           )}
 
           <div className="space-y-4">
-            {accounts.map((account) => (
+            {accounts?.map((account) => (
               <div key={account.id} className="space-y-4">
                 <Card>
                   <CardContent className="pt-6">

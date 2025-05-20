@@ -28,6 +28,12 @@ export function SetupCheck() {
       return;
     }
 
+    // Skip check if on the signin page to prevent redirect loops
+    if (pathname === "/auth/signin") {
+      setLoading(false);
+      return;
+    }
+
     // Skip check for API routes
     if (pathname.startsWith("/api")) {
       setLoading(false);
@@ -40,7 +46,11 @@ export function SetupCheck() {
 
       // If we know setup is needed, redirect immediately
       if (needsSetup === true) {
-        router.push("/setup");
+        // Add a custom header to track the redirect source
+        const setupUrl = new URL("/setup", window.location.origin);
+        // Use a special flag for tracking redirects
+        sessionStorage.setItem("redirectedFromSetupCheck", "true");
+        router.push(setupUrl.toString());
         return false;
       }
 
@@ -69,7 +79,11 @@ export function SetupCheck() {
 
         // If setup is needed, redirect to setup page
         if (data.needsSetup) {
-          router.push("/setup");
+          // Add a custom header to track the redirect source
+          const setupUrl = new URL("/setup", window.location.origin);
+          // Use a special flag for tracking redirects
+          sessionStorage.setItem("redirectedFromSetupCheck", "true");
+          router.push(setupUrl.toString());
         }
       } catch (error) {
         console.error("Failed to check setup status:", error);
