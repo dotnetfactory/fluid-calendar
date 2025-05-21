@@ -1,3 +1,5 @@
+import { Providers } from "@/components/providers";
+
 export default function RootLayout({
   children,
 }: {
@@ -6,7 +8,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className="flex h-full flex-col bg-background antialiased">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

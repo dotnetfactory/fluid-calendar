@@ -8,7 +8,6 @@ import { DndProvider } from "@/components/dnd/DndProvider";
 import { AppNav } from "@/components/navigation/AppNav";
 import { PrivacyProvider } from "@/components/providers/PrivacyProvider";
 import { SessionProvider } from "@/components/providers/SessionProvider";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SetupCheck } from "@/components/setup/SetupCheck";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { CommandPaletteFab } from "@/components/ui/command-palette-fab";
@@ -68,28 +67,26 @@ export default function RootLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <SessionProvider>
-        <ThemeProvider attribute="data-theme" enableSystem={true}>
-          <PrivacyProvider>
-            <DndProvider>
-              <SetupCheck />
-              <CommandPalette
-                open={commandPaletteOpen}
-                onOpenChange={setCommandPaletteOpen}
-              />
-              <CommandPaletteHint />
-              <CommandPaletteFab />
-              <ShortcutsModal
-                isOpen={shortcutsOpen}
-                onClose={() => setShortcutsOpen(false)}
-              />
-              <AppNav />
-              <main className="relative flex-1">
-                <NotificationProvider>{children}</NotificationProvider>
-              </main>
-              <Toaster />
-            </DndProvider>
-          </PrivacyProvider>
-        </ThemeProvider>
+        <PrivacyProvider>
+          <DndProvider>
+            <SetupCheck />
+            <CommandPalette
+              open={commandPaletteOpen}
+              onOpenChange={setCommandPaletteOpen}
+            />
+            <CommandPaletteHint />
+            <CommandPaletteFab />
+            <ShortcutsModal
+              isOpen={shortcutsOpen}
+              onClose={() => setShortcutsOpen(false)}
+            />
+            <AppNav />
+            <main className="relative flex-1">
+              <NotificationProvider>{children}</NotificationProvider>
+            </main>
+            <Toaster />
+          </DndProvider>
+        </PrivacyProvider>
       </SessionProvider>
     </div>
   );

@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+
+import dynamic from "next/dynamic";
 import { HiMenu } from "react-icons/hi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 
@@ -11,15 +14,58 @@ import { WeekView } from "@/components/calendar/WeekView";
 import { SponsorshipBanner } from "@/components/ui/sponsorship-banner";
 
 import { addDays, formatDate, newDate, subDays } from "@/lib/date-utils";
+import { isSaasEnabled } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
-import { useCalendarUIStore, useViewStore } from "@/store/calendar";
+import {
+  useCalendarStore,
+  useCalendarUIStore,
+  useViewStore,
+} from "@/store/calendar";
 import { useTaskStore } from "@/store/task";
 
-export function Calendar() {
+import { CalendarEvent, CalendarFeed } from "@/types/calendar";
+
+// Dynamically import the appropriate version of the LifetimeAccessBanner
+const LifetimeAccessBanner = dynamic(
+  () => import(`./LifetimeAccessBanner.${isSaasEnabled ? "saas" : "open"}`).then(
+    (mod) => mod.LifetimeAccessBanner
+  ),
+  { ssr: false } // Disable SSR for this component to prevent import errors
+);
+
+interface CalendarProps {
+  initialFeeds?: CalendarFeed[];
+  initialEvents?: CalendarEvent[];
+}
+
+export function Calendar({
+  initialFeeds = [],
+  initialEvents = [],
+}: CalendarProps) {
   const { date: currentDate, setDate, view, setView } = useViewStore();
   const { isSidebarOpen, setSidebarOpen, isHydrated } = useCalendarUIStore();
   const { scheduleAllTasks } = useTaskStore();
+  const { setFeeds, setEvents } = useCalendarStore();
+
+  // Use initial data from server for hydration
+  useEffect(() => {
+    if (initialFeeds.length > 0) {
+      setFeeds(initialFeeds);
+    }
+
+    if (initialEvents.length > 0) {
+      setEvents(initialEvents);
+    }
+
+    // Only fetch from database if we didn't get initial data
+    if (!initialFeeds.length || !initialEvents.length) {
+      useCalendarStore.getState().loadFromDatabase();
+    }
+
+    // Always fetch tasks since they're not pre-loaded
+    useTaskStore.getState().fetchTasks();
+  }, [initialFeeds, initialEvents, setFeeds, setEvents]);
 
   const handlePrevWeek = () => {
     if (view === "month" || view === "multiMonth") {
@@ -72,6 +118,8 @@ export function Calendar() {
 
       {/* Main Content */}
       <main className="flex min-w-0 flex-1 flex-col bg-background">
+        {/* Lifetime Access Banner */}
+        <LifetimeAccessBanner />
         {/* Header */}
         <header className="flex h-16 flex-none items-center border-b border-border px-4">
           <button

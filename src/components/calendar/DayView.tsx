@@ -20,7 +20,7 @@ import { useSettingsStore } from "@/store/settings";
 import { useTaskStore } from "@/store/task";
 
 import { CalendarEvent, ExtendedEventProps } from "@/types/calendar";
-import { Task } from "@/types/task";
+import { Task, TaskStatus } from "@/types/task";
 
 import { CalendarEventContent } from "./CalendarEventContent";
 import { EventModal } from "./EventModal";
@@ -107,10 +107,18 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
 
   // Initial data load
   useEffect(() => {
-    Promise.all([
-      useCalendarStore.getState().loadFromDatabase(),
-      useTaskStore.getState().fetchTasks(),
-    ]);
+    // Only load data if the store is empty - the parent component may have
+    // already loaded data from the server
+    const state = useCalendarStore.getState();
+    const taskState = useTaskStore.getState();
+
+    if (state.events.length === 0 || state.feeds.length === 0) {
+      state.loadFromDatabase();
+    }
+
+    if (taskState.tasks.length === 0) {
+      taskState.fetchTasks();
+    }
   }, []);
 
   // Update items when loading state changes, feeds change, or tasks change
@@ -230,6 +238,25 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
     }
   };
 
+  const handleQuickViewStatusChange = async (
+    taskId: string,
+    status: TaskStatus
+  ) => {
+    if (!quickViewItem) return;
+
+    await updateTask(taskId, { status });
+
+    // Update the quick view item to reflect the new status
+    if (isTask) {
+      const updatedTask = useTaskStore
+        .getState()
+        .tasks.find((t) => t.id === taskId);
+      if (updatedTask) {
+        setQuickViewItem(updatedTask);
+      }
+    }
+  };
+
   const renderEventContent = useCallback(
     (arg: EventContentArg) => <CalendarEventContent eventInfo={arg} />,
     []
@@ -322,6 +349,7 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
           item={quickViewItem}
           onEdit={handleQuickViewEdit}
           onDelete={handleQuickViewDelete}
+          onStatusChange={handleQuickViewStatusChange}
           position={quickViewPosition}
           isTask={isTask}
         />

@@ -521,8 +521,6 @@ const formatContextualDate = (date: Date) => {
   }
   if (isOverdue) {
     text = `Overdue: ${text}`;
-  } else if (isFuture) {
-    text = `Upcoming: ${text}`;
   }
   return { text, isOverdue, isFuture };
 };

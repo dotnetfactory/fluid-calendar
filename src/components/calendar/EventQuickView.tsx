@@ -1,5 +1,5 @@
 import * as Popover from "@radix-ui/react-popover";
-import { HiPencil, HiTrash } from "react-icons/hi";
+import { HiCheck, HiPencil, HiTrash } from "react-icons/hi";
 import {
   IoCalendarOutline,
   IoFlagOutline,
@@ -37,6 +37,7 @@ interface EventQuickViewProps {
   onDelete: () => void;
   position: { x: number; y: number };
   isTask: boolean;
+  onStatusChange?: (taskId: string, status: TaskStatus) => void;
 }
 
 //TODO: move to utils
@@ -55,6 +56,7 @@ export function EventQuickView({
   onDelete,
   position,
   isTask,
+  onStatusChange,
 }: EventQuickViewProps) {
   const getStatusColor = (status: string | undefined) => {
     switch (status?.toUpperCase()) {
@@ -123,6 +125,31 @@ export function EventQuickView({
                 )}
               </h3>
               <div className="flex items-center gap-1">
+                {isTask && taskItem && onStatusChange && (
+                  <button
+                    onClick={() =>
+                      onStatusChange(
+                        taskItem.id,
+                        taskItem.status === TaskStatus.COMPLETED
+                          ? TaskStatus.TODO
+                          : TaskStatus.COMPLETED
+                      )
+                    }
+                    className={cn(
+                      "rounded-md p-1.5",
+                      taskItem.status === TaskStatus.COMPLETED
+                        ? "bg-green-500/20 text-green-700 hover:bg-green-500/30 dark:text-green-400"
+                        : "text-muted-foreground hover:bg-muted hover:text-green-600"
+                    )}
+                    title={
+                      taskItem.status === TaskStatus.COMPLETED
+                        ? "Mark as todo"
+                        : "Mark as completed"
+                    }
+                  >
+                    <HiCheck className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   onClick={onEdit}
                   className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"

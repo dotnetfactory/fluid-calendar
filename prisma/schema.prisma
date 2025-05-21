@@ -67,6 +67,7 @@ model User {
   emailVerified        DateTime?
   image                String?
   role                 String                @default("user") // Possible values: "user", "admin"
+  subscription         Subscription?
   accounts             Account[]
   sessions             Session[]
   calendars            CalendarFeed[]
@@ -604,4 +605,32 @@ model PasswordReset {
 
   @@index([token])
   @@index([userId])
+}
+
+enum SubscriptionPlan {
+  FREE
+  LIFETIME
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAYMENT_PENDING
+  PAYMENT_FAILED
+}
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  userId                String             @unique
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                  SubscriptionPlan   @default(FREE)
+  status                SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId      String?            @unique
+  stripePaymentIntentId String?            @unique // For one-time payments like lifetime access
+  amount                Int? // Amount paid in cents
+  discountApplied       Boolean            @default(false)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([stripeCustomerId])
+  @@index([stripePaymentIntentId])
 }

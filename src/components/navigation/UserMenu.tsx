@@ -19,10 +19,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function UserMenu() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  console.log("status-------", status);
 
-  if (!session) {
+  // Show a loading state or nothing while session is loading
+  if (status === "loading") {
+    return null; // Return nothing during loading to prevent flash of sign-in button
+  }
+
+  // Check both session status and session data to handle all authentication scenarios
+  if (status !== "authenticated" || !session) {
     return (
       <Link href="/auth/signin">
         <Button variant="outline" size="sm">
