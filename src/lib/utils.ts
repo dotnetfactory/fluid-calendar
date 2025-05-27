@@ -45,3 +45,13 @@ export function formatShortcut(shortcut?: string): string {
   // For letter-based shortcuts, just return the shortcut as is
   return shortcut;
 }
+
+/**
+ * Get the base URL for API calls
+ * @returns The base URL string
+ */
+export function getBaseUrl(): string {
+  if (typeof window !== "undefined") return "";
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return `http://localhost:${process.env.PORT ?? 3000}`;
+}

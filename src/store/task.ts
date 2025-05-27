@@ -170,8 +170,11 @@ export const useTaskStore = create<TaskState>()(
         }));
       },
 
-      // Tag actions
+      // Tag actions (deprecated - use tRPC directly)
       fetchTags: async () => {
+        console.warn(
+          "fetchTags is deprecated. Use tRPC trpc.tags.getAll.useQuery() instead."
+        );
         set({ loading: true, error: null });
         try {
           const response = await fetch("/api/tags");
@@ -186,6 +189,9 @@ export const useTaskStore = create<TaskState>()(
       },
 
       createTag: async (tag: NewTag) => {
+        console.warn(
+          "createTag is deprecated. Use tRPC trpc.tags.create.useMutation() instead."
+        );
         set({ loading: true, error: null });
         try {
           const response = await fetch("/api/tags", {
@@ -206,6 +212,9 @@ export const useTaskStore = create<TaskState>()(
       },
 
       updateTag: async (id: string, updates: Partial<NewTag>) => {
+        console.warn(
+          "updateTag is deprecated. Use tRPC trpc.tags.update.useMutation() instead."
+        );
         set({ loading: true, error: null });
         try {
           const response = await fetch(`/api/tags/${id}`, {
@@ -228,6 +237,9 @@ export const useTaskStore = create<TaskState>()(
       },
 
       deleteTag: async (id: string) => {
+        console.warn(
+          "deleteTag is deprecated. Use tRPC trpc.tags.delete.useMutation() instead."
+        );
         set({ loading: true, error: null });
         try {
           const response = await fetch(`/api/tags/${id}`, {
