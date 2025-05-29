@@ -230,6 +230,21 @@ export function isFutureDate(date: Date | string | number | null): boolean {
   return targetDate >= tomorrow;
 }
 
+/**
+ * Converts a UTC date to a zoned time in the user's timezone
+ * This is particularly useful for email templates and API responses
+ * @param date The date to convert
+ * @param timezone The user's timezone
+ * @returns The date converted to the user's timezone
+ */
+export function convertToUserTimezone(date: Date, timezone: string): Date {
+  // First ensure we're working with a proper Date object
+  const dateObj = date instanceof Date ? date : new Date(date);
+
+  // Convert to the user's timezone
+  return toZonedTime(dateObj, timezone || "UTC");
+}
+
 // Re-export date-fns functions
 export {
   addMinutes,
