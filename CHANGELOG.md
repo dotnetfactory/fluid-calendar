@@ -52,6 +52,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Modified client components to hydrate with server-fetched data
   - Reduced client-side data loading operations and API calls
   - Eliminated loading delay for initial calendar view rendering
+- Updated application logo to use SVG format instead of PNG for better quality
+  - Replaced inline SVG calendar icons with the logo.svg file
+  - Updated favicon configuration to use the SVG logo
+  - Added SVG icon support in metadata
+  - Made logo background transparent for better display on different colored backgrounds
+  - Optimized logo viewBox for better visibility at small sizes in browser tabs
+  - Added explicit size hints in metadata for better browser rendering
+  - Added logo to main navigation bar with app name for better branding
 
 ### Changed
 

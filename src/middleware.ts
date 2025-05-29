@@ -20,6 +20,24 @@ const publicRoutes = [
 // Routes that only admins can access
 const adminRoutes = ["/admin", "/logs", "/settings/system"];
 
+// Static file extensions that should bypass authentication
+const staticFileExtensions = [
+  ".svg",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".ico",
+  ".webp",
+  ".avif",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".eot",
+  ".otf",
+  ".webmanifest",
+];
+
 /**
  * Get the homepage setting directly from the API
  * This ensures we always have the most up-to-date setting
@@ -57,6 +75,14 @@ async function getHomepageSetting(request: NextRequest): Promise<boolean> {
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Allow static files to bypass authentication
+  const hasStaticExtension = staticFileExtensions.some((ext) =>
+    pathname.toLowerCase().endsWith(ext)
+  );
+  if (hasStaticExtension) {
+    return NextResponse.next();
+  }
 
   // Redirect /login to /auth/signin to prevent redirect loops
   if (pathname === "/login") {

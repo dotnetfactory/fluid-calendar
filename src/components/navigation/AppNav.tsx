@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-import { BsCalendar, BsListTask } from "react-icons/bs";
+import { BsListTask, BsCalendar } from "react-icons/bs";
 import { HiOutlineLightBulb, HiOutlineSearch } from "react-icons/hi";
 import { RiKeyboardLine } from "react-icons/ri";
 
@@ -49,6 +50,21 @@ export function AppNav({ className }: AppNavProps) {
       <div className="h-full px-4">
         <div className="flex h-full items-center justify-between">
           <div className="flex items-center gap-8">
+            <Link
+              href="/calendar"
+              className={cn(
+                "flex items-center mr-8",
+                pathname === "/calendar" ? "text-primary" : "text-foreground hover:text-primary"
+              )}
+            >
+              <Image
+                src="/logo.svg"
+                alt="Calendar Logo"
+                width={28}
+                height={28}
+                className="mr-2"
+              />
+            </Link>
             {links.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href;

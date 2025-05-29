@@ -4,6 +4,7 @@ import React from "react";
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -48,21 +49,14 @@ export default function OpenSourceHomePage() {
       <main className="flex flex-grow flex-col items-center justify-center px-4 py-12">
         {/* Logo */}
         <div className="mb-8">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#2563eb"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <Image
+            src="/logo.svg"
+            alt="FluidCalendar Logo"
+            width={64}
+            height={64}
             className="h-16 w-16"
-          >
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
+            priority
+          />
         </div>
 
         {/* Title and Description */}
@@ -226,21 +220,13 @@ export default function OpenSourceHomePage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center justify-between md:flex-row">
             <div className="mb-4 flex items-center space-x-2 md:mb-0">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-6 w-6 text-blue-600"
-              >
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
+              <Image
+                src="/logo.svg"
+                alt="FluidCalendar Logo"
+                width={24}
+                height={24}
+                className="text-blue-600"
+              />
               <span className="text-xl font-bold">FluidCalendar</span>
             </div>
             <div className="text-sm text-gray-500">

@@ -62,9 +62,9 @@ export function MultiMonthView({
   const calendarRef = useRef<FullCalendar>(null);
   const tasks = useTaskStore((state) => state.tasks);
   const [quickViewItem, setQuickViewItem] = useState<CalendarEvent | Task>();
-  const [quickViewPosition, setQuickViewPosition] = useState({ x: 0, y: 0 });
   const [isTask, setIsTask] = useState(false);
   const eventModalStore = useEventModalStore();
+  const [clickedElement, setClickedElement] = useState<HTMLElement | null>(null);
 
   // Update events when the calendar view changes
   const handleDatesSet = useCallback(
@@ -148,12 +148,8 @@ export function MultiMonthView({
     const itemId = info.event.id;
     const isTask = item.isTask;
 
-    // Calculate position for the quick view
-    const rect = info.el.getBoundingClientRect();
-    setQuickViewPosition({
-      x: rect.left,
-      y: rect.bottom + 8,
-    });
+    // Store the clicked element for positioning
+    setClickedElement(info.el);
 
     if (isTask) {
       const task = useTaskStore.getState().tasks.find((t) => t.id === itemId);
@@ -199,6 +195,7 @@ export function MultiMonthView({
 
   const handleQuickViewClose = () => {
     setQuickViewItem(undefined);
+    setClickedElement(null);
   };
 
   const handleQuickViewEdit = () => {
@@ -315,7 +312,7 @@ export function MultiMonthView({
           onEdit={handleQuickViewEdit}
           onDelete={handleQuickViewDelete}
           onStatusChange={handleQuickViewStatusChange}
-          position={quickViewPosition}
+          referenceElement={clickedElement}
           isTask={isTask}
         />
       )}
