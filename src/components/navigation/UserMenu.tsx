@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 
 import { LogOut, Settings } from "lucide-react";
@@ -18,10 +16,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { useLogout } from "@/lib/auth/store-management";
+
 export function UserMenu() {
   const { data: session, status } = useSession();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  console.log("status-------", status);
+  const { logoutWithCleanup, isLoggingOut } = useLogout();
 
   // Show a loading state or nothing while session is loading
   if (status === "loading") {
@@ -38,11 +37,6 @@ export function UserMenu() {
       </Link>
     );
   }
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    await signOut({ callbackUrl: "/auth/signin" });
-  };
 
   // Get user initials for avatar fallback
   const getInitials = () => {
@@ -89,7 +83,7 @@ export function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="cursor-pointer"
-          onClick={handleLogout}
+          onClick={() => logoutWithCleanup()}
           disabled={isLoggingOut}
         >
           <LogOut className="mr-2 h-4 w-4" />

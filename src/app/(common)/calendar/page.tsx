@@ -23,7 +23,6 @@ export default async function HomePage() {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-
   const userId = token?.sub;
 
   let feeds: CalendarFeed[] = [];

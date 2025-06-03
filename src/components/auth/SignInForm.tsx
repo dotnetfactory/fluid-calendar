@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { isPublicSignupEnabledClient } from "@/lib/auth/client-public-signup";
+import { initializeStores } from "@/lib/auth/store-management";
 import { logger } from "@/lib/logger";
 
 const LOG_SOURCE = "SignInForm";
@@ -69,6 +70,9 @@ export function SignInForm() {
         });
       } else {
         toast.success("Signed in successfully");
+
+        // Initialize all stores with the user's data
+        await initializeStores();
 
         // The token is set in the background, so we'll redirect after a minimal delay
         // to ensure the token is available for the next request
