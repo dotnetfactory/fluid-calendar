@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { Task } from "@prisma/client";
 import { RRule } from "rrule";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Temporarily disabled for debug logging purposes
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
@@ -110,6 +112,29 @@ export async function PUT(
       task.recurrenceRule
     ) {
       try {
+        logger.info(
+          "Starting recurring task completion process",
+          {
+            taskId: task.id,
+            title: task.title,
+            userId,
+            source: task.source || "internal",
+            externalTaskId: task.externalTaskId || "none",
+            isRecurring: task.isRecurring,
+            recurrenceRule: task.recurrenceRule,
+            projectId: task.projectId,
+            callerInfo: request.headers.get("user-agent") || "unknown",
+            requestSource: request.headers.get("x-request-source") || "unknown",
+            requestID: Math.random().toString(36).substring(2, 15),
+            processingStage: "START_RECURRING_COMPLETION",
+            stackTrace: new Error().stack
+              ?.split("\n")
+              .slice(0, 5)
+              .join("\n") as any,
+          },
+          LOG_SOURCE
+        );
+
         // Normalize the recurrence rule to ensure compatibility with RRule
         const standardRecurrenceRule = normalizeRecurrenceRule(
           task.recurrenceRule
@@ -151,50 +176,264 @@ export async function PUT(
               "Calculated new start date for recurring task",
               {
                 taskId: task.id,
+                title: task.title,
                 originalStartDate: task.startDate?.toISOString(),
                 originalDueDate: task.dueDate?.toISOString(),
                 deltaInDays: startToDueDelta,
                 newDueDate: nextOccurrence.toISOString(),
                 newStartDate: nextStartDate.toISOString(),
+                processingStage: "CALCULATED_NEW_DATES",
               },
               LOG_SOURCE
             );
           }
 
-          // Create a completed instance as a separate task
-          await prisma.task.create({
-            data: {
+          // Find existing completed tasks with this title in general to see what's in the DB
+          const allSimilarTasks = await prisma.task.findMany({
+            where: {
+              title: task.title,
+              userId,
+              projectId: task.projectId,
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 10, // Limit to 10 most recent
+          });
+
+          logger.info(
+            "Current similar tasks in database",
+            {
+              taskId: task.id,
+              title: task.title,
+              similarTasksCount: allSimilarTasks.length,
+              taskSample: allSimilarTasks.map((t) => ({
+                id: t.id,
+                status: t.status,
+                dueDate: t.dueDate?.toISOString(),
+                isRecurring: t.isRecurring,
+                recurrenceRule: t.recurrenceRule,
+                source: t.source,
+                externalTaskId: t.externalTaskId,
+                createdAt: t.createdAt.toISOString(),
+              })) as any,
+              processingStage: "SIMILAR_TASKS_CHECK",
+            },
+            LOG_SOURCE
+          );
+
+          // FIX: Check if a completed instance with this exact date already exists
+          const existingCompletedTask = await prisma.task.findFirst({
+            where: {
+              title: task.title,
+              status: TaskStatus.COMPLETED,
+              dueDate: baseDate,
+              userId,
+              projectId: task.projectId,
+            },
+          });
+
+          logger.info(
+            "Checking for existing completed instance",
+            {
+              taskId: task.id,
+              title: task.title,
+              dueDate: baseDate.toISOString(),
+              existingTaskFound: !!existingCompletedTask,
+              existingTaskId: existingCompletedTask?.id || "none",
+              checkParams: JSON.stringify({
+                title: task.title,
+                status: TaskStatus.COMPLETED,
+                dueDate: baseDate.toISOString(),
+                userId,
+                projectId: task.projectId,
+              }),
+              processingStage: "COMPLETED_INSTANCE_CHECK",
+            },
+            LOG_SOURCE
+          );
+
+          // Additional check: find all tasks with this title and due date
+          const allTasksWithSameTitleAndDate = await prisma.task.findMany({
+            where: {
+              title: task.title,
+              dueDate: baseDate,
+              userId,
+              projectId: task.projectId,
+            },
+          });
+
+          logger.info(
+            "All tasks with same title and due date",
+            {
+              taskId: task.id,
+              title: task.title,
+              dueDate: baseDate.toISOString(),
+              matchCount: allTasksWithSameTitleAndDate.length,
+              matches: allTasksWithSameTitleAndDate.map((t) => ({
+                id: t.id,
+                status: t.status,
+                externalTaskId: t.externalTaskId,
+                source: t.source,
+                isRecurring: t.isRecurring,
+              })),
+              processingStage: "SAME_TITLE_DATE_CHECK",
+            },
+            LOG_SOURCE
+          );
+
+          // Only create a new completed instance if one doesn't already exist
+          if (!existingCompletedTask) {
+            // Create task data with all fields for logging
+            const completedTaskData = {
               title: task.title,
               description: task.description,
               status: TaskStatus.COMPLETED,
-              dueDate: baseDate, // Use the original due date for the completed instance
-              startDate: task.startDate, // Use the original start date for the completed instance
+              dueDate: baseDate,
+              startDate: task.startDate,
               duration: task.duration,
               priority: task.priority,
               energyLevel: task.energyLevel,
               preferredTime: task.preferredTime,
               projectId: task.projectId,
               isRecurring: false,
-              completedAt: newDate(), // Set completedAt for the completed instance
-              // Associate the task with the current user
+              completedAt: newDate(),
               userId,
-              tags: {
-                connect: task.tags.map((tag) => ({ id: tag.id })),
+              externalTaskId: task.externalTaskId,
+              source: task.source,
+            };
+
+            logger.info(
+              "Creating completed instance for recurring task",
+              {
+                taskId: task.id,
+                title: task.title,
+                completedTaskData: JSON.stringify(completedTaskData),
+                stackTrace: new Error().stack || "No stack trace",
+                processingStage: "CREATING_COMPLETED_INSTANCE",
               },
+              LOG_SOURCE
+            );
+
+            // Double-check again right before creating to avoid race conditions
+            const doubleCheckTask = await prisma.task.findFirst({
+              where: {
+                title: task.title,
+                status: TaskStatus.COMPLETED,
+                dueDate: baseDate,
+                userId,
+                projectId: task.projectId,
+              },
+            });
+
+            if (doubleCheckTask) {
+              logger.warn(
+                "Race condition detected! Task already created between checks",
+                {
+                  taskId: task.id,
+                  existingTaskId: doubleCheckTask.id,
+                  title: task.title,
+                  dueDate: baseDate.toISOString(),
+                  processingStage: "RACE_CONDITION_DETECTED",
+                },
+                LOG_SOURCE
+              );
+            } else {
+              // Create a completed instance as a separate task
+              const completedTask = await prisma.task.create({
+                data: {
+                  ...completedTaskData,
+                  tags: {
+                    connect: task.tags.map((tag) => ({ id: tag.id })),
+                  },
+                },
+              });
+
+              logger.info(
+                "Created completed instance for recurring task",
+                {
+                  taskId: task.id,
+                  title: task.title,
+                  dueDate: baseDate?.toISOString(),
+                  newTaskId: completedTask.id,
+                  completedTask: {
+                    id: completedTask.id,
+                    status: completedTask.status,
+                    externalTaskId: completedTask.externalTaskId,
+                    source: completedTask.source,
+                  } as any,
+                  processingStage: "COMPLETED_INSTANCE_CREATED",
+                },
+                LOG_SOURCE
+              );
+            }
+          } else {
+            logger.info(
+              "Skipped creating duplicate completed instance for recurring task",
+              {
+                taskId: task.id,
+                existingTaskId: existingCompletedTask.id,
+                dueDate: baseDate?.toISOString(),
+                completed:
+                  existingCompletedTask.completedAt?.toISOString() || "unknown",
+                existingTask: {
+                  externalTaskId: existingCompletedTask.externalTaskId,
+                  source: existingCompletedTask.source,
+                  createdAt: existingCompletedTask.createdAt.toISOString(),
+                } as any,
+                processingStage: "SKIPPED_DUPLICATE_CREATION",
+              },
+              LOG_SOURCE
+            );
+          }
+
+          // Log original and new task values for tracking
+          logger.info(
+            "Updating recurring task with new dates",
+            {
+              taskId: task.id,
+              title: task.title,
+              currentStatus: task.status,
+              newStatus: TaskStatus.TODO,
+              currentDueDate: task.dueDate?.toISOString() || "none",
+              newDueDate: nextOccurrence.toISOString(),
+              currentStartDate: task.startDate?.toISOString() || "none",
+              newStartDate: nextStartDate?.toISOString() || "none",
+              processingStage: "UPDATING_RECURRING_TASK",
             },
-          });
+            LOG_SOURCE
+          );
 
           // Update the recurring task with new due date and reset status
           updates.dueDate = nextOccurrence;
           updates.startDate = nextStartDate; // Update the start date if calculated
           updates.status = TaskStatus.TODO;
           updates.lastCompletedDate = newDate();
+        } else {
+          logger.warn(
+            "No next occurrence found for recurring task",
+            {
+              taskId: task.id,
+              title: task.title,
+              recurrenceRule: task.recurrenceRule,
+              baseDate: baseDate.toISOString(),
+              searchDate: searchDate.toISOString(),
+            },
+            LOG_SOURCE
+          );
         }
       } catch (error) {
         logger.error(
           "Error handling task completion:",
           {
             error: error instanceof Error ? error.message : String(error),
+            stackTrace:
+              error instanceof Error
+                ? error.stack || "No stack trace"
+                : "No stack trace",
+            taskId: task.id,
+            title: task.title,
+            recurrenceRule: task.recurrenceRule,
           },
           LOG_SOURCE
         );

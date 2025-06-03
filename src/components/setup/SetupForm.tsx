@@ -26,7 +26,7 @@ export function SetupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const { setSetupStatus } = useSetupStore();
+  const { setSetupStatus, resetSetupStatus } = useSetupStore();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -78,13 +78,14 @@ export function SetupForm() {
 
       setSuccess(true);
 
-      // Update the setup store to indicate setup is complete
+      // First reset the setup store to clear any stale state
+      resetSetupStatus();
+      // Then update the setup store to indicate setup is complete
       setSetupStatus(false);
 
-      // Redirect to home page after a short delay
+      // Redirect to home page after a short delay with cache busting
       setTimeout(() => {
         router.push("/calendar");
-        router.refresh();
       }, 2000);
     } catch (err) {
       setError(

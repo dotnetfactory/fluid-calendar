@@ -24,7 +24,6 @@ export async function GET(request: NextRequest) {
         return tx.systemSettings.create({
           data: {
             id: "default",
-            logLevel: "none",
             disableHomepage: false,
           },
         });

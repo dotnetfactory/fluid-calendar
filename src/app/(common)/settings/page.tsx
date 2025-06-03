@@ -9,7 +9,6 @@ import { AccountManager } from "@/components/settings/AccountManager";
 import { AutoScheduleSettings } from "@/components/settings/AutoScheduleSettings";
 import { CalendarSettings } from "@/components/settings/CalendarSettings";
 import { ImportExportSettings } from "@/components/settings/ImportExportSettings";
-import { LogViewer } from "@/components/settings/LogViewer";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { SystemSettings } from "@/components/settings/SystemSettings";
 import { TaskSyncSettings } from "@/components/settings/TaskSyncSettings";
@@ -47,7 +46,6 @@ type SettingsTab =
   | "auto-schedule"
   | "system"
   | "task-sync"
-  | "logs"
   | "user-management"
   | "waitlist"
   | "import-export"
@@ -79,7 +77,6 @@ export default function SettingsPage() {
     if (isAdmin) {
       const adminTabs = [
         { id: "system", label: "System" },
-        { id: "logs", label: "Logs" },
         { id: "user-management", label: "Users" },
       ] as const;
 
@@ -114,7 +111,6 @@ export default function SettingsPage() {
         "auto-schedule",
         "task-sync",
         "system",
-        "logs",
         "user-management",
         "waitlist",
         "import-export",
@@ -151,7 +147,6 @@ export default function SettingsPage() {
     // Admin-only tabs
     const adminOnlyTabs = [
       "system",
-      "logs",
       "user-management",
       "waitlist",
       "admin-dashboard",
@@ -193,8 +188,6 @@ export default function SettingsPage() {
         return <NotificationSettings />;
       case "system":
         return <SystemSettings />;
-      case "logs":
-        return <LogViewer />;
       case "user-management":
         return <UserManagement />;
       case "import-export":

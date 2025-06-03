@@ -40,7 +40,6 @@ export function SystemSettings() {
           outlookClientId: data.outlookClientId,
           outlookClientSecret: data.outlookClientSecret,
           outlookTenantId: data.outlookTenantId,
-          logLevel: data.logLevel,
           disableHomepage: data.disableHomepage,
           resendApiKey: data.resendApiKey,
         });

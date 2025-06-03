@@ -101,9 +101,27 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = auth.userId;
+    const userAgent = request.headers.get("user-agent") || "unknown";
 
     const json = await request.json();
     const { tagIds, recurrenceRule, ...taskData } = json;
+
+    logger.info(
+      "Task creation request received",
+      {
+        userId,
+        title: taskData.title,
+        isRecurring: !!recurrenceRule,
+        recurrenceRule: recurrenceRule || "none",
+        projectId: taskData.projectId || "none",
+        sourceIP: request.headers.get("x-forwarded-for") || "unknown",
+        userAgent,
+        status: taskData.status || "todo",
+        requestInitiator: request.headers.get("referer") || "unknown",
+        requestBody: JSON.stringify(json),
+      },
+      LOG_SOURCE
+    );
 
     // Normalize and validate recurrence rule if provided
     const standardizedRecurrenceRule = recurrenceRule
@@ -123,6 +141,33 @@ export async function POST(request: NextRequest) {
           LOG_SOURCE
         );
         return new NextResponse("Invalid recurrence rule", { status: 400 });
+      }
+    }
+
+    // Check for duplicate recurring task to prevent duplicate creations
+    if (recurrenceRule && taskData.title) {
+      const existingTask = await prisma.task.findFirst({
+        where: {
+          title: taskData.title,
+          isRecurring: true,
+          userId,
+          projectId: taskData.projectId || undefined,
+        },
+      });
+
+      if (existingTask) {
+        logger.warn(
+          "Possible duplicate recurring task creation attempt",
+          {
+            existingTaskId: existingTask.id,
+            title: taskData.title,
+            projectId: taskData.projectId || "none",
+            userId,
+            userAgent,
+            recurrenceRule: recurrenceRule,
+          },
+          LOG_SOURCE
+        );
       }
     }
 
@@ -157,6 +202,20 @@ export async function POST(request: NextRequest) {
         project: true,
       },
     });
+
+    logger.info(
+      "Task created successfully",
+      {
+        taskId: task.id,
+        title: task.title,
+        isRecurring: task.isRecurring,
+        status: task.status,
+        projectId: task.projectId || "none",
+        userId,
+        createdFrom: userAgent,
+      },
+      LOG_SOURCE
+    );
 
     // Track the creation for sync purposes if the task is in a mapped project
     if (mappingId) {

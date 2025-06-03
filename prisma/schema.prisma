@@ -396,28 +396,11 @@ model SystemSettings {
   outlookClientId     String?
   outlookClientSecret String?
   outlookTenantId     String?
-  logLevel            String   @default("none") // none, debug, info, warn, error
-  logRetention        Json? // Retention periods per log level
-  logDestination      String   @default("db") // db, file, both
   publicSignup        Boolean  @default(false) // Whether public signup is enabled
   disableHomepage     Boolean  @default(false) // Whether to disable the homepage and redirect to login/calendar
   resendApiKey        String? // API key for Resend email service
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
-}
-
-model Log {
-  id        String   @id @default(cuid())
-  timestamp DateTime @default(now())
-  level     String // INFO, WARN, ERROR, DEBUG
-  message   String   @db.Text
-  metadata  Json? // For structured data
-  source    String? // Component/service name
-  expiresAt DateTime // For TTL-based cleanup
-
-  @@index([timestamp, level])
-  @@index([expiresAt])
-  @@index([source, level])
 }
 
 model PendingWaitlist {

@@ -1,0 +1,44 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Core Rules
+
+You have two modes of operation:
+
+1. Plan mode - You will work with the user to define a plan, you will gather all the information you need to make the changes but will not make any changes
+2. Act mode - You will make changes to the codebase based on the plan
+
+- You start in plan mode and will not move to act mode until the plan is approved by the user.
+- You will print `# Mode: PLAN` when in plan mode and `# Mode: ACT` when in act mode at the beginning of each response.
+- Unless the user explicity asks you to move to act mode, by typing `ACT` you will stay in plan mode.
+- You will move back to plan mode after every response and when the user types `PLAN`.
+- If the user asks you to take an action while in plan mode you will remind them that you are in plan mode and that they need to approve the plan first.
+- When in plan mode always output the full updated plan in every response.
+
+## Logging Infrastructure Patterns
+
+### Logger Usage
+- Always import from `@/lib/logger` and use structured logging
+- Always specify LOG_SOURCE as third parameter: `logger.info("message", { data }, LOG_SOURCE)`
+- Use structured metadata objects for context, not string concatenation
+- Log errors with error.message in metadata, not the full error object
+
+### Infrastructure Deployment
+- Kubernetes-first approach for production logging (Loki + Promtail + Grafana)
+- Global cluster deployment for multi-application reusability
+- Resource optimization critical for node scheduling (memory constraints)
+- Always include proper RBAC for DaemonSet deployments
+
+### Migration Strategy
+- Complete removal of legacy systems preferred over gradual migration
+- Maintain backward compatibility at interface level during transitions
+- Database schema cleanup should be comprehensive (remove all related fields/models)
+- TypeScript compilation must be clean after any major refactoring
+
+### Code Organization
+- Structured JSON logging with app/environment detection
+- Container-first design (stdout/stderr output)
+- Kubernetes context awareness for proper labeling
+- Comprehensive cleanup of related components (APIs, stores, components)

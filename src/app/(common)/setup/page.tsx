@@ -4,7 +4,10 @@ import { SetupForm } from "@/components/setup/SetupForm";
 
 import { checkSetupStatus } from "@/lib/setup-actions";
 
+// Force dynamic rendering to prevent caching issues
 export const dynamic = "force-dynamic";
+// Disable all caching for this page
+export const revalidate = 0;
 
 export const metadata = {
   title: "Setup FluidCalendar",
@@ -12,12 +15,12 @@ export const metadata = {
 };
 
 export default async function SetupPage() {
-  // Check if any users already exist
+  // First, check if setup is already completed in SystemSettings
   const { needsSetup } = await checkSetupStatus();
 
-  // If users already exist, redirect to home page
   if (!needsSetup) {
-    redirect("/calendar");
+    // Setup is complete in SystemSettings, redirect to calendar
+    redirect("/calendar?refresh=" + Date.now());
   }
 
   return (

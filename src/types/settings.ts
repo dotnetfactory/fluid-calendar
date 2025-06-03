@@ -73,23 +73,12 @@ export interface AutoScheduleSettings {
   groupByProject: boolean;
 }
 
-// Define a type for log retention periods
-export interface LogRetention {
-  debug?: number; // days
-  info?: number; // days
-  warn?: number; // days
-  error?: number; // days
-}
-
 export interface SystemSettings {
   googleClientId?: string;
   googleClientSecret?: string;
   outlookClientId?: string;
   outlookClientSecret?: string;
   outlookTenantId?: string;
-  logLevel: "none" | "debug";
-  logRetention?: LogRetention; // Retention periods per log level
-  logDestination?: string; // "db", "file", or "both"
   disableHomepage?: boolean; // Whether to disable the homepage and redirect to login/calendar
   publicSignup?: boolean; // Whether public signup is enabled
   resendApiKey?: string; // API key for Resend email service
