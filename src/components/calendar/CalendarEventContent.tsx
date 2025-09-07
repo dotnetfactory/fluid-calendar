@@ -5,8 +5,11 @@ import { IoCheckmarkCircle, IoRepeat, IoTimeOutline } from "react-icons/io5";
 
 import { isTaskOverdue } from "@/lib/task-utils";
 import { cn } from "@/lib/utils";
+import { format } from "@/lib/date-utils";
 
 import { Priority, TaskStatus } from "@/types/task";
+
+import { useSettingsStore } from "@/store/settings";
 
 interface CalendarEventContentProps {
   eventInfo: EventContentArg;
@@ -22,6 +25,7 @@ const priorityColors = {
 export const CalendarEventContent = memo(function CalendarEventContent({
   eventInfo,
 }: CalendarEventContentProps) {
+  const { user: userSettings } = useSettingsStore();
   const isTask = eventInfo.event.extendedProps.isTask;
   const isRecurring = eventInfo.event.extendedProps.isRecurring;
   const status = eventInfo.event.extendedProps.status;
@@ -32,8 +36,14 @@ export const CalendarEventContent = memo(function CalendarEventContent({
   const endTime = eventInfo.event.end?.getTime() ?? 0;
   const startTime = eventInfo.event.start?.getTime() ?? 0;
   const duration = endTime - startTime;
+  const isAllDay = eventInfo.event.allDay;
 
   const isOverdue = isTask && isTaskOverdue({ dueDate, status });
+
+  // Format the start time for timed events
+  const formatEventTime = (date: Date) => {
+    return format(date, userSettings.timeFormat === "12h" ? "h:mm a" : "HH:mm");
+  };
 
   return (
     <div
@@ -62,6 +72,12 @@ export const CalendarEventContent = memo(function CalendarEventContent({
           <IoTimeOutline className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
         )}
         <div className="min-w-0 flex-1">
+          {/* Show time for timed events */}
+          {!isTask && !isAllDay && eventInfo.event.start && (
+            <div className="text-[10px] font-medium leading-none opacity-90 mb-0.5">
+              {formatEventTime(eventInfo.event.start)}
+            </div>
+          )}
           <div
             className={cn(
               "calendar-event-title font-medium leading-snug",
