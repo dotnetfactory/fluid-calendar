@@ -1,13 +1,16 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createStandardStore } from "../lib/store-factory";
 
-interface SetupStore {
+// Enhanced TypeScript interfaces for better type safety
+interface SetupState {
   // Whether setup has been checked at least once
   hasChecked: boolean;
   // Whether setup is needed (no users exist)
   needsSetup: boolean | null;
   // Last time the setup status was checked
   lastChecked: number | null;
+}
+
+interface SetupActions {
   // Set the setup status
   setSetupStatus: (needsSetup: boolean) => void;
   // Mark that setup has been checked
@@ -16,13 +19,18 @@ interface SetupStore {
   resetSetupStatus: () => void;
 }
 
-export const useSetupStore = create<SetupStore>()(
-  persist(
-    (set) => ({
-      hasChecked: false,
-      needsSetup: null,
-      lastChecked: null,
-      setSetupStatus: (needsSetup) =>
+// Using our enhanced store factory with persistence
+export const useSetupStore = createStandardStore({
+  name: "fluid-calendar-setup-storage",
+  initialState: {
+    hasChecked: false,
+    needsSetup: null,
+    lastChecked: null,
+  } as SetupState,
+
+  storeCreator: (set) =>
+    ({
+      setSetupStatus: (needsSetup: boolean) =>
         set({
           needsSetup,
           hasChecked: true,
@@ -39,9 +47,11 @@ export const useSetupStore = create<SetupStore>()(
           needsSetup: null,
           lastChecked: null,
         }),
-    }),
-    {
-      name: "fluid-calendar-setup-storage",
-    }
-  )
-);
+    }) satisfies SetupActions,
+
+  // Enable persistence with same configuration
+  persist: true,
+  persistOptions: {
+    name: "fluid-calendar-setup-storage",
+  },
+});

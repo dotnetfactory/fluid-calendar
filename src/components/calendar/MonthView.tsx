@@ -57,7 +57,7 @@ export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
     }>
   >([]);
   const calendarRef = useRef<FullCalendar>(null);
-  const tasks = useTaskStore((state) => state.tasks);
+  const tasks = useTaskStore.getState().tasks;
   const [quickViewItem, setQuickViewItem] = useState<CalendarEvent | Task>();
   const [isTask, setIsTask] = useState(false);
   const eventModalStore = useEventModalStore();
