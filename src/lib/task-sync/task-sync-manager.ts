@@ -24,6 +24,7 @@ import { TaskStatus } from "@/types/task";
 
 import { FieldMapper } from "./field-mapper";
 import { OutlookFieldMapper } from "./providers/outlook-field-mapper";
+import { GoogleFieldMapper } from "./providers/google-field-mapper";
 // Import provider implementations
 import { OutlookTaskProvider } from "./providers/outlook-provider";
 import {
@@ -54,6 +55,8 @@ export class TaskSyncManager {
     switch (providerType.toUpperCase()) {
       case "OUTLOOK":
         return new OutlookFieldMapper();
+      case "GOOGLE":
+        return new GoogleFieldMapper();
       // Add cases for other provider types
       default:
         return new FieldMapper();
@@ -92,6 +95,16 @@ export class TaskSyncManager {
         // Get Microsoft Graph client for the account
         const client = await getMsGraphClient(dbProvider.accountId);
         return new OutlookTaskProvider(client, dbProvider.accountId);
+      case "GOOGLE":
+        if (!dbProvider.accountId || !dbProvider.account?.userId) {
+          throw new Error(`Missing account information for Google provider ${providerId}`);
+        }
+        // Lazy import to avoid increasing startup cost
+        const { getGoogleTasksClient, GoogleTaskProvider } = await import(
+          "@/lib/task-sync/providers/google-provider"
+        );
+        const googleClient = await getGoogleTasksClient(dbProvider.accountId, dbProvider.account.userId);
+        return new GoogleTaskProvider(googleClient, dbProvider.accountId, dbProvider.account.userId);
       // case "CALDAV":
       //   return new CalDAVTaskProvider(dbProvider);
       default:
