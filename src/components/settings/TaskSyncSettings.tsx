@@ -47,7 +47,7 @@ const LOG_SOURCE = "TaskSyncSettings";
 // Types for providers and mappings
 interface TaskProvider {
   id: string;
-  type: "OUTLOOK" | "CALDAV";
+  type: "OUTLOOK" | "CALDAV" | "GOOGLE";
   name: string;
   accountId?: string;
   accountEmail?: string; // This will be populated from the account for UI display
@@ -60,7 +60,7 @@ interface TaskProvider {
   settings?: {
     [key: string]: string | number | boolean | undefined;
   };
-}
+} 
 
 interface TaskList {
   id: string;
@@ -241,6 +241,7 @@ export function TaskSyncSettings() {
       // Find account email for UI display
       const account = accounts.find((acc) => acc.id === selectedAccount);
       const accountEmail = account?.email || "Unknown Account";
+      const providerType = (account?.provider as "OUTLOOK" | "GOOGLE" | undefined) || "OUTLOOK";
 
       const response = await fetch("/api/task-sync/providers", {
         method: "POST",
@@ -249,7 +250,7 @@ export function TaskSyncSettings() {
         },
         body: JSON.stringify({
           name: newProviderName,
-          type: "OUTLOOK",
+          type: providerType,
           settings: {},
           accountId: selectedAccount,
         }),
@@ -262,7 +263,8 @@ export function TaskSyncSettings() {
       }
 
       // Get the new provider data from response
-      const newProvider = await response.json();
+      const responseData = await response.json();
+      const newProvider = responseData.provider ?? responseData;
 
       // Add the account email to the provider object for display
       const enrichedProvider = {
