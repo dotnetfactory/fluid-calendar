@@ -97,6 +97,7 @@ To enable Google Calendar integration:
      - `./auth/calendar`
      - `./auth/userinfo.email`
      - `openid`
+     - `/auth/tasks` _(Required if you plan to sync Google Tasks)_
    - Add test users if in testing mode
 
 4. Create OAuth 2.0 Credentials:

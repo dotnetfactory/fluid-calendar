@@ -41,7 +41,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         authorization: {
           params: {
             scope:
-              "openid email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
+              "openid email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks",
             prompt: "consent",
             access_type: "offline",
             response_type: "code",

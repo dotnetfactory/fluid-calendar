@@ -74,10 +74,10 @@ export function FeedManager() {
                   {feed.name}
                 </span>
                 {feed.type === "GOOGLE" && (
-                  <BsGoogle className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                  <BsGoogle className="h-4 w-4 flex-shrink-0 text-muted-foreground" title={feed.url} />
                 )}
                 {feed.type === "OUTLOOK" && (
-                  <BsMicrosoft className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                  <BsMicrosoft className="h-4 w-4 flex-shrink-0 text-muted-foreground" title={feed.url} />
                 )}
               </div>
               <div className="flex items-center gap-1">

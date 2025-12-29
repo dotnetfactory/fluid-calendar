@@ -75,6 +75,13 @@ export async function GET(
       // Get the MS Graph client for this account
       const graphClient = await getMsGraphClient(provider.account.id);
       providerImpl = new OutlookTaskProvider(graphClient, provider.account.id);
+    } else if (provider.type === "GOOGLE") {
+      // Get Google Tasks client for this account
+      const { getGoogleTasksClient, GoogleTaskProvider } = await import(
+        "@/lib/task-sync/providers/google-provider"
+      );
+      const tasksClient = await getGoogleTasksClient(provider.account.id, provider.userId);
+      providerImpl = new GoogleTaskProvider(tasksClient, provider.account.id, provider.userId);
     } else {
       return NextResponse.json(
         { error: `Provider type ${provider.type} not supported` },
