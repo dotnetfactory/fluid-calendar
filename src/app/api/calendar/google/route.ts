@@ -50,6 +50,20 @@ function processRecurrenceRule(
   return rrule;
 }
 
+async function fetchAllEvents(
+  calendarClient: calendar_v3.Calendar,
+  params: calendar_v3.Params$Resource$Events$List
+): Promise<calendar_v3.Schema$Event[]> {
+  const items: calendar_v3.Schema$Event[] = [];
+  let pageToken: string | undefined = undefined;
+  do {
+    const res = await calendarClient.events.list({ ...params, pageToken });
+    items.push(...(res.data.items || []));
+    pageToken = res.data.nextPageToken as string | undefined;
+  } while (pageToken);
+  return items;
+}
+
 // Handle Google OAuth callback and account connection
 export async function GET(request: NextRequest) {
   try {
@@ -230,8 +244,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Initial sync of calendar events
-    const eventsResponse = await calendar.events.list({
+    // Initial sync of calendar events (fetch all pages)
+    const events = await fetchAllEvents(calendar, {
       calendarId,
       timeMin: newDateFromYMD(newDate().getFullYear(), 0, 1).toISOString(),
       timeMax: newDateFromYMD(newDate().getFullYear() + 1, 0, 1).toISOString(),
@@ -239,28 +253,29 @@ export async function POST(request: NextRequest) {
       orderBy: "startTime",
     });
 
-    const events = eventsResponse.data.items || [];
-
     // Store events in database
     if (events.length > 0) {
-      await prisma.$transaction(async (tx) => {
-        // First, process master events
-        const masterEvents = new Map();
-        for (const event of events) {
-          if (event.recurringEventId) {
-            if (!masterEvents.has(event.recurringEventId)) {
-              try {
-                const masterEvent = await calendar.events.get({
-                  calendarId,
-                  eventId: event.recurringEventId,
-                });
-                masterEvents.set(event.recurringEventId, masterEvent.data);
-              } catch (error) {
-                console.error("Failed to fetch master event:", error);
-              }
-            }
+      // Prefetch master events (so we don't perform network calls inside DB transaction)
+      const masterEvents = new Map<string, calendar_v3.Schema$Event>();
+      for (const event of events) {
+        const recId = event.recurringEventId;
+        if (recId && typeof recId === "string" && !masterEvents.has(recId)) {
+          try {
+            const masterEvent = await calendar.events.get({
+              calendarId,
+              eventId: recId,
+            });
+            masterEvents.set(recId, masterEvent.data);
+          } catch (error) {
+            console.error("Failed to fetch master event:", error);
           }
         }
+      }
+
+      await prisma.$transaction(async (tx) => {
+        // Master events are prefetched before starting the transaction (to avoid network calls inside transaction)
+        // `masterEvents` is available from the outer scope
+
 
         // Create or update master events
         for (const [eventId, masterEventData] of masterEvents) {
@@ -417,7 +432,7 @@ export async function POST(request: NextRequest) {
             });
           }
         }
-      });
+      }, {timeout: 30000});
     }
 
     return NextResponse.json(feed);
@@ -469,17 +484,14 @@ export async function PUT(request: NextRequest) {
     );
     console.log("Fetching events from Google Calendar:", feed.url);
 
-    // Fetch events from Google Calendar
-    const eventsResponse = await googleCalendarClient.events.list({
+    // Fetch all events with pagination
+    const events = await fetchAllEvents(googleCalendarClient, {
       calendarId: feed.url,
       timeMin: newDateFromYMD(newDate().getFullYear(), 0, 1).toISOString(),
       timeMax: newDateFromYMD(newDate().getFullYear() + 1, 0, 1).toISOString(),
       singleEvents: true,
       orderBy: "startTime",
     });
-
-    //events sorted by master events first
-    const events = eventsResponse.data.items || [];
 
     console.log(`Found ${events.length} events in Google Calendar`);
 
@@ -503,7 +515,7 @@ export async function PUT(request: NextRequest) {
             calendarId: feed.url as string,
             eventId,
           });
-          console.log("Master event", masterEvent);
+          console.log("Master event", masterEvent.data.id);
 
           const recurrence = masterEvent.data?.recurrence;
           if (Array.isArray(recurrence)) {
@@ -521,9 +533,15 @@ export async function PUT(request: NextRequest) {
       await tx.calendarEvent.deleteMany({
         where: { feedId },
       });
+    });
 
-      // Create new events
+    // Create new events
+    await prisma.$transaction(async (tx) => {
+      console.log("Creating ${events.length} events");
       for (const event of events) {
+        console.log("Processing event:", event.id);
+        
+        // Skip events without start time
         if (!event.start?.dateTime && !event.start?.date) continue;
 
         // Get recurrence rule from pre-fetched master events
@@ -585,7 +603,7 @@ export async function PUT(request: NextRequest) {
           error: null,
         },
       });
-    });
+    }, {timeout: 30000});
 
     console.log("Successfully synced calendar:", feedId);
     return NextResponse.json({ success: true });
