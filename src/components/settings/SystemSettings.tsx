@@ -177,7 +177,7 @@ export function SystemSettings() {
                   <li>Add platform and configure OAuth settings</li>
                   <li>
                     Add redirect URI: {window.location.origin}
-                    /api/auth/callback/azure-ad
+                    /api/calendar/outlook
                   </li>
                   <li>
                     Copy the Application (client) ID and create a client secret
