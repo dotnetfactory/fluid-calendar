@@ -27,11 +27,14 @@ export interface ExternalTask {
   id: string;
   title: string;
   description?: string | null;
+  notes?: string | null;
   status?: string;
   priority?: string;
   dueDate?: Date | null;
+  due?: Date | null;
   startDate?: Date | null;
   completedDate?: Date | null;
+  completed?: Date | null;
   listId: string;
   isRecurring?: boolean;
   recurrenceRule?: string | null;
