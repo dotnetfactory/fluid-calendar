@@ -35,6 +35,22 @@ By becoming a sponsor, you:
 - Get early access to new features
 - Support open-source software development
 
+## Sponsored By                                                                                     
+                                                                                                  
+<a href="https://www.nitroclaw.com?ref=fluid-calendar">                                             
+
+   <img width="600" alt="NitroClaw - Your Own OpenClaw Assistant, Zero Server Hassle" src="https://github.com/user-attachments/assets/171f8b8b-9f2a-4716-ac27-929f160efa5b" />
+
+</a>
+
+**[NitroClaw](https://www.nitroclaw.com?ref=fluid-calendar)** - Your Own OpenClaw Assistant, Zero
+Server Hassle
+
+Deploy a dedicated OpenClaw AI assistant in under 2 minutes. Pick your LLM, connect Telegram, and
+start chatting - we handle all the infrastructure. $100/month with $50 in AI credits included.
+
+[Get Started](https://www.nitroclaw.com?ref=fluid-calendar)
+
 ## Try the SaaS Version
 
 Don't want to self-host? We're currently beta testing our hosted version at [FluidCalendar.com](https://fluidcalendar.com). Sign up for the waitlist to be among the first to experience the future of intelligent calendar management, with all the features of the open-source version plus:
