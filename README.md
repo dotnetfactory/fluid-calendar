@@ -39,7 +39,7 @@ By becoming a sponsor, you:
                                                                                                   
 <a href="https://www.nitroclaw.com?ref=fluid-calendar">                                             
 
-   <img width="600" alt="NitroClaw - Your Own OpenClaw Assistant, Zero Server Hassle" src="https://github.com/user-attachments/assets/171f8b8b-9f2a-4716-ac27-929f160efa5b" />
+   <img width="600" alt="NitroClaw - Your Own OpenClaw Assistant, Zero Server Hassle" src="https://github.com/user-attachments/assets/c258d98c-b06b-4580-82b0-e54281613e54" />
 
 </a>
 
