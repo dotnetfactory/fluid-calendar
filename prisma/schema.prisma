@@ -85,6 +85,7 @@ model User {
   taskProviders        TaskProvider[]
   TaskChange           TaskChange[]
   PasswordReset        PasswordReset[]
+  apiKeys              ApiKey[]
 }
 
 model VerificationToken {
@@ -592,6 +593,25 @@ model TaskChange {
   @@index([synced])
   @@index([timestamp])
   @@index([userId])
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String // User-provided label for the key
+  keyHash     String    @unique // SHA-256 hash of the API key
+  keyPrefix   String // First 8 chars of the key for identification (e.g. "fc_abc123")
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scopes      String    @default("[]") // JSON array of permitted scopes
+  expiresAt   DateTime? // Optional expiration date
+  lastUsedAt  DateTime? // Track last usage
+  revokedAt   DateTime? // Soft-delete: set when key is revoked
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([keyHash])
+  @@index([keyPrefix])
 }
 
 model PasswordReset {
