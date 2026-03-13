@@ -1,0 +1,84 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/.next-os/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env
+.env.test
+.env.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+prisma/dev.*
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+tests/.auth/
+/logs/
+diff.txt
+data/*
+scripts/import-resend-waitlist.js
+scripts/import-resend-waitlist.saas.js
+
+# new additions
+.git
+.turbo
+.cache
+.vscode
+*.log
+dist/
+Dockerfile.worker
+scripts/test-outlook-task-api.sh
+
+# Kubernetes configs
+developer-staging-kubeconfig.yaml
+developer-kubeconfig.yaml
+*kubeconfig*.yaml
+dev-access/
+
+# SaaS submodule (in public repo, this is a git submodule)
+# Uncomment the line below when this becomes the public repo
+# saas/
+
+# SaaS-only directories (not present in OS-only builds)
+src/saas/
+
+# Scratch files
+scratch.md

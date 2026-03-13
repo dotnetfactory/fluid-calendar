@@ -1,0 +1,399 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+
+    --radius: 0.5rem;
+
+    --brand-green: #65E89B;
+    --brand-teal: #1ED2D9;
+    --brand-cyan: #17BBE9;
+
+    --chart-1: 12 76% 61%;
+
+    --chart-2: 173 58% 39%;
+
+    --chart-3: 197 37% 24%;
+
+    --chart-4: 43 74% 66%;
+
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --background: 220 10% 12%;
+    --foreground: 0 0% 98%;
+
+    --card: 220 10% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 220 10% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 220 10% 12%;
+
+    --secondary: 220 10% 18%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 220 10% 18%;
+    --muted-foreground: 0 0% 63.9%;
+
+    --accent: 220 10% 18%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --warning: 48 96% 89%;
+    --warning-foreground: 38 92% 50%;
+
+    --border: 220 10% 20%;
+    --input: 220 10% 20%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border transition-colors duration-200;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* FullCalendar Customization */
+.fc {
+  @apply h-full;
+}
+
+.fc .fc-toolbar {
+  @apply p-4;
+}
+
+.fc .fc-toolbar-title {
+  @apply text-xl font-semibold;
+}
+
+.fc .fc-button {
+  @apply bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}
+
+.fc .fc-button-primary {
+  @apply bg-blue-600 text-white border-blue-600 hover:bg-blue-700;
+}
+
+.fc .fc-daygrid-day-frame {
+  @apply min-h-[150px];
+}
+
+.fc .fc-timegrid-slot {
+  @apply h-20;
+}
+
+.fc .fc-timegrid-slot-label {
+  @apply text-xs text-gray-500;
+}
+
+.fc .fc-event {
+  @apply rounded shadow-sm border-none cursor-pointer;
+}
+
+.fc .fc-event-main {
+  @apply p-1;
+}
+
+.fc .fc-daygrid-day-events {
+  margin-bottom: 0;
+}
+
+.fc .fc-event-title {
+  @apply font-medium;
+}
+
+.fc .fc-event-time {
+  @apply text-xs opacity-90;
+}
+
+.fc .fc-timegrid-now-indicator-line {
+  @apply border-red-500;
+}
+
+.fc .fc-timegrid-now-indicator-arrow {
+  @apply border-red-500;
+}
+
+.fc .fc-day-today {
+  @apply bg-blue-50/30;
+}
+
+.fc .fc-day-header {
+  @apply py-2 border-b border-gray-200;
+}
+
+.fc .fc-scrollgrid {
+  @apply border-gray-200;
+}
+
+.fc .fc-col-header-cell {
+  @apply bg-white border-b border-gray-200;
+}
+
+/* Dark mode styles for FullCalendar */
+.dark .fc {
+  --fc-small-font-size: .85em;
+  --fc-page-bg-color: hsl(var(--background));
+  --fc-neutral-bg-color: hsl(var(--muted) / 0.2);
+  --fc-neutral-text-color: hsl(var(--muted-foreground));
+  --fc-border-color: hsl(var(--border));
+
+  --fc-button-text-color: hsl(var(--primary-foreground));
+  --fc-button-bg-color: hsl(var(--primary));
+  --fc-button-border-color: hsl(var(--primary));
+  --fc-button-hover-bg-color: hsl(var(--primary) / 0.9);
+  --fc-button-hover-border-color: hsl(var(--primary) / 0.9);
+  --fc-button-active-bg-color: hsl(var(--primary) / 0.8);
+  --fc-button-active-border-color: hsl(var(--primary) / 0.8);
+
+  --fc-event-bg-color: hsl(var(--primary));
+  --fc-event-border-color: hsl(var(--primary));
+  --fc-event-text-color: hsl(var(--primary-foreground));
+  --fc-event-selected-overlay-color: rgba(0, 0, 0, 0.25);
+
+  --fc-more-link-bg-color: hsl(var(--muted));
+  --fc-more-link-text-color: hsl(var(--muted-foreground));
+
+  --fc-non-business-color: hsl(var(--muted) / 0.3);
+  --fc-bg-event-color: hsl(var(--primary) / 0.3);
+  --fc-bg-event-opacity: 0.3;
+  --fc-highlight-color: hsl(var(--accent) / 0.3);
+  --fc-today-bg-color: hsl(var(--primary) / 0.1);
+  --fc-now-indicator-color: hsl(var(--destructive));
+}
+
+.dark .fc .fc-toolbar-title {
+  color: hsl(var(--foreground));
+}
+
+.dark .fc .fc-col-header-cell-cushion {
+  color: hsl(var(--foreground));
+}
+
+.dark .fc .fc-daygrid-day.fc-day-other {
+  background: var(--fc-neutral-bg-color);
+}
+
+.dark .fc .fc-scrollgrid-section-sticky > * {
+  background: unset;
+  position: sticky;
+  z-index: 3;
+}
+
+.dark :not(td[aria-labelledby]) > .fc-daygrid-day-frame {
+  background: var(--fc-neutral-bg-color);
+}
+
+.dark .fc .fc-scrollgrid-section-body {
+  background: var(--fc-page-bg-color);
+}
+
+.dark .fc .fc-timegrid-slot-label,
+.dark .fc .fc-timegrid-axis-frame {
+  background-color: var(--fc-page-bg-color);
+}
+
+.dark .fc .fc-col-header-cell {
+  background: var(--fc-page-bg-color);
+  border-color: var(--fc-border-color);
+}
+
+.dark .fc .fc-timegrid-slot-label-cushion,
+.dark .fc .fc-timegrid-axis-cushion {
+  color: hsl(var(--foreground));
+}
+
+.dark .fc .fc-daygrid-day-number {
+  color: hsl(var(--foreground));
+}
+
+/* Command Palette Styles */
+[cmdk-root] {
+  max-width: 640px;
+  width: 100%;
+  background-color: hsl(var(--background));
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border));
+}
+
+[cmdk-input] {
+  border: none;
+  width: 100%;
+  font-size: 14px;
+  padding: 12px;
+  outline: none;
+  background: transparent;
+  color: hsl(var(--foreground));
+  border: none;
+  margin: 0;
+  border-radius: 0;
+}
+
+[cmdk-input]:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+[cmdk-input]::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+[cmdk-item] {
+  content-visibility: auto;
+  cursor: pointer;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  color: hsl(var(--foreground));
+  user-select: none;
+  will-change: background, color;
+  transition: all 150ms ease;
+  transition-property: none;
+}
+
+[cmdk-item][aria-selected="true"] {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+[cmdk-item][aria-disabled="true"] {
+  color: hsl(var(--muted-foreground));
+  cursor: not-allowed;
+}
+
+[cmdk-group-heading] {
+  user-select: none;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* Privacy Mode Styles */
+.privacy-mode-active .private-content {
+  filter: blur(3px);
+  transition: filter 0.1s ease-in-out;
+}
+
+.privacy-mode-active .private-content:hover {
+  filter: blur(3px); /* Increase blur on hover for better privacy */
+}
+
+/* Apply to specific content types */
+.privacy-mode-active .event-title,
+.privacy-mode-active .event-description,
+.privacy-mode-active .event-location,
+.privacy-mode-active .event-attendees,
+.privacy-mode-active .calendar-event-title,
+.privacy-mode-active .calendar-event-description {
+  filter: blur(3px);
+  transition: filter 0.1s ease-in-out;
+}
+.privacy-mode-active .task-title,
+.privacy-mode-active .task-description,
+.privacy-mode-active .task-notes,
+.privacy-mode-active .focus-notes,
+.privacy-mode-active .calendar-name,
+.privacy-mode-active .project-name {
+  filter: blur(3px);
+  transition: filter 0.1s ease-in-out;
+}
+
+/* Ensure privacy mode toggle is always visible */
+.privacy-mode-toggle {
+  z-index: 100;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Override toast description styles for better readability */
+.notification-toast [data-description] {
+  color: var(--foreground) !important;
+  font-weight: 500 !important;
+  opacity: 1 !important;
+}
+
+/* Short event readability improvements */
+.fc-event.short-duration .fc-event-main {
+  padding: 2px 4px !important;
+  line-height: 1.2 !important;
+}
+
+.fc-event.very-short-duration .fc-event-main {
+  padding: 1px 3px !important;
+  line-height: 1.1 !important;
+}
+
+.fc-event.short-duration .fc-event-title {
+  font-size: 11px !important;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+.fc-event.very-short-duration .fc-event-title {
+  font-size: 10px !important;
+  overflow: visible !important;
+  white-space: normal !important;
+}

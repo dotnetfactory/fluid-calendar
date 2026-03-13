@@ -1,0 +1,15 @@
+#!/bin/sh
+# Try to use nvm if available
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" --no-use
+
+# Read the Node version from .nvmrc
+NODE_VERSION=$(cat .nvmrc)
+
+# Try to use the specified Node version
+if command -v nvm >/dev/null 2>&1; then
+  nvm use "$NODE_VERSION" >/dev/null 2>&1 || true
+fi
+
+# Add common Node.js installation paths to PATH
+export PATH="$NVM_DIR/versions/node/v$NODE_VERSION/bin:$HOME/.nvm/versions/node/v$NODE_VERSION/bin:$HOME/.nodenv/versions/$NODE_VERSION/bin:$HOME/.volta/tools/image/node/$NODE_VERSION/bin:$PATH" 

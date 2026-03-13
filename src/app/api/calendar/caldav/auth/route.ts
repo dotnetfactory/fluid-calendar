@@ -1,0 +1,226 @@
+import { NextRequest, NextResponse } from "next/server";
+
+import { authenticateRequest } from "@/lib/auth/api-auth";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+import {
+  checkCalendarProviderPermission,
+  incrementCalendarProviderUsage,
+} from "@saas/services/calendar-provider-permissions";
+
+import {
+  createCalDAVClient,
+  fetchCalDAVCalendars,
+  formatAbsoluteUrl,
+  handleFastmailPath,
+  loginToCalDAVServer,
+} from "../utils";
+
+const LOG_SOURCE = "CalDAVAuth";
+
+/**
+ * API route for authenticating and adding a CalDAV account
+ * POST /api/calendar/caldav/auth
+ * Body: { serverUrl, username, password, path }
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
+    }
+
+    const userId = auth.userId;
+
+    const { serverUrl, username, password, path } = await request.json();
+
+    // Validate required fields
+    if (!serverUrl || !username || !password) {
+      logger.error(
+        "Missing required fields for CalDAV auth",
+        { serverUrl: !!serverUrl, username: !!username, password: !!password },
+        LOG_SOURCE
+      );
+      return NextResponse.json(
+        { error: "Server URL, username, and password are required" },
+        { status: 400 }
+      );
+    }
+
+    logger.info(
+      `Attempting to connect to CalDAV server: ${serverUrl}`,
+      { path: path || "none", username },
+      LOG_SOURCE
+    );
+
+    try {
+      // Create a DAVClient instance
+      const client = createCalDAVClient(serverUrl, username, password);
+
+      // Try to login to verify credentials
+      try {
+        await loginToCalDAVServer(client, serverUrl, username);
+      } catch (loginError) {
+        return NextResponse.json(
+          {
+            error:
+              "Failed to authenticate with CalDAV server. Please check your credentials.",
+            details:
+              loginError instanceof Error
+                ? loginError.message
+                : String(loginError),
+          },
+          { status: 401 }
+        );
+      }
+
+      // Handle Fastmail-specific path formatting
+      const caldavPath = handleFastmailPath(serverUrl, path, username);
+
+      // If path is provided, try to fetch calendars to verify the path
+      if (caldavPath) {
+        try {
+          logger.info(
+            `Verifying CalDAV path: ${caldavPath}`,
+            { fullUrl: formatAbsoluteUrl(serverUrl, caldavPath), username },
+            LOG_SOURCE
+          );
+
+          await fetchCalDAVCalendars(client);
+        } catch (pathError) {
+          logger.error(
+            "Failed to validate CalDAV path",
+            {
+              error:
+                pathError instanceof Error
+                  ? pathError.message
+                  : String(pathError),
+              caldavPath,
+              serverUrl,
+              username,
+            },
+            LOG_SOURCE
+          );
+          return NextResponse.json(
+            {
+              error:
+                "Failed to validate the CalDAV path. Please check the path and try again.",
+              details:
+                pathError instanceof Error
+                  ? pathError.message
+                  : String(pathError),
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Successfully connected, check if account already exists
+      const fullUrl = caldavPath
+        ? formatAbsoluteUrl(serverUrl, caldavPath)
+        : serverUrl;
+
+      // Check if this account already exists
+      const existingAccount = await prisma.connectedAccount.findUnique({
+        where: {
+          userId_provider_email: {
+            userId,
+            provider: "CALDAV",
+            email: username,
+          },
+        },
+      });
+
+      // If this is a new account, check permissions first
+      if (!existingAccount) {
+        const permissionCheck = await checkCalendarProviderPermission(userId);
+        if (!permissionCheck.canAdd) {
+          return NextResponse.json(
+            {
+              error:
+                permissionCheck.reason || "Calendar provider limit reached",
+              upgradeRequired: permissionCheck.upgradeRequired,
+              currentUsage: permissionCheck.currentUsage,
+              limit: permissionCheck.limit,
+            },
+            { status: 403 }
+          );
+        }
+      }
+
+      // Create or update the account
+      const account = await prisma.connectedAccount.upsert({
+        where: {
+          userId_provider_email: {
+            userId,
+            provider: "CALDAV",
+            email: username,
+          },
+        },
+        update: {
+          caldavUrl: fullUrl,
+          caldavUsername: username,
+          accessToken: password, // Store password as access token
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Set expiry to 1 year from now
+        },
+        create: {
+          provider: "CALDAV",
+          email: username,
+          caldavUrl: fullUrl,
+          caldavUsername: username,
+          accessToken: password, // Store password as access token
+          userId, // Associate with the current user
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Set expiry to 1 year from now
+        },
+      });
+
+      // Only increment usage count if this was a new account
+      if (!existingAccount) {
+        await incrementCalendarProviderUsage(userId);
+      }
+
+      logger.info(
+        "Successfully added CalDAV account",
+        { id: account.id, username },
+        LOG_SOURCE
+      );
+
+      return NextResponse.json({ success: true, accountId: account.id });
+    } catch (error) {
+      logger.error(
+        "Error connecting to CalDAV server",
+        {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack || null : null,
+          serverUrl,
+          username,
+        },
+        LOG_SOURCE
+      );
+      return NextResponse.json(
+        {
+          error:
+            "Failed to connect to CalDAV server. Please check your credentials.",
+          details: error instanceof Error ? error.message : String(error),
+        },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    logger.error(
+      "Error in CalDAV auth route",
+      {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack || null : null,
+      },
+      LOG_SOURCE
+    );
+    return NextResponse.json(
+      {
+        error: "An unexpected error occurred",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
+}

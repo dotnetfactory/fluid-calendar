@@ -1,0 +1,64 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { useSession } from "next-auth/react";
+
+/**
+ * Hook to check if the current user is an admin
+ * @returns {boolean} Whether the current user is an admin
+ */
+export function useAdmin(): { isAdmin: boolean; isLoading: boolean } {
+  const { data: session, status } = useSession();
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (status === "loading") {
+      return;
+    }
+
+    if (status === "unauthenticated") {
+      setIsAdmin(false);
+      setIsLoading(false);
+      return;
+    }
+
+    // Check client-side based on session data
+    // This avoids importing server-side code that uses bcrypt
+    const clientSideIsAdmin = session?.user?.role === "admin";
+    setIsAdmin(clientSideIsAdmin);
+
+    // Then verify with the server
+    const verifyAdmin = async () => {
+      try {
+        // Add timeout to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        const response = await fetch("/api/auth/check-admin", {
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          setIsAdmin(data.isAdmin);
+        } else {
+          // Fall back to client-side check if server verification fails
+          setIsAdmin(clientSideIsAdmin);
+        }
+      } catch {
+        // Fall back to client-side check on network errors
+        setIsAdmin(clientSideIsAdmin);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    verifyAdmin();
+  }, [session, status]);
+
+  return { isAdmin, isLoading };
+}

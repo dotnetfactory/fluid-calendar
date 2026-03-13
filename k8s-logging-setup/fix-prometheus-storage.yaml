@@ -1,0 +1,60 @@
+# Fix for Prometheus storage issue
+# This will increase the storage size and clean up old data
+
+---
+# First, let's create a job to clean up Prometheus data
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prometheus-cleanup
+  namespace: kube-prometheus-stack
+spec:
+  template:
+    spec:
+      containers:
+      - name: cleanup
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+          - |
+            echo "Cleaning up old Prometheus data..."
+            # Remove old WAL files (keep last 3 days)
+            find /prometheus/wal -name "*.tmp" -delete || true
+            find /prometheus/wal -type f -mtime +3 -delete || true
+            # Remove old chunks (keep last 7 days) 
+            find /prometheus -name "chunks_head" -type d -exec rm -rf {} + || true
+            echo "Cleanup completed"
+            df -h /prometheus
+        volumeMounts:
+        - name: prometheus-storage
+          mountPath: /prometheus
+      volumes:
+      - name: prometheus-storage
+        persistentVolumeClaim:
+          claimName: prometheus-kube-prometheus-stack-prometheus-db-prometheus-kube-prometheus-stack-prometheus-0
+      restartPolicy: Never
+  backoffLimit: 3
+
+---
+# Patch to increase Prometheus storage retention settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config-patch
+  namespace: kube-prometheus-stack
+data:
+  additional-scrape-configs.yaml: |
+    # Reduce retention to save space
+    global:
+      scrape_interval: 60s  # Increase from default 15s
+      evaluation_interval: 60s
+    
+    # Add retention settings
+    rule_files: []
+    
+    # Reduce storage retention
+    storage:
+      tsdb:
+        retention.time: 7d  # Reduce from default 15d
+        retention.size: 4GB  # Limit to 4GB
+        wal-compression: true 

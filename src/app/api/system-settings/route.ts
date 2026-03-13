@@ -1,0 +1,131 @@
+import { NextRequest, NextResponse } from "next/server";
+
+import { requireAdmin } from "@/lib/auth/api-auth";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+
+const LOG_SOURCE = "SystemSettingsAPI";
+
+export async function GET(request: NextRequest) {
+  // Check if user is admin
+  const authResponse = await requireAdmin(request);
+  if (authResponse) return authResponse;
+
+  try {
+    // Get the first system settings record, or create it if it doesn't exist
+    const settings = await prisma.$transaction(async (tx) => {
+      // Check if any SystemSettings record exists
+      const existingSettings = await tx.systemSettings.findFirst();
+
+      if (existingSettings) {
+        return existingSettings;
+      } else {
+        // Create a new record with default ID
+        return tx.systemSettings.create({
+          data: {
+            id: "default",
+            disableHomepage: false,
+          },
+        });
+      }
+    });
+
+    return NextResponse.json(settings);
+  } catch (error) {
+    logger.error(
+      "Failed to fetch system settings",
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      LOG_SOURCE
+    );
+    return NextResponse.json(
+      { error: "Failed to fetch system settings" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  // Check if user is admin
+  const authResponse = await requireAdmin(request);
+  if (authResponse) return authResponse;
+
+  try {
+    const updates = await request.json();
+    
+    logger.info(
+      "Attempting to update system settings",
+      { updates: Object.keys(updates) },
+      LOG_SOURCE
+    );
+
+    const settings = await prisma.$transaction(async (tx) => {
+      // Check if any SystemSettings record exists
+      const existingSettings = await tx.systemSettings.findFirst();
+      
+      logger.info(
+        "SystemSettings query result",
+        { hasExisting: !!existingSettings, existingId: existingSettings?.id || null },
+        LOG_SOURCE
+      );
+
+      if (existingSettings) {
+        // Update the existing record
+        logger.info(
+          "Updating existing SystemSettings record",
+          { id: existingSettings.id },
+          LOG_SOURCE
+        );
+        
+        return tx.systemSettings.update({
+          where: { id: existingSettings.id },
+          data: updates,
+        });
+      } else {
+        // Create a new record with default ID
+        logger.info(
+          "Creating new SystemSettings record with default ID",
+          {},
+          LOG_SOURCE
+        );
+        
+        return tx.systemSettings.create({
+          data: {
+            id: "default",
+            ...updates,
+          },
+        });
+      }
+    });
+
+    logger.info(
+      "System settings updated successfully",
+      { settingsId: settings.id },
+      LOG_SOURCE
+    );
+
+    // Log if the homepage setting was updated
+    if ("disableHomepage" in updates) {
+      logger.debug(
+        `Homepage setting updated: ${updates.disableHomepage}`,
+        { disableHomepage: updates.disableHomepage },
+        LOG_SOURCE
+      );
+    }
+
+    return NextResponse.json(settings);
+  } catch (error) {
+    logger.error(
+      "Failed to update system settings",
+      { 
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack || null : null,
+        name: error instanceof Error ? error.name || null : null 
+      },
+      LOG_SOURCE
+    );
+    return NextResponse.json(
+      { error: "Failed to update system settings" },
+      { status: 500 }
+    );
+  }
+}

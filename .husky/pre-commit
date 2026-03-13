@@ -1,0 +1,32 @@
+#!/bin/sh
+. "$(dirname "$0")/../.huskyrc"
+
+# Check if node is available
+if ! command -v node >/dev/null 2>&1; then
+  echo "Error: Node.js is not available in PATH"
+  echo "Current PATH: $PATH"
+  echo "Try committing from a terminal where Node.js is properly set up"
+  exit 1
+fi
+
+# Print node version for debugging
+echo "Using Node.js $(node -v)"
+
+# Run linting
+echo "Running linting..."
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "Linting failed. Please fix the errors before committing."
+  exit 1
+fi
+
+# Run type checking
+echo "Running type checking..."
+npm run type-check
+if [ $? -ne 0 ]; then
+  echo "Type checking failed. Please fix the errors before committing."
+  exit 1
+fi
+
+# If we got here, all checks passed
+echo "All checks passed!"

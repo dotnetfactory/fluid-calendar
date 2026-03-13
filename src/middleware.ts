@@ -1,0 +1,174 @@
+import { getToken } from "next-auth/jwt";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+// List of public routes that don't require authentication
+const publicRoutes = [
+  "/setup",
+  "/api/setup/check",
+  "/auth/signin",
+  "/auth/reset-password",
+  "/auth/error",
+  "/api/auth/register",
+  "/beta",
+  "/terms",
+  "/privacy",
+  "/subscription/lifetime/success",
+  "/subscription/lifetime/setup-password",
+  "/subscription/success", // Added universal success page
+  "/book", // Public booking pages
+  "/learn", // pSEO articles
+];
+
+// Routes that only admins can access
+const adminRoutes = ["/admin", "/logs", "/settings/system"];
+
+// Static file extensions that should bypass authentication
+const staticFileExtensions = [
+  ".svg",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".ico",
+  ".webp",
+  ".avif",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".eot",
+  ".otf",
+  ".webmanifest",
+];
+
+/**
+ * Get the homepage setting directly from the API
+ * This ensures we always have the most up-to-date setting
+ */
+async function getHomepageSetting(request: NextRequest): Promise<boolean> {
+  try {
+    // Create a fetch request to our own API endpoint
+    const apiUrl = new URL("/api/settings/homepage-disabled", request.url);
+    // Add a timestamp to prevent browser/CDN caching
+    apiUrl.searchParams.set("t", Date.now().toString());
+
+    const response = await fetch(apiUrl.toString(), {
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Request": "true",
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error(`API responded with ${response.status}`);
+    }
+
+    const data = await response.json();
+    return !!data.disabled;
+  } catch (error) {
+    // If API call fails, default to false (show homepage)
+    console.error("Error fetching homepage setting:", error);
+    return false;
+  }
+}
+
+/**
+ * Middleware for handling authentication and authorization
+ */
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Allow static files to bypass authentication
+  const hasStaticExtension = staticFileExtensions.some((ext) =>
+    pathname.toLowerCase().endsWith(ext)
+  );
+  if (hasStaticExtension) {
+    return NextResponse.next();
+  }
+
+  // Special handling for the root path based on the disableHomepage setting
+  if (pathname === "/") {
+    // For API routes and API calls to the root path, just continue
+    if (request.headers.get("accept")?.includes("application/json")) {
+      return NextResponse.next();
+    }
+
+    // Get the homepage setting directly from the API
+    const disableHomepage = await getHomepageSetting(request);
+
+    // If the homepage is disabled, check authentication and redirect accordingly
+    if (disableHomepage) {
+      const token = await getToken({
+        req: request,
+        secret: process.env.NEXTAUTH_SECRET,
+      });
+
+      // Redirect authenticated users to /calendar, unauthenticated to /auth/signin
+      if (token) {
+        return NextResponse.redirect(new URL("/calendar", request.url));
+      } else {
+        return NextResponse.redirect(new URL("/auth/signin", request.url));
+      }
+    }
+
+    // If homepage is not disabled, continue normally
+    return NextResponse.next();
+  }
+
+  // Check if the route is public
+  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
+
+  // Check if the route is an API route (we'll handle auth in the API routes themselves)
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
+  // Get the token from the request
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  // If there's no token, redirect to the sign-in page
+  if (!token) {
+    const url = new URL("/auth/signin", request.url);
+    url.searchParams.set("callbackUrl", encodeURI(request.url));
+    return NextResponse.redirect(url);
+  }
+
+  // Check if the route is admin-only
+  if (adminRoutes.some((route) => pathname.startsWith(route))) {
+    // Debug: log token role for admin route access
+    console.log("[Middleware] Admin route access attempt:", {
+      pathname,
+      email: token.email,
+      role: token.role,
+      hasRole: !!token.role,
+    });
+
+    // If the user is not an admin, redirect to the home page
+    if (token.role !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  // Continue with the request
+  return NextResponse.next();
+}
+
+// Only run middleware on specific paths
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (public directory)
+     */
+    "/((?!_next/static|_next/image|favicon.ico|public).*)",
+  ],
+};
