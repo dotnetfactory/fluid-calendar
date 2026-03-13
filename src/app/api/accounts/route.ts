@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { decrementCalendarProviderUsage } from "@saas/services/calendar-provider-permissions";
 
 const LOG_SOURCE = "accounts-route";
 
@@ -102,6 +103,9 @@ export async function DELETE(request: NextRequest) {
         userId,
       },
     });
+
+    // Decrement calendar provider usage count
+    await decrementCalendarProviderUsage(userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

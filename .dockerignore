@@ -1,13 +1,72 @@
+# Version control
 .git
+.gitignore
+
+# Build artifacts
 .next
 node_modules
 .turbo
 .cache
+dist
+
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+logs
+
+# Environment files (build args handle secrets)
 .env*
-.DS_Store
-coverage
+
+# IDE and editor
 .vscode
-*.log 
+.cursor
+.claude
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage
+test-results
+playwright-report
+tests
+tests-examples
+jest.config.js
+playwright.config.ts
+
+# Documentation (not needed in build)
+*.md
+!README.md
+docs
+memory-bank
+blog
+
+# Development files
+dev-access
+docker
+docker-compose*.yml
+Dockerfile
+*.docx
+diff.txt
+nodemon.json
+
+# Scripts and utilities not needed in build
+scripts
+migrate.js
+relay-setup
+k8s-logging-setup
+k8s-sentry-setup
+marketing
+openspec
+
+# Husky hooks
+.husky
+.huskyrc
+
+# TypeScript build info
+tsconfig.tsbuildinfo 

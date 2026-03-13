@@ -16,7 +16,13 @@ export const getTitleFromPathname = (pathname: string) => {
       return "Sign Up | FluidCalendar";
     case "/auth/reset-password":
       return "Reset Password | FluidCalendar";
+    case "/admin":
+      return "Admin Dashboard | FluidCalendar";
     default:
+      // Handle admin sub-routes
+      if (pathname.startsWith("/admin")) {
+        return "Admin | FluidCalendar";
+      }
       return "FluidCalendar";
   }
 };

@@ -6,6 +6,11 @@ import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { MICROSOFT_GRAPH_AUTH_ENDPOINTS } from "@/lib/outlook";
 import { OutlookCalendarService } from "@/lib/outlook-calendar";
+import { prisma } from "@/lib/prisma";
+import {
+  checkCalendarProviderPermission,
+  incrementCalendarProviderUsage,
+} from "@saas/services/calendar-provider-permissions";
 import { TokenManager } from "@/lib/token-manager";
 
 const LOG_SOURCE = "OutlookCalendarAPI";
@@ -100,6 +105,32 @@ export async function GET(req: NextRequest) {
         );
       }
 
+      // Check if this account already exists
+      const existingAccount = await prisma.connectedAccount.findUnique({
+        where: {
+          userId_provider_email: {
+            userId,
+            provider: "OUTLOOK",
+            email: userProfile.mail,
+          },
+        },
+      });
+
+      // If this is a new account, check permissions first
+      if (!existingAccount) {
+        const permissionCheck = await checkCalendarProviderPermission(userId);
+        if (!permissionCheck.canAdd) {
+          // Redirect to pricing page with error message
+          const errorUrl = new URL("/pricing", process.env.NEXTAUTH_URL!);
+          errorUrl.searchParams.set("error", "upgrade_required");
+          errorUrl.searchParams.set(
+            "reason",
+            permissionCheck.reason || "Calendar provider limit reached"
+          );
+          return NextResponse.redirect(errorUrl);
+        }
+      }
+
       // Store tokens
       const tokenManager = TokenManager.getInstance();
       await tokenManager.storeTokens(
@@ -112,6 +143,11 @@ export async function GET(req: NextRequest) {
         },
         userId ?? "unknown"
       );
+
+      // Only increment usage count if this was a new account
+      if (!existingAccount) {
+        await incrementCalendarProviderUsage(userId);
+      }
 
       return NextResponse.redirect(
         `${process.env.NEXTAUTH_URL}/settings?success=true`

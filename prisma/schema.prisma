@@ -49,15 +49,10 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
-}
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
 }
 
 model User {
@@ -66,10 +61,9 @@ model User {
   email                String?               @unique
   emailVerified        DateTime?
   image                String?
+  username             String?               @unique
   role                 String                @default("user") // Possible values: "user", "admin"
-  subscription         Subscription?
   accounts             Account[]
-  sessions             Session[]
   calendars            CalendarFeed[]
   autoScheduleSettings AutoScheduleSettings?
   userSettings         UserSettings?
@@ -81,10 +75,20 @@ model User {
   projects             Project[]
   connectedAccounts    ConnectedAccount[]
   tags                 Tag[]
-  JobRecord            JobRecord[]
   taskProviders        TaskProvider[]
   TaskChange           TaskChange[]
   PasswordReset        PasswordReset[]
+  
+  // SaaS Relations
+  subscription         Subscription?
+  JobRecord            JobRecord[]
+  subscriptionHistory  SubscriptionHistory[]
+  subscriptionUsage    SubscriptionUsage?
+  bookingLinks         BookingLink[]
+  bookings             Booking[]             @relation("HostBookings")
+
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @default(now()) @updatedAt
 }
 
 model VerificationToken {
@@ -135,6 +139,7 @@ model CalendarEvent {
   isRecurring     Boolean      @default(false)
   recurrenceRule  String?
   allDay          Boolean      @default(false)
+  transparency    String?      // "opaque" (busy) or "transparent" (free) - from Google/Outlook
   status          String?
   sequence        Int?
   created         DateTime?
@@ -396,121 +401,11 @@ model SystemSettings {
   outlookClientId     String?
   outlookClientSecret String?
   outlookTenantId     String?
-  logLevel            String   @default("none") // none, debug, info, warn, error
-  logRetention        Json? // Retention periods per log level
-  logDestination      String   @default("db") // db, file, both
   publicSignup        Boolean  @default(false) // Whether public signup is enabled
   disableHomepage     Boolean  @default(false) // Whether to disable the homepage and redirect to login/calendar
   resendApiKey        String? // API key for Resend email service
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
-}
-
-model Log {
-  id        String   @id @default(cuid())
-  timestamp DateTime @default(now())
-  level     String // INFO, WARN, ERROR, DEBUG
-  message   String   @db.Text
-  metadata  Json? // For structured data
-  source    String? // Component/service name
-  expiresAt DateTime // For TTL-based cleanup
-
-  @@index([timestamp, level])
-  @@index([expiresAt])
-  @@index([source, level])
-}
-
-model PendingWaitlist {
-  id                   String   @id @default(cuid())
-  email                String   @unique
-  name                 String?
-  referralCode         String? // Referral code used during signup
-  verificationToken    String   @unique
-  verificationExpiry   DateTime
-  interestedInLifetime Boolean  @default(false)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-
-  @@index([verificationToken])
-  @@index([email])
-}
-
-model Waitlist {
-  id                        String    @id @default(cuid())
-  email                     String    @unique
-  name                      String?
-  status                    String    @default("WAITING") // WAITING, INVITED, REGISTERED
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
-  invitedAt                 DateTime?
-  registeredAt              DateTime?
-  invitationToken           String?
-  invitationExpiry          DateTime?
-  referralCode              String    @unique
-  referredBy                String?
-  referralCount             Int       @default(0)
-  priorityScore             Float     @default(0)
-  lastVisitedAt             DateTime?
-  notes                     String?
-  lastPosition              Int? // Added to track position changes
-  interestedInLifetime      Boolean   @default(false)
-  queueNotificationsEnabled Boolean   @default(true) // Controls whether to send queue position notifications
-
-  @@index([status])
-  @@index([referredBy])
-  @@index([priorityScore])
-  @@index([referralCode])
-}
-
-model BetaSettings {
-  id                           String  @id @default("default")
-  maxActiveUsers               Int     @default(100)
-  invitationValidDays          Int     @default(7)
-  autoInviteEnabled            Boolean @default(false)
-  autoInviteCount              Int     @default(10)
-  autoInviteFrequency          String  @default("WEEKLY") // DAILY, WEEKLY, MONTHLY
-  referralBoostAmount          Float   @default(1.0)
-  maxReferralBoost             Float   @default(10.0)
-  showQueuePosition            Boolean @default(true)
-  showTotalWaitlist            Boolean @default(true)
-  invitationEmailTemplate      String  @default("") @db.Text
-  waitlistConfirmationTemplate String  @default("") @db.Text
-  reminderEmailTemplate        String  @default("") @db.Text
-}
-
-// Job tracking models for BullMQ
-model JobRecord {
-  id          String    @id @default(cuid())
-  queueName   String
-  jobId       String
-  name        String
-  data        Json
-  status      JobStatus @default(PENDING)
-  result      Json?
-  error       String?
-  attempts    Int       @default(0)
-  maxAttempts Int       @default(3)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  startedAt   DateTime?
-  finishedAt  DateTime?
-  userId      String?
-  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@unique([queueName, jobId])
-  @@index([status])
-  @@index([queueName])
-  @@index([userId])
-  @@index([createdAt])
-}
-
-enum JobStatus {
-  PENDING
-  ACTIVE
-  COMPLETED
-  FAILED
-  DELAYED
-  PAUSED
 }
 
 // New models for task synchronization
@@ -607,8 +502,123 @@ model PasswordReset {
   @@index([userId])
 }
 
+
+// =============================================================================
+// SaaS Models
+// =============================================================================
+
+// =============================================================================
+// Waitlist / Beta Program
+// =============================================================================
+
+model PendingWaitlist {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  name                 String?
+  referralCode         String? // Referral code used during signup
+  verificationToken    String   @unique
+  verificationExpiry   DateTime
+  interestedInLifetime Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([verificationToken])
+  @@index([email])
+}
+
+model Waitlist {
+  id                        String    @id @default(cuid())
+  email                     String    @unique
+  name                      String?
+  status                    String    @default("WAITING") // WAITING, INVITED, REGISTERED
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  invitedAt                 DateTime?
+  registeredAt              DateTime?
+  invitationToken           String?
+  invitationExpiry          DateTime?
+  referralCode              String    @unique
+  referredBy                String?
+  referralCount             Int       @default(0)
+  priorityScore             Float     @default(0)
+  lastVisitedAt             DateTime?
+  notes                     String?
+  lastPosition              Int? // Added to track position changes
+  interestedInLifetime      Boolean   @default(false)
+  queueNotificationsEnabled Boolean   @default(true) // Controls whether to send queue position notifications
+
+  @@index([status])
+  @@index([referredBy])
+  @@index([priorityScore])
+  @@index([referralCode])
+}
+
+model BetaSettings {
+  id                           String  @id @default("default")
+  maxActiveUsers               Int     @default(100)
+  invitationValidDays          Int     @default(7)
+  autoInviteEnabled            Boolean @default(false)
+  autoInviteCount              Int     @default(10)
+  autoInviteFrequency          String  @default("WEEKLY") // DAILY, WEEKLY, MONTHLY
+  referralBoostAmount          Float   @default(1.0)
+  maxReferralBoost             Float   @default(10.0)
+  showQueuePosition            Boolean @default(true)
+  showTotalWaitlist            Boolean @default(true)
+  invitationEmailTemplate      String  @default("") @db.Text
+  waitlistConfirmationTemplate String  @default("") @db.Text
+  reminderEmailTemplate        String  @default("") @db.Text
+}
+
+// =============================================================================
+// Background Jobs (BullMQ)
+// =============================================================================
+
+model JobRecord {
+  id          String    @id @default(cuid())
+  queueName   String
+  jobId       String
+  name        String
+  data        Json
+  status      JobStatus @default(PENDING)
+  result      Json?
+  error       String?
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([queueName, jobId])
+  @@index([status])
+  @@index([queueName])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum JobStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  FAILED
+  DELAYED
+  PAUSED
+}
+
+// =============================================================================
+// Subscription / Billing
+// =============================================================================
+
 enum SubscriptionPlan {
   FREE
+  BASIC_MONTHLY
+  BASIC_YEARLY
+  PRO_MONTHLY
+  PRO_YEARLY
+  ADVANCED_MONTHLY
+  ADVANCED_YEARLY
   LIFETIME
 }
 
@@ -616,21 +626,347 @@ enum SubscriptionStatus {
   ACTIVE
   PAYMENT_PENDING
   PAYMENT_FAILED
+  TRIALING
+  PAST_DUE
+  CANCELLED
+  UNPAID
 }
 
 model Subscription {
-  id                    String             @id @default(cuid())
-  userId                String             @unique
-  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan                  SubscriptionPlan   @default(FREE)
-  status                SubscriptionStatus @default(ACTIVE)
-  stripeCustomerId      String?            @unique
-  stripePaymentIntentId String?            @unique // For one-time payments like lifetime access
-  amount                Int? // Amount paid in cents
-  discountApplied       Boolean            @default(false)
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Plan identification - direct enum mapping
+  plan   SubscriptionPlan // Direct mapping to enum value
+  status SubscriptionStatus @default(ACTIVE)
+
+  // Stripe Integration
+  stripeCustomerId      String? @unique
+  stripeSubscriptionId  String? @unique // For recurring subscriptions
+  stripePaymentIntentId String? @unique // For one-time payments (lifetime)
+  stripePriceId         String? // Current active price
+
+  // Billing
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  trialStart         DateTime?
+  trialEnd           DateTime?
+  cancelAtPeriodEnd  Boolean   @default(false)
+  canceledAt         DateTime?
+
+  // Pricing snapshot (for historical records)
+  amount          Int? // Amount in cents
+  currency        String? @default("usd")
+  discountApplied Boolean @default(false)
+
+  // Plan limits (denormalized for performance)
+  calendarProviderLimit Int? // NULL = unlimited
+
+  // Relations
+  history SubscriptionHistory[]
+  usage   SubscriptionUsage?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([plan])
   @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
   @@index([stripePaymentIntentId])
+  @@index([status])
+  @@index([currentPeriodEnd])
 }
+
+model SubscriptionPlanConfig {
+  id String @id @default(cuid())
+
+  // Plan identification - direct enum mapping
+  plan SubscriptionPlan @unique // Each record maps to one enum value
+
+  // Display information
+  name        String // "Basic Monthly", "Pro Yearly", etc.
+  description String?
+
+  // Pricing
+  price    Int? // Price in cents (NULL for free)
+  currency String @default("usd")
+
+  // Stripe integration
+  stripePriceId   String? @unique
+  stripeProductId String? // For reference
+
+  // Plan features
+  calendarProviderLimit Int? // NULL = unlimited
+  features              Json // JSON array of features
+
+  // Metadata
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  // Trial support
+  trialDays Int? // Number of trial days
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([plan])
+  @@index([isActive, sortOrder])
+}
+
+model SubscriptionHistory {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  fromStatus SubscriptionStatus?
+  toStatus   SubscriptionStatus
+  fromPlan   SubscriptionPlan?
+  toPlan     SubscriptionPlan
+
+  reason   String? // upgrade, downgrade, cancel, payment_failed, etc.
+  metadata Json? // Additional context
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([createdAt])
+}
+
+model SubscriptionUsage {
+  id                    String       @id @default(cuid())
+  userId                String       @unique
+  user                  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId        String       @unique
+  subscription          Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  calendarProvidersUsed Int          @default(0)
+  lastCalculatedAt      DateTime     @default(now())
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+// =============================================================================
+// Booking Links (cal.com-like feature)
+// =============================================================================
+
+model BookingLink {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Link identity
+  name        String // "30 Minute Meeting"
+  slug        String // "30min" -> /book/username/30min
+  description String?
+
+  // Availability settings
+  duration          Int    // minutes (15, 30, 45, 60)
+  selectedCalendars String @default("[]") // JSON array of CalendarFeed IDs to check for conflicts
+  targetCalendarId  String // CalendarFeed ID to create events in
+
+  // Time settings
+  availabilityType   String  @default("working_hours") // "working_hours" | "custom"
+  customAvailability String? // JSON for custom hours per day (premium)
+  bufferBefore       Int     @default(0) // minutes (premium)
+  bufferAfter        Int     @default(0) // minutes (premium)
+  minNotice          Int     @default(60) // minimum minutes before booking
+  maxFutureDays      Int     @default(60) // how far in advance can book
+
+  // Video conferencing (premium)
+  videoProvider String? // "google_meet" | "zoom" | null
+
+  // Status
+  enabled Boolean @default(true)
+
+  // Relations
+  bookings Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, slug])
+  @@index([userId])
+}
+
+model Booking {
+  id            String      @id @default(cuid())
+  bookingLinkId String
+  bookingLink   BookingLink @relation(fields: [bookingLinkId], references: [id], onDelete: Cascade)
+
+  // Host reference (denormalized for easier queries)
+  hostId String
+  host   User   @relation("HostBookings", fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Guest info
+  guestName     String
+  guestEmail    String
+  guestNotes    String?
+  guestTimezone String
+
+  // Booking details
+  startTime DateTime
+  endTime   DateTime
+
+  // Created event reference
+  calendarEventId String?
+
+  // Video link (if applicable)
+  videoLink String?
+
+  // Cancellation token for guest to cancel
+  cancelToken String @unique @default(cuid())
+
+  // Status
+  status       String    @default("confirmed") // "confirmed" | "cancelled"
+  cancelledAt  DateTime?
+  cancelReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookingLinkId])
+  @@index([hostId])
+  @@index([guestEmail])
+  @@index([startTime])
+  @@index([status])
+}
+
+// =============================================================================
+// pSEO (Programmatic SEO) Models
+// =============================================================================
+
+enum ArticleClusterType {
+  use_case
+  productivity_tip
+  feature_guide
+  comparison
+  integration
+  industry
+  role
+  problem_solution
+  best_practice
+  seasonal
+  template
+  long_tail
+}
+
+enum ArticleClusterStatus {
+  pending
+  generating
+  published
+  needs_review
+  failed
+  skipped
+}
+
+enum AICallType {
+  SEO_CONTENT_GENERATION
+}
+
+model Article {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  content   String   @db.Text
+  excerpt   String
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cluster ArticleCluster?
+
+  @@index([slug])
+  @@index([published])
+}
+
+model ArticleCluster {
+  id          String             @id @default(cuid())
+  clusterType ArticleClusterType
+
+  // Cluster parameters
+  useCase        String?
+  targetAudience String?
+  competitor     String?
+  industry       String?
+  role           String?
+  provider       String?
+  focusArea      String?
+  scenario       String?
+
+  // SEO metadata
+  slug            String  @unique
+  title           String
+  metaDescription String
+  keywords        String? // JSON array
+  priorityScore   Int // 35-100
+
+  // Generation tracking
+  status             ArticleClusterStatus @default(pending)
+  generationAttempts Int                  @default(0)
+  contentHash        String?
+  publishedAt        DateTime?
+  errorMessage       String?
+
+  // Metadata
+  metadata  String? // JSON
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  articleId String?                @unique
+  article   Article?               @relation(fields: [articleId], references: [id])
+  logs      ArticleGenerationLog[]
+
+  @@index([status, priorityScore(sort: Desc)])
+  @@index([clusterType])
+}
+
+model ArticleGenerationLog {
+  id        String         @id @default(cuid())
+  clusterId String
+  cluster   ArticleCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+
+  status      String // 'running', 'success', 'failure'
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  durationMs  Int?
+  wordCount   Int?
+  errorMessage String?
+  errorStack   String?
+
+  // Email tracking
+  emailSent  Boolean @default(false)
+  emailError String?
+
+  @@index([clusterId])
+  @@index([startedAt])
+}
+
+model AICallLog {
+  id               String     @id @default(cuid())
+  type             AICallType
+  model            String
+  startTime        DateTime
+  endTime          DateTime?
+  durationMs       Int?
+  prompt           String?    @db.Text
+  response         String?    @db.Text
+  tokensPrompt     Int?
+  tokensCompletion Int?
+  tokensTotal      Int?
+  costUsd          Float?
+  metadata         String? // JSON
+  error            String?
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([model])
+}
+

@@ -38,6 +38,10 @@
 
     --radius: 0.5rem;
 
+    --brand-green: #65E89B;
+    --brand-teal: #1ED2D9;
+    --brand-cyan: #17BBE9;
+
     --chart-1: 12 76% 61%;
 
     --chart-2: 173 58% 39%;
@@ -369,4 +373,27 @@
   color: var(--foreground) !important;
   font-weight: 500 !important;
   opacity: 1 !important;
+}
+
+/* Short event readability improvements */
+.fc-event.short-duration .fc-event-main {
+  padding: 2px 4px !important;
+  line-height: 1.2 !important;
+}
+
+.fc-event.very-short-duration .fc-event-main {
+  padding: 1px 3px !important;
+  line-height: 1.1 !important;
+}
+
+.fc-event.short-duration .fc-event-title {
+  font-size: 11px !important;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+.fc-event.very-short-duration .fc-event-title {
+  font-size: 10px !important;
+  overflow: visible !important;
+  white-space: normal !important;
 }

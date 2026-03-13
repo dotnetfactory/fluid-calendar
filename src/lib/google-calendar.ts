@@ -12,7 +12,6 @@ export async function getGoogleCalendarClient(
   accountId: string,
   userId: string
 ) {
-  console.log("Creating Google Calendar client");
   const tokenManager = TokenManager.getInstance();
 
   // Get tokens for the account
@@ -57,6 +56,7 @@ export async function createGoogleEvent(
     allDay?: boolean;
     isRecurring?: boolean;
     recurrenceRule?: string;
+    transparency?: string;
   }
 ) {
   const calendar = await getGoogleCalendarClient(accountId, userId);
@@ -91,6 +91,7 @@ export async function createGoogleEvent(
         timeZone,
       },
       recurrence,
+      transparency: event.transparency || "opaque",
     },
   });
 
@@ -111,6 +112,7 @@ export async function updateGoogleEvent(
     allDay?: boolean;
     isRecurring?: boolean;
     recurrenceRule?: string;
+    transparency?: string;
     mode?: "single" | "series";
   }
 ) {
@@ -161,6 +163,7 @@ export async function updateGoogleEvent(
               }
             : undefined,
           recurrence,
+          transparency: event.transparency,
         },
       });
       return response.data;
@@ -204,6 +207,7 @@ export async function updateGoogleEvent(
                   timeZone,
                 }
               : undefined,
+            transparency: event.transparency,
           },
         });
         return response.data;
@@ -243,6 +247,7 @@ export async function updateGoogleEvent(
                 : `RRULE:${event.recurrenceRule}`,
             ]
           : undefined,
+        transparency: event.transparency,
       },
     });
     return response.data;

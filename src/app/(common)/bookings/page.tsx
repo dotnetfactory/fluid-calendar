@@ -1,0 +1,9 @@
+import { notFound } from "next/navigation";
+
+import { isSaasEnabled } from "@/lib/config";
+
+export default async function Page() {
+  if (!isSaasEnabled) return notFound();
+  const { default: Component } = await import("@saas/routes/(common)/bookings/page");
+  return <Component />;
+}

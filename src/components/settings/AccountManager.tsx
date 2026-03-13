@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Crown, Lock } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import { useCanAddCalendarProvider, useInvalidateCalendarProviderPermissions } from "@/hooks/useCalendarProviderPermissions";
 import { logger } from "@/lib/logger";
 
 import { useSettingsStore } from "@/store/settings";
@@ -39,9 +40,43 @@ export function AccountManager() {
   );
   const [isLoading, setIsLoading] = useState(true);
 
+  // Check calendar provider permissions
+  const {
+    canAdd,
+    reason,
+    currentUsage,
+    limit,
+    upgradeRequired,
+    isLoading: permissionsLoading,
+    hasUnlimited,
+    remainingSlots,
+  } = useCanAddCalendarProvider();
+
+  // Hook to invalidate permissions cache
+  const invalidatePermissions = useInvalidateCalendarProviderPermissions();
+
+  // Use ref to prevent double-execution in React StrictMode
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
+    // Only run once per component lifecycle
+    if (hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
+
     refreshAccounts();
-  }, [refreshAccounts]);
+
+    // Sync usage count when component loads to ensure accuracy
+    fetch("/api/calendar-providers/sync-usage", { method: "POST" })
+      .then(() => invalidatePermissions())
+      .catch((error) => {
+        logger.error(
+          "Failed to sync calendar provider usage",
+          { error: error instanceof Error ? error.message : "Unknown error" },
+          LOG_SOURCE
+        );
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Fetch integration status
@@ -62,6 +97,12 @@ export function AccountManager() {
   }, []);
 
   const handleConnect = (provider: "GOOGLE" | "OUTLOOK") => {
+    // Check permissions before connecting
+    if (!canAdd && upgradeRequired) {
+      window.location.href = `/pricing?error=upgrade_required&reason=${encodeURIComponent(reason || "Calendar provider limit reached")}`;
+      return;
+    }
+
     if (provider === "GOOGLE") {
       window.location.href = `/api/calendar/google/auth`;
     } else if (provider === "OUTLOOK") {
@@ -72,6 +113,8 @@ export function AccountManager() {
   const handleRemove = async (accountId: string) => {
     try {
       await removeAccount(accountId);
+      // Invalidate permissions cache to update usage count
+      invalidatePermissions();
     } catch (error) {
       console.error("Failed to remove account:", error);
     }
@@ -86,6 +129,8 @@ export function AccountManager() {
   const handleCalDAVSuccess = () => {
     setShowCalDAVForm(false);
     refreshAccounts();
+    // Invalidate permissions cache to update usage count
+    invalidatePermissions();
   };
 
   return (
@@ -98,6 +143,39 @@ export function AccountManager() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Calendar Provider Usage Status */}
+          {!permissionsLoading && (
+            <div className="rounded-lg border p-4 bg-muted/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Calendar Providers</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">
+                    {currentUsage} / {hasUnlimited ? "∞" : limit} used
+                  </Badge>
+                  {hasUnlimited && (
+                    <Crown className="h-4 w-4 text-yellow-500" />
+                  )}
+                </div>
+              </div>
+              {!canAdd && upgradeRequired && (
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">{reason}</p>
+                  <Button size="sm" onClick={() => window.location.href = '/pricing'}>
+                    Upgrade Plan
+                  </Button>
+                </div>
+              )}
+              {canAdd && !hasUnlimited && remainingSlots !== null && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {remainingSlots} provider{remainingSlots === 1 ? '' : 's'} remaining
+                </p>
+              )}
+            </div>
+          )}
+
           {!integrationStatus.google.configured && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -123,18 +201,31 @@ export function AccountManager() {
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => handleConnect("GOOGLE")}
-              disabled={!integrationStatus.google.configured || isLoading}
+              disabled={!integrationStatus.google.configured || isLoading || (!canAdd && upgradeRequired)}
             >
               Connect Google Calendar
+              {!canAdd && upgradeRequired && <Lock className="ml-2 h-4 w-4" />}
             </Button>
             <Button
               onClick={() => handleConnect("OUTLOOK")}
-              disabled={!integrationStatus.outlook.configured || isLoading}
+              disabled={!integrationStatus.outlook.configured || isLoading || (!canAdd && upgradeRequired)}
             >
               Connect Outlook Calendar
+              {!canAdd && upgradeRequired && <Lock className="ml-2 h-4 w-4" />}
             </Button>
-            <Button onClick={() => setShowCalDAVForm(true)} variant="outline">
+            <Button
+              onClick={() => {
+                if (!canAdd && upgradeRequired) {
+                  window.location.href = `/pricing?error=upgrade_required&reason=${encodeURIComponent(reason || "Calendar provider limit reached")}`;
+                  return;
+                }
+                setShowCalDAVForm(true);
+              }}
+              variant="outline"
+              disabled={!canAdd && upgradeRequired}
+            >
               Connect CalDAV Calendar
+              {!canAdd && upgradeRequired && <Lock className="ml-2 h-4 w-4" />}
             </Button>
           </div>
 
@@ -181,7 +272,7 @@ export function AccountManager() {
                           variant="outline"
                           onClick={() => toggleAvailableCalendars(account.id)}
                         >
-                          {showAvailableFor === account.id ? "Hide" : "Show"}{" "}
+                          {showAvailableFor === account.id ? "Hide" : "Add More"}{" "}
                           Calendars
                         </Button>
                         <Button

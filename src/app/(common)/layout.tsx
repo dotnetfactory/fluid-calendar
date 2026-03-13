@@ -7,8 +7,6 @@ import dynamic from "next/dynamic";
 import { DndProvider } from "@/components/dnd/DndProvider";
 import { AppNav } from "@/components/navigation/AppNav";
 import { PrivacyProvider } from "@/components/providers/PrivacyProvider";
-import { SessionProvider } from "@/components/providers/SessionProvider";
-import { SetupCheck } from "@/components/setup/SetupCheck";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { CommandPaletteFab } from "@/components/ui/command-palette-fab";
 import { CommandPaletteHint } from "@/components/ui/command-palette-hint";
@@ -21,16 +19,12 @@ import { useShortcutsStore } from "@/store/shortcuts";
 
 import "../globals.css";
 
-// Dynamically import the NotificationProvider based on SAAS flag
+// NotificationProvider — OS stub is no-op, SaaS provides SSE notifications via @saas alias
 const NotificationProvider = dynamic<{ children: React.ReactNode }>(
   () =>
-    import(
-      `@/components/providers/NotificationProvider${
-        process.env.NEXT_PUBLIC_ENABLE_SAAS_FEATURES === "true"
-          ? ".saas"
-          : ".open"
-      }`
-    ).then((mod) => mod.NotificationProvider),
+    import("@saas/components/NotificationProvider").then(
+      (mod) => mod.NotificationProvider
+    ),
   {
     ssr: false,
     loading: () => <>{/* Render nothing while loading */}</>,
@@ -66,28 +60,25 @@ export default function RootLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SessionProvider>
-        <PrivacyProvider>
-          <DndProvider>
-            <SetupCheck />
-            <CommandPalette
-              open={commandPaletteOpen}
-              onOpenChange={setCommandPaletteOpen}
-            />
-            <CommandPaletteHint />
-            <CommandPaletteFab />
-            <ShortcutsModal
-              isOpen={shortcutsOpen}
-              onClose={() => setShortcutsOpen(false)}
-            />
-            <AppNav />
-            <main className="relative flex-1">
-              <NotificationProvider>{children}</NotificationProvider>
-            </main>
-            <Toaster />
-          </DndProvider>
-        </PrivacyProvider>
-      </SessionProvider>
+      <PrivacyProvider>
+        <DndProvider>
+          <CommandPalette
+            open={commandPaletteOpen}
+            onOpenChange={setCommandPaletteOpen}
+          />
+          <CommandPaletteHint />
+          <CommandPaletteFab />
+          <ShortcutsModal
+            isOpen={shortcutsOpen}
+            onClose={() => setShortcutsOpen(false)}
+          />
+          <AppNav />
+          <main className="relative flex-1">
+            <NotificationProvider>{children}</NotificationProvider>
+          </main>
+          <Toaster />
+        </DndProvider>
+      </PrivacyProvider>
     </div>
   );
 }
