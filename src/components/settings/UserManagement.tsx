@@ -2,16 +2,10 @@
 
 import AccessDeniedMessage from "@/components/auth/AccessDeniedMessage";
 import AdminOnly from "@/components/auth/AdminOnly";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 import PublicSignupSettings from "./PublicSignupSettings";
 import { SettingsSection } from "./SettingsSection";
+import { UserTable } from "./UserTable";
 
 /**
  * User management settings component
@@ -30,20 +24,7 @@ export function UserManagement() {
       >
         <div className="space-y-6">
           <PublicSignupSettings />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>User Accounts</CardTitle>
-              <CardDescription>
-                Manage existing user accounts and permissions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                User account management will be available in a future update.
-              </p>
-            </CardContent>
-          </Card>
+          <UserTable />
         </div>
       </SettingsSection>
     </AdminOnly>

@@ -115,6 +115,7 @@ export function TaskModal({
   const [priority, setPriority] = useState<Priority | null>(
     task?.priority || null
   );
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = useCallback(() => {
@@ -135,6 +136,7 @@ export function TaskModal({
     setIsAutoScheduled(true);
     setScheduleLocked(false);
     setPriority(null);
+    setShowAdvanced(false);
   }, [initialProjectId]);
 
   // Reset form when modal opens/closes
@@ -173,6 +175,16 @@ export function TaskModal({
       setIsAutoScheduled(task.isAutoScheduled);
       setScheduleLocked(task.scheduleLocked);
       setPriority(task.priority || null);
+      // Show advanced if task uses any advanced features
+      setShowAdvanced(!!(
+        task.startDate || 
+        task.duration || 
+        task.energyLevel || 
+        task.preferredTime || 
+        task.status !== TaskStatus.TODO ||
+        !task.isAutoScheduled ||
+        task.isRecurring
+      ));
     } else if (!task && isOpen) {
       resetForm();
     }
@@ -238,7 +250,8 @@ export function TaskModal({
           <DialogTitle>{task ? "Edit Task" : "New Task"}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="space-y-3 overflow-y-auto">
+          {/* Essential Fields - Always Visible */}
           <div>
             <Label htmlFor="title">Title</Label>
             <Input
@@ -260,177 +273,35 @@ export function TaskModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={status}
-                onValueChange={(value) => setStatus(value as TaskStatus)}
-              >
-                <SelectTrigger>
-                  <SelectValue>{formatEnumValue(status)}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(TaskStatus).map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {formatEnumValue(s)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="dueDate">Due Date</Label>
-              <Input
-                type="date"
-                id="dueDate"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input
-                type="date"
-                id="startDate"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Optional: Task won&apos;t be scheduled before this date
-              </p>
-            </div>
-
-            <div>
-              <Label htmlFor="duration">Duration (minutes)</Label>
-              <Input
-                type="number"
-                id="duration"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                min="0"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="priority">Priority</Label>
-              <Select
-                value={priority || Priority.NONE}
-                onValueChange={(value) => setPriority(value as Priority)}
-              >
-                <SelectTrigger>
-                  <SelectValue>
-                    {formatEnumValue(priority || Priority.NONE)}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(Priority).map((level) => (
-                    <SelectItem key={level} value={level}>
-                      {formatEnumValue(level)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="energyLevel">Energy Level</Label>
-              <Select
-                value={energyLevel || "none"}
-                onValueChange={(value) =>
-                  setEnergyLevel(value === "none" ? "" : (value as EnergyLevel))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="None">
-                    {energyLevel ? formatEnumValue(energyLevel) : "None"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {Object.values(EnergyLevel).map((level) => (
-                    <SelectItem key={level} value={level}>
-                      {formatEnumValue(level)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="preferredTime">Preferred Time</Label>
-              <Select
-                value={preferredTime || "none"}
-                onValueChange={(value) =>
-                  setPreferredTime(
-                    value === "none" ? "" : (value as TimePreference)
-                  )
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="None">
-                    {preferredTime ? formatEnumValue(preferredTime) : "None"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {Object.values(TimePreference).map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {formatEnumValue(time)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="dueDate">Due Date</Label>
+            <Input
+              type="date"
+              id="dueDate"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
           </div>
 
-          <div className="space-y-4 border-t pt-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Auto-Schedule</Label>
-                <p className="text-sm text-muted-foreground">
-                  Let the system schedule this task automatically
-                </p>
-              </div>
-              <Switch
-                checked={isAutoScheduled}
-                onCheckedChange={setIsAutoScheduled}
-              />
-            </div>
-
-            {isAutoScheduled && (
-              <>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Lock Schedule</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Prevent automatic rescheduling
-                    </p>
-                  </div>
-                  <Switch
-                    checked={scheduleLocked}
-                    onCheckedChange={setScheduleLocked}
-                  />
-                </div>
-
-                {task?.scheduledStart && task?.scheduledEnd && (
-                  <div className="rounded-md bg-primary/10 p-3">
-                    <div className="text-sm text-primary">
-                      Scheduled for{" "}
-                      {format(newDate(task.scheduledStart), "PPp")} to{" "}
-                      {format(newDate(task.scheduledEnd), "p")}
-                    </div>
-                    {task.scheduleScore && (
-                      <div className="mt-1 text-sm text-primary/70">
-                        Confidence: {Math.round(task.scheduleScore * 100)}%
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
+          <div>
+            <Label htmlFor="priority">Priority</Label>
+            <Select
+              value={priority || Priority.NONE}
+              onValueChange={(value) => setPriority(value as Priority)}
+            >
+              <SelectTrigger>
+                <SelectValue>
+                  {formatEnumValue(priority || Priority.NONE)}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(Priority).map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {formatEnumValue(level)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -464,10 +335,10 @@ export function TaskModal({
                 <label
                   key={tag.id}
                   className={cn(
-                    "inline-flex cursor-pointer items-center rounded-full px-3 py-1.5 text-sm transition-colors",
+                    "inline-flex cursor-pointer items-center rounded-full px-3 py-1.5 text-sm transition-all duration-200",
                     selectedTagIds.includes(tag.id)
-                      ? "bg-primary/20 text-primary"
-                      : "bg-muted text-muted-foreground hover:bg-muted/70"
+                      ? "bg-primary text-primary-foreground font-medium shadow-sm ring-2 ring-primary/20"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                   )}
                 >
                   <Checkbox
@@ -484,7 +355,12 @@ export function TaskModal({
                     }}
                   />
                   <span
-                    className="mr-2 h-2 w-2 rounded-full"
+                    className={cn(
+                      "mr-2 h-2 w-2 rounded-full transition-all duration-200",
+                      selectedTagIds.includes(tag.id) 
+                        ? "ring-2 ring-white/30 scale-110" 
+                        : ""
+                    )}
                     style={{ backgroundColor: tag.color || "var(--muted)" }}
                   />
                   {tag.name}
@@ -515,131 +391,297 @@ export function TaskModal({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="recurring"
-                checked={isRecurring}
-                onCheckedChange={(checked) => {
-                  setIsRecurring(checked as boolean);
-                  if (checked) {
-                    if (!dueDate) {
-                      const today = newDate();
-                      setDueDate(today.toISOString().split("T")[0]);
-                    }
-                    if (!recurrenceRule) {
-                      setRecurrenceRule(
-                        new RRule({
-                          freq: RRule.WEEKLY,
-                          interval: 1,
-                          byweekday: [RRule.MO],
-                        }).toString()
-                      );
-                    }
-                  }
-                }}
-              />
-              <Label htmlFor="recurring">Make this a recurring task</Label>
-            </div>
-            {isRecurring && !dueDate && (
-              <div className="ml-6 mt-1 text-sm text-primary">
-                A recurring task needs a start date. Today has been set as the
-                default.
-              </div>
-            )}
-            {isRecurring && (
-              <div className="mt-2 space-y-3 pl-6">
-                <div>
-                  <Label>Repeat every</Label>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min="1"
-                      value={
-                        recurrenceRule
-                          ? getStandardRRule({
-                              recurrenceRule,
-                              source: task?.source,
-                            } as Task).options.interval || 1
-                          : 1
-                      }
-                      onChange={(e) => {
-                        const interval = parseInt(e.target.value) || 1;
-                        const currentRule = recurrenceRule
-                          ? getStandardRRule({
-                              recurrenceRule,
-                              source: task?.source,
-                            } as Task)
-                          : new RRule({
-                              freq: RRule.WEEKLY,
-                              interval: 1,
-                              byweekday: [RRule.MO],
-                            });
-                        setRecurrenceRule(
-                          new RRule({
-                            ...currentRule.options,
-                            interval,
-                          }).toString()
-                        );
-                      }}
-                      className="w-20"
-                    />
-                    <Select
-                      value={
-                        recurrenceRule
-                          ? getStandardRRule({
-                              recurrenceRule,
-                              source: task?.source,
-                            } as Task).options.freq.toString()
-                          : RRule.WEEKLY.toString()
-                      }
-                      onValueChange={(value) => {
-                        const freq = parseInt(value);
-                        const currentRule = recurrenceRule
-                          ? getStandardRRule({
-                              recurrenceRule,
-                              source: task?.source,
-                            } as Task)
-                          : new RRule({
-                              freq: RRule.WEEKLY,
-                              interval: 1,
-                              byweekday: [RRule.MO],
-                            });
-                        setRecurrenceRule(
-                          new RRule({
-                            ...currentRule.options,
-                            freq,
-                            byweekday:
-                              freq === RRule.WEEKLY ? [RRule.MO] : null,
-                          }).toString()
-                        );
-                      }}
-                    >
-                      <SelectTrigger className="w-[110px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={RRule.DAILY.toString()}>
-                          days
-                        </SelectItem>
-                        <SelectItem value={RRule.WEEKLY.toString()}>
-                          weeks
-                        </SelectItem>
-                        <SelectItem value={RRule.MONTHLY.toString()}>
-                          months
-                        </SelectItem>
-                        <SelectItem value={RRule.YEARLY.toString()}>
-                          years
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            )}
+          {/* Show Advanced Toggle */}
+          <div className="flex justify-center pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              {showAdvanced ? "Hide Advanced" : "Show Advanced"}
+            </Button>
           </div>
 
-          <div className="flex justify-end gap-3 border-t pt-4">
+          {/* Advanced Fields - Hidden by Default */}
+          {showAdvanced && (
+            <div className="space-y-3 border-t pt-3">
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={status}
+                  onValueChange={(value) => setStatus(value as TaskStatus)}
+                >
+                  <SelectTrigger>
+                    <SelectValue>{formatEnumValue(status)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(TaskStatus).map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {formatEnumValue(s)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Start Date and Duration Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="startDate">Start Date</Label>
+                  <Input
+                    type="date"
+                    id="startDate"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Optional: Task won&apos;t be scheduled before this date
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="duration">Duration (minutes)</Label>
+                  <Input
+                    type="number"
+                    id="duration"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              {/* Energy Level and Preferred Time Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="energyLevel">Energy Level</Label>
+                  <Select
+                    value={energyLevel || "none"}
+                    onValueChange={(value) =>
+                      setEnergyLevel(value === "none" ? "" : (value as EnergyLevel))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="None">
+                        {energyLevel ? formatEnumValue(energyLevel) : "None"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {Object.values(EnergyLevel).map((level) => (
+                        <SelectItem key={level} value={level}>
+                          {formatEnumValue(level)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="preferredTime">Preferred Time</Label>
+                  <Select
+                    value={preferredTime || "none"}
+                    onValueChange={(value) =>
+                      setPreferredTime(
+                        value === "none" ? "" : (value as TimePreference)
+                      )
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="None">
+                        {preferredTime ? formatEnumValue(preferredTime) : "None"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {Object.values(TimePreference).map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {formatEnumValue(time)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Auto-Schedule Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Auto-Schedule</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Let the system schedule this task automatically
+                    </p>
+                  </div>
+                  <Switch
+                    checked={isAutoScheduled}
+                    onCheckedChange={setIsAutoScheduled}
+                  />
+                </div>
+
+                {isAutoScheduled && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Lock Schedule</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Prevent automatic rescheduling
+                        </p>
+                      </div>
+                      <Switch
+                        checked={scheduleLocked}
+                        onCheckedChange={setScheduleLocked}
+                      />
+                    </div>
+
+                    {task?.scheduledStart && task?.scheduledEnd && (
+                      <div className="rounded-md bg-primary/10 p-3">
+                        <div className="text-sm text-primary">
+                          Scheduled for{" "}
+                          {format(newDate(task.scheduledStart), "PPp")} to{" "}
+                          {format(newDate(task.scheduledEnd), "p")}
+                        </div>
+                        {task.scheduleScore && (
+                          <div className="mt-1 text-sm text-primary/70">
+                            Confidence: {Math.round(task.scheduleScore * 100)}%
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Recurring Task Section */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="recurring"
+                    checked={isRecurring}
+                    onCheckedChange={(checked) => {
+                      setIsRecurring(checked as boolean);
+                      if (checked) {
+                        if (!dueDate) {
+                          const today = newDate();
+                          setDueDate(today.toISOString().split("T")[0]);
+                        }
+                        if (!recurrenceRule) {
+                          setRecurrenceRule(
+                            new RRule({
+                              freq: RRule.WEEKLY,
+                              interval: 1,
+                              byweekday: [RRule.MO],
+                            }).toString()
+                          );
+                        }
+                      }
+                    }}
+                  />
+                  <Label htmlFor="recurring">Make this a recurring task</Label>
+                </div>
+                {isRecurring && !dueDate && (
+                  <div className="ml-6 mt-1 text-sm text-primary">
+                    A recurring task needs a start date. Today has been set as the
+                    default.
+                  </div>
+                )}
+                {isRecurring && (
+                  <div className="mt-2 space-y-3 pl-6">
+                    <div>
+                      <Label>Repeat every</Label>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={
+                            recurrenceRule
+                              ? getStandardRRule({
+                                  recurrenceRule,
+                                  source: task?.source,
+                                } as Task).options.interval || 1
+                              : 1
+                          }
+                          onChange={(e) => {
+                            const interval = parseInt(e.target.value) || 1;
+                            const currentRule = recurrenceRule
+                              ? getStandardRRule({
+                                  recurrenceRule,
+                                  source: task?.source,
+                                } as Task)
+                              : new RRule({
+                                  freq: RRule.WEEKLY,
+                                  interval: 1,
+                                  byweekday: [RRule.MO],
+                                });
+                            setRecurrenceRule(
+                              new RRule({
+                                ...currentRule.options,
+                                interval,
+                              }).toString()
+                            );
+                          }}
+                          className="w-20"
+                        />
+                        <Select
+                          value={
+                            recurrenceRule
+                              ? getStandardRRule({
+                                  recurrenceRule,
+                                  source: task?.source,
+                                } as Task).options.freq.toString()
+                              : RRule.WEEKLY.toString()
+                          }
+                          onValueChange={(value) => {
+                            const freq = parseInt(value);
+                            const currentRule = recurrenceRule
+                              ? getStandardRRule({
+                                  recurrenceRule,
+                                  source: task?.source,
+                                } as Task)
+                              : new RRule({
+                                  freq: RRule.WEEKLY,
+                                  interval: 1,
+                                  byweekday: [RRule.MO],
+                                });
+                            setRecurrenceRule(
+                              new RRule({
+                                ...currentRule.options,
+                                freq,
+                                byweekday:
+                                  freq === RRule.WEEKLY ? [RRule.MO] : null,
+                              }).toString()
+                            );
+                          }}
+                        >
+                          <SelectTrigger className="w-[110px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={RRule.DAILY.toString()}>
+                              days
+                            </SelectItem>
+                            <SelectItem value={RRule.WEEKLY.toString()}>
+                              weeks
+                            </SelectItem>
+                            <SelectItem value={RRule.MONTHLY.toString()}>
+                              months
+                            </SelectItem>
+                            <SelectItem value={RRule.YEARLY.toString()}>
+                              years
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 border-t pt-3">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>

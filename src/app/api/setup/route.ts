@@ -148,14 +148,6 @@ export async function POST(request: Request) {
         return tx.systemSettings.create({
           data: {
             id: "default",
-            logLevel: "error",
-            logDestination: "db",
-            logRetention: {
-              error: 30,
-              warn: 14,
-              info: 7,
-              debug: 3,
-            },
             publicSignup: false,
             resendApiKey: process.env.RESEND_API_KEY || null,
           },

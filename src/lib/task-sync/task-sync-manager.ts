@@ -22,9 +22,9 @@ import { prisma } from "@/lib/prisma";
 
 import { TaskStatus } from "@/types/task";
 
+import { GhostTaskFilter } from "../ghost-task-filter";
 import { FieldMapper } from "./field-mapper";
 import { OutlookFieldMapper } from "./providers/outlook-field-mapper";
-import { GoogleFieldMapper } from "./providers/google-field-mapper";
 // Import provider implementations
 import { OutlookTaskProvider } from "./providers/outlook-provider";
 import {
@@ -55,8 +55,6 @@ export class TaskSyncManager {
     switch (providerType.toUpperCase()) {
       case "OUTLOOK":
         return new OutlookFieldMapper();
-      case "GOOGLE":
-        return new GoogleFieldMapper();
       // Add cases for other provider types
       default:
         return new FieldMapper();
@@ -95,16 +93,6 @@ export class TaskSyncManager {
         // Get Microsoft Graph client for the account
         const client = await getMsGraphClient(dbProvider.accountId);
         return new OutlookTaskProvider(client, dbProvider.accountId);
-      case "GOOGLE":
-        if (!dbProvider.accountId || !dbProvider.account?.userId) {
-          throw new Error(`Missing account information for Google provider ${providerId}`);
-        }
-        // Lazy import to avoid increasing startup cost
-        const { getGoogleTasksClient, GoogleTaskProvider } = await import(
-          "@/lib/task-sync/providers/google-provider"
-        );
-        const googleClient = await getGoogleTasksClient(dbProvider.accountId, dbProvider.account.userId);
-        return new GoogleTaskProvider(googleClient, dbProvider.accountId, dbProvider.account.userId);
       // case "CALDAV":
       //   return new CalDAVTaskProvider(dbProvider);
       default:
@@ -113,64 +101,103 @@ export class TaskSyncManager {
   }
 
   /**
-   * Synchronize tasks for a specific mapping between a project and external task list
+   * Sync a specific task list
    *
-   * @param mapping The TaskListMapping to sync with its provider
-   * @returns Result of the sync operation
+   * @param mappingOrId Either a mapping ID or a mapping object with provider
+   * @returns Sync result
    */
   async syncTaskList(
-    mappingId: string | (TaskListMapping & { provider: DbTaskProvider })
+    mappingOrId: string | (TaskListMapping & { provider: DbTaskProvider })
   ): Promise<SyncResult> {
-    let mapping: TaskListMapping & { provider: DbTaskProvider };
+    try {
+      // Get the mapping if we only have an ID
+      const mapping =
+        typeof mappingOrId === "string"
+          ? await prisma.taskListMapping.findUnique({
+              where: { id: mappingOrId },
+              include: { provider: true },
+            })
+          : mappingOrId;
 
-    // If mappingId is a string, fetch the mapping with its provider
-    if (typeof mappingId === "string") {
-      const foundMapping = await prisma.taskListMapping.findUnique({
-        where: { id: mappingId },
-        include: { provider: true },
-      });
-
-      if (!foundMapping) {
-        throw new Error(`Task list mapping not found: ${mappingId}`);
+      if (!mapping) {
+        const errorMsg = `Task list mapping not found: ${mappingOrId}`;
+        logger.error(
+          "Mapping not found",
+          {
+            mappingOrId:
+              typeof mappingOrId === "string" ? mappingOrId : mappingOrId.id,
+            error: errorMsg,
+          },
+          LOG_SOURCE
+        );
+        throw new Error(errorMsg);
       }
 
-      mapping = foundMapping;
-    } else {
-      // If mappingId is already a mapping object, use it directly
-      mapping = mappingId;
-    }
-
-    const provider = await this.getProvider(mapping.providerId);
-    const fieldMapper = this.getFieldMapper(mapping.provider.type);
-
-    // Initialize sync result
-    const result: SyncResult = {
-      mappingId: mapping.id,
-      providerId: mapping.providerId,
-      providerType: mapping.provider.type,
-      success: false,
-      imported: 0,
-      updated: 0,
-      deleted: 0,
-      skipped: 0,
-      direction: "bidirectional",
-      errors: [],
-    };
-
-    try {
-      // Update the mapping status
-      await prisma.taskListMapping.update({
-        where: { id: mapping.id },
-        data: {
-          syncStatus: "SYNCING",
-          lastError: null,
+      logger.info(
+        "Starting task list sync",
+        {
+          mappingId: mapping.id,
+          externalListName: mapping.externalListName,
+          providerType: mapping.provider.type,
+          syncType: "SPECIFIC_TASK_LIST",
         },
-      });
+        LOG_SOURCE
+      );
 
-      // Get the tracker instance
+      // Skip syncing if this is an "Unknown List"
+      if (mapping.externalListName?.toLowerCase() === "unknown list") {
+        logger.info(
+          "Skipping sync for Unknown List",
+          {
+            mappingId: mapping.id,
+            externalListName: mapping.externalListName,
+            reason: "unknown_list_skipped",
+          },
+          LOG_SOURCE
+        );
+
+        // Return successful result with zero operations
+        return {
+          mappingId: mapping.id,
+          providerId: mapping.providerId,
+          providerType: mapping.provider.type,
+          success: true,
+          imported: 0,
+          updated: 0,
+          deleted: 0,
+          skipped: 0,
+          direction: "bidirectional",
+          errors: [],
+        };
+      }
+
+      // Get the provider instance
+      const provider = await this.getProvider(mapping.provider.id);
+      const fieldMapper = this.getFieldMapper(mapping.provider.type);
       const tracker = new TaskChangeTracker();
 
-      // Implement true bidirectional sync
+      const result: SyncResult = {
+        mappingId: mapping.id,
+        providerId: mapping.provider.id,
+        providerType: mapping.provider.type,
+        success: true,
+        imported: 0,
+        updated: 0,
+        deleted: 0,
+        skipped: 0,
+        direction: "bidirectional",
+        errors: [],
+      };
+
+      logger.info(
+        "Syncing bidirectionally",
+        {
+          mappingId: mapping.id,
+          providerType: mapping.provider.type,
+        },
+        LOG_SOURCE
+      );
+
       await this.syncBidirectional(
         provider,
         mapping,
@@ -179,76 +206,108 @@ export class TaskSyncManager {
         tracker
       );
 
-      // Update the mapping with success status
+      // Update the mapping's last synced time
       await prisma.taskListMapping.update({
         where: { id: mapping.id },
         data: {
           lastSyncedAt: newDate(),
-          syncStatus: "OK",
-          lastError: null,
+          syncStatus: result.success ? "synced" : "error",
+          lastError: result.errors.length > 0 ? result.errors[0].error : null,
         },
       });
 
-      result.success = true;
-
-      return result;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-
-      logger.error(
-        `Sync failed for task list ${mapping.externalListName}`,
+      logger.info(
+        "Task list sync completed",
         {
           mappingId: mapping.id,
-          error: errorMessage,
+          externalListName: mapping.externalListName,
+          imported: result.imported,
+          updated: result.updated,
+          deleted: result.deleted,
+          skipped: result.skipped,
+          errors: result.errors.length,
         },
         LOG_SOURCE
       );
 
-      // Update the mapping with error status
-      await prisma.taskListMapping.update({
-        where: { id: mapping.id },
-        data: {
-          syncStatus: "ERROR",
-          lastError: errorMessage,
+      return result;
+    } catch (error) {
+      logger.error(
+        "Task list sync error",
+        {
+          mappingOrId:
+            typeof mappingOrId === "string" ? mappingOrId : mappingOrId.id,
+          error: error instanceof Error ? error.message : "Unknown error",
         },
-      });
+        LOG_SOURCE
+      );
 
-      result.errors.push({
-        taskId: "general",
-        error: errorMessage,
-      });
       throw error;
     }
   }
 
   /**
-   * Synchronize all task lists for a user
+   * Sync all task lists for a user
    *
-   * @param userId The ID of the user
-   * @returns Results of all sync operations
+   * @param userId The ID of the user to sync
+   * @returns Array of sync results
    */
   async syncAllForUser(userId: string): Promise<SyncResult[]> {
-    const results: SyncResult[] = [];
+    logger.info(
+      "Starting sync all for user",
+      {
+        userId,
+        syncType: "ALL_USER_MAPPINGS",
+      },
+      LOG_SOURCE
+    );
 
     try {
-      // Get all active mappings for the user
+      // Get all enabled task list mappings for the user
       const mappings = await prisma.taskListMapping.findMany({
         where: {
           provider: {
             userId,
-            enabled: true,
             syncEnabled: true,
           },
+          syncEnabled: true,
         },
-        include: { provider: true },
+        include: {
+          provider: true,
+        },
       });
+
+      logger.info(
+        "Found user mappings",
+        {
+          userId,
+          mappingsCount: mappings.length,
+        },
+        LOG_SOURCE
+      );
+
+      const results: SyncResult[] = [];
 
       // Sync each mapping
       for (const mapping of mappings) {
         try {
           const result = await this.syncTaskList(mapping);
           results.push(result);
+
+          logger.info(
+            "User mapping completed",
+            {
+              userId,
+              mappingId: mapping.id,
+              success: result.success,
+              imported: result.imported,
+              updated: result.updated,
+              deleted: result.deleted,
+              skipped: result.skipped,
+              errors: result.errors.length,
+            },
+            LOG_SOURCE
+          );
         } catch (error) {
           logger.error(
             `Failed to sync mapping ${mapping.id}`,
@@ -258,6 +317,7 @@ export class TaskSyncManager {
             LOG_SOURCE
           );
 
+          // Add error result
           results.push({
             mappingId: mapping.id,
             providerId: mapping.providerId,
@@ -278,16 +338,45 @@ export class TaskSyncManager {
         }
       }
 
-      return results;
-    } catch (error) {
-      logger.error(
-        `Failed to sync all providers for user ${userId}`,
+      // Calculate totals
+      const totals = results.reduce(
+        (acc, r) => {
+          acc.imported += r.imported;
+          acc.updated += r.updated;
+          acc.deleted += r.deleted;
+          acc.skipped += r.skipped;
+          acc.errorCount += r.errors.length;
+          return acc;
+        },
+        { imported: 0, updated: 0, deleted: 0, skipped: 0, errorCount: 0 }
+      );
+
+      logger.info(
+        "All user mappings completed",
         {
-          error: error instanceof Error ? error.message : "Unknown error",
+          userId,
+          totalMappings: mappings.length,
+          successfulMappings: results.filter((r) => r.success).length,
+          failedMappings: results.filter((r) => !r.success).length,
+          imported: totals.imported,
+          updated: totals.updated,
+          deleted: totals.deleted,
+          skipped: totals.skipped,
+          errors: totals.errorCount,
         },
         LOG_SOURCE
       );
 
+      return results;
+    } catch (error) {
+      logger.error(
+        "All user mappings sync error",
+        {
+          userId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+        LOG_SOURCE
+      );
       throw error;
     }
   }
@@ -430,8 +519,42 @@ export class TaskSyncManager {
       }
 
       const externalTasks = await provider.getTasks(mapping.externalListId);
-      // Step 3: Process each external task
-      for (const externalTask of externalTasks) {
+
+      // Initialize ghost task filter to identify problematic tasks
+      const ghostFilter = new GhostTaskFilter([mapping.externalListId]);
+
+      // Filter out ghost tasks before processing
+      const validExternalTasks = externalTasks.filter((task) => {
+        const taskData = {
+          id: task.id,
+          title: task.title || "",
+          status: task.status,
+          listId: mapping.externalListId,
+          listName: mapping.externalListName,
+          createdDateTime: undefined, // Not available in ExternalTask interface
+          lastModifiedDateTime: task.lastModifiedDateTime,
+          dueDateTime: task.dueDate
+            ? { dateTime: task.dueDate.toISOString() }
+            : null,
+          startDateTime: task.startDate
+            ? { dateTime: task.startDate.toISOString() }
+            : null,
+          recurrence: task.recurrenceRule
+            ? { pattern: { type: "unknown" } }
+            : null,
+        };
+
+        const shouldSync = ghostFilter.shouldSyncTask(taskData);
+
+        if (!shouldSync) {
+          result.skipped++;
+        }
+
+        return shouldSync;
+      });
+
+      // Step 3: Process each valid external task
+      for (const externalTask of validExternalTasks) {
         try {
           // Find corresponding local task
           const localTask = localTaskByExternalId.get(externalTask.id);
@@ -474,6 +597,16 @@ export class TaskSyncManager {
               const internalTask = fieldMapper.mapToInternalTask(
                 externalTask,
                 mapping.projectId
+              );
+
+              logger.info(
+                "Creating new local task from external",
+                {
+                  externalTaskId: externalTask.id,
+                  title: externalTask.title,
+                  mappingId: mapping.id,
+                },
+                LOG_SOURCE
               );
 
               await prisma.task.create({

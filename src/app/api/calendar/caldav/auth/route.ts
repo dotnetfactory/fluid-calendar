@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import {
+  checkCalendarProviderPermission,
+  incrementCalendarProviderUsage,
+} from "@saas/services/calendar-provider-permissions";
 
 import {
   createCalDAVClient,
@@ -111,13 +115,55 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Successfully connected, add the account to the database
+      // Successfully connected, check if account already exists
       const fullUrl = caldavPath
         ? formatAbsoluteUrl(serverUrl, caldavPath)
         : serverUrl;
 
-      const account = await prisma.connectedAccount.create({
-        data: {
+      // Check if this account already exists
+      const existingAccount = await prisma.connectedAccount.findUnique({
+        where: {
+          userId_provider_email: {
+            userId,
+            provider: "CALDAV",
+            email: username,
+          },
+        },
+      });
+
+      // If this is a new account, check permissions first
+      if (!existingAccount) {
+        const permissionCheck = await checkCalendarProviderPermission(userId);
+        if (!permissionCheck.canAdd) {
+          return NextResponse.json(
+            {
+              error:
+                permissionCheck.reason || "Calendar provider limit reached",
+              upgradeRequired: permissionCheck.upgradeRequired,
+              currentUsage: permissionCheck.currentUsage,
+              limit: permissionCheck.limit,
+            },
+            { status: 403 }
+          );
+        }
+      }
+
+      // Create or update the account
+      const account = await prisma.connectedAccount.upsert({
+        where: {
+          userId_provider_email: {
+            userId,
+            provider: "CALDAV",
+            email: username,
+          },
+        },
+        update: {
+          caldavUrl: fullUrl,
+          caldavUsername: username,
+          accessToken: password, // Store password as access token
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Set expiry to 1 year from now
+        },
+        create: {
           provider: "CALDAV",
           email: username,
           caldavUrl: fullUrl,
@@ -127,6 +173,11 @@ export async function POST(request: NextRequest) {
           expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Set expiry to 1 year from now
         },
       });
+
+      // Only increment usage count if this was a new account
+      if (!existingAccount) {
+        await incrementCalendarProviderUsage(userId);
+      }
 
       logger.info(
         "Successfully added CalDAV account",

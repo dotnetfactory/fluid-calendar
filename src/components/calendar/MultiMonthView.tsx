@@ -60,7 +60,7 @@ export function MultiMonthView({
     }>
   >([]);
   const calendarRef = useRef<FullCalendar>(null);
-  const tasks = useTaskStore((state) => state.tasks);
+  const tasks = useTaskStore.getState().tasks;
   const [quickViewItem, setQuickViewItem] = useState<CalendarEvent | Task>();
   const [isTask, setIsTask] = useState(false);
   const eventModalStore = useEventModalStore();
@@ -100,6 +100,8 @@ export function MultiMonthView({
             isRecurring: item.isRecurring,
             status: item.extendedProps?.status,
             priority: item.extendedProps?.priority,
+            transparency: item.transparency,
+            location: item.location,
           },
         }));
 
@@ -238,15 +240,8 @@ export function MultiMonthView({
 
     await updateTask(taskId, { status });
 
-    // Update the quick view item to reflect the new status
-    if (isTask) {
-      const updatedTask = useTaskStore
-        .getState()
-        .tasks.find((t) => t.id === taskId);
-      if (updatedTask) {
-        setQuickViewItem(updatedTask);
-      }
-    }
+    // Close the quick view popup after updating the task status
+    handleQuickViewClose();
   };
 
   const renderEventContent = useCallback(

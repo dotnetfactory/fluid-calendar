@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-os/
 /out/
 
 # production
@@ -49,12 +50,48 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+tests/.auth/
 /logs/
-/blog/
 diff.txt
 data/*
+scripts/import-resend-waitlist.js
+scripts/import-resend-waitlist.saas.js
 
-# SAAS-specific code (private)
-/src/saas/
-/dist
+# new additions
+.git
+.turbo
+.cache
+.vscode
+*.log
+dist/
+Dockerfile.worker
 scripts/test-outlook-task-api.sh
+
+# Kubernetes configs
+developer-staging-kubeconfig.yaml
+developer-kubeconfig.yaml
+*kubeconfig*.yaml
+dev-access/
+
+# SaaS submodule (in public repo, this is a git submodule)
+# Uncomment the line below when this becomes the public repo
+# saas/
+
+# SaaS-only directories (not present in OS-only builds)
+src/saas/
+
+# Scratch files
+scratch.md
+
+# Internal files (live in SaaS repo, not public)
+blog/
+marketing/
+screenshots/
+openspec/
+k8s/
+k8s-logging-setup/
+memory-bank/
+docker-compose.saas.yml
+AGENTS.md
+FluidCalendar_v2_Strategic_Report.docx
+storesmigrations.md

@@ -411,6 +411,12 @@ export function convertVEventToCalendarEvent(
       ? convertICalRRuleToRRuleString(rrule as unknown as ICalRRule)
       : null;
 
+    // Get transparency (TRANSP property) - "TRANSPARENT" means free, "OPAQUE" means busy
+    const transp = vevent.getFirstPropertyValue("transp");
+    const transparency = transp && String(transp).toUpperCase() === "TRANSPARENT"
+      ? "transparent"
+      : "opaque";
+
     // Create a partial CalendarEvent object
     return {
       id: uid,
@@ -424,6 +430,7 @@ export function convertVEventToCalendarEvent(
       isRecurring: isMaster, // Only master events are recurring
       recurrenceRule: recurrenceRuleString,
       allDay: isAllDay,
+      transparency,
       status: null,
       sequence: null,
       created: null,

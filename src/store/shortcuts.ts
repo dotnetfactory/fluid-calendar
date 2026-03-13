@@ -1,11 +1,19 @@
-import { create } from "zustand";
+import { createStandardStore } from "../lib/store-factory";
 
-interface ShortcutsStore {
+// Separate state and actions for enhanced TypeScript support
+interface ShortcutsState {
   isOpen: boolean;
+}
+
+interface ShortcutsActions {
   setOpen: (open: boolean) => void;
 }
 
-export const useShortcutsStore = create<ShortcutsStore>((set) => ({
-  isOpen: false,
-  setOpen: (open) => set({ isOpen: open }),
-}));
+export const useShortcutsStore = createStandardStore({
+  name: "shortcuts",
+  initialState: { isOpen: false } as ShortcutsState,
+  storeCreator: (set) =>
+    ({
+      setOpen: (open: boolean) => set({ isOpen: open }),
+    }) satisfies ShortcutsActions,
+});
