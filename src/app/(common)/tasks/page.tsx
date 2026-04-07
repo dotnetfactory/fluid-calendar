@@ -183,7 +183,14 @@ export default function TasksPage() {
           )}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden p-6">
+          {loading && (
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+              <div className="rounded-lg border bg-background p-4 shadow-lg">
+                <LoadingSpinner size="lg" />
+              </div>
+            </div>
+          )}
           {viewMode === "list" ? (
             <TaskList
               tasks={tasks}
@@ -221,14 +228,6 @@ export default function TasksPage() {
           onCreateTag={handleCreateTag}
           initialProjectId={initialProjectId}
         />
-
-        {loading && (
-          <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-            <div className="rounded-lg border bg-background p-4 shadow-lg">
-              <LoadingSpinner size="lg" />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

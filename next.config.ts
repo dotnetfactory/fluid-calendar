@@ -89,10 +89,11 @@ const nextConfig: NextConfig = {
       : [],
 
   // Turbopack configuration for path aliases (dev server)
+  // Use absolute paths to ensure they take precedence over tsconfig paths
   turbopack: {
     resolveAlias: {
-      "@saas": saasAliasRelative,
-      "@saas/*": `${saasAliasRelative}/*`,
+      "@saas": saasAliasPath,
+      "@saas/*": `${saasAliasPath}/*`,
     },
   },
 

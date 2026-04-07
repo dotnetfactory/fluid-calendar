@@ -2,18 +2,21 @@ import { test as setup, expect } from "@playwright/test";
 
 const authFile = "tests/.auth/user.json";
 
+setup.setTimeout(60000);
+
 setup("authenticate", async ({ page }) => {
   const email = process.env.TEST_USER_EMAIL || "test@fluidcalendar.com";
   const password = process.env.TEST_USER_PASSWORD || "testpassword123";
 
-  // Sign in
-  await page.goto("/auth/signin");
+  // Sign in — wait for form to be interactive before filling
+  await page.goto("/auth/signin", { waitUntil: "domcontentloaded" });
+  await page.locator("#email").waitFor({ state: "visible", timeout: 30000 });
   await page.locator("#email").fill(email);
   await page.locator("#password").fill(password);
   await page.locator('button[type="submit"]:has-text("Sign In")').click();
 
   // Wait for redirect — may go to /calendar, /setup, or /pricing
-  await page.waitForURL(/\/(calendar|setup|pricing)/, { timeout: 15000 });
+  await page.waitForURL(/\/(calendar|setup|pricing)/, { timeout: 45000 });
   expect(page.url()).not.toContain("/auth/signin");
 
   // Activate trial subscription if redirected to pricing

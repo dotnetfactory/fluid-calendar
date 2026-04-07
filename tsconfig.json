@@ -20,9 +20,9 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@saas/*": ["./src/features/*"]
+      "@saas/*": ["./saas/src/*", "./src/features/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "saas"]
+  "exclude": ["node_modules"]
 }

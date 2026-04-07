@@ -64,10 +64,16 @@ test.describe("Import/Export Round Trip", () => {
 
     const exportData = await exportResponse.json();
 
-    // If there are tasks, verify they can be re-imported
+    // Only re-import a small subset (max 5 tasks) to avoid accumulating
+    // thousands of duplicate tasks across test runs
     if (exportData.tasks.length > 0) {
+      const subset = {
+        ...exportData,
+        tasks: exportData.tasks.slice(0, 5),
+      };
+
       const importResponse = await request.post("/api/import/tasks", {
-        data: exportData,
+        data: subset,
       });
       expect(importResponse.status()).toBe(200);
 

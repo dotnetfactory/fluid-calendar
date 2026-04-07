@@ -39,6 +39,10 @@ export interface ExternalTask {
   lastModified?: Date;
   lastModifiedDateTime?: string;
   url?: string;
+  // Provider-specific fields (Google Tasks API names)
+  notes?: string | null;
+  due?: string | null;
+  completed?: string | null;
 }
 
 /**

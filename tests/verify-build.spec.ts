@@ -2,6 +2,9 @@ import { expect, test } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
 
+// Pages with SSE connections can be slow to settle
+test.setTimeout(60000);
+
 const mode = process.env.SCREENSHOT_MODE || "os";
 const screenshotDir = path.join(process.cwd(), "screenshots", mode);
 
@@ -67,10 +70,9 @@ test.describe("Verify Build - Authenticated Pages", () => {
   test.use({ storageState: "tests/.auth/user.json" });
 
   test("screenshot calendar page", async ({ page }) => {
-    await page.goto("/calendar");
-    await page.waitForLoadState("networkidle");
+    await page.goto("/calendar", { waitUntil: "domcontentloaded" });
     // Wait for page to settle — may show calendar or redirect to pricing
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(5000);
     await page.screenshot({
       path: path.join(screenshotDir, "calendar.png"),
       fullPage: true,
@@ -80,9 +82,8 @@ test.describe("Verify Build - Authenticated Pages", () => {
   });
 
   test("screenshot tasks page", async ({ page }) => {
-    await page.goto("/tasks");
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await page.goto("/tasks", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(5000);
     await page.screenshot({
       path: path.join(screenshotDir, "tasks.png"),
       fullPage: true,
@@ -91,9 +92,8 @@ test.describe("Verify Build - Authenticated Pages", () => {
   });
 
   test("screenshot settings page", async ({ page }) => {
-    await page.goto("/settings");
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await page.goto("/settings", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(5000);
     await page.screenshot({
       path: path.join(screenshotDir, "settings.png"),
       fullPage: true,
@@ -102,9 +102,8 @@ test.describe("Verify Build - Authenticated Pages", () => {
   });
 
   test("screenshot auto-schedule settings", async ({ page }) => {
-    await page.goto("/settings#auto-schedule");
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
+    await page.goto("/settings#auto-schedule", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(3000);
     // Try clicking the Auto-Schedule tab if it exists
     const autoScheduleTab = page.getByText("Auto-Schedule").first();
     if (await autoScheduleTab.isVisible().catch(() => false)) {

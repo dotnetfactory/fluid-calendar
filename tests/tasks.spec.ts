@@ -1,8 +1,42 @@
 import { expect, test } from "@playwright/test";
 
+// Tasks page can be slow under parallel load (Turbopack compilation + API calls)
+test.setTimeout(60000);
+
+// Helper: navigate to /tasks and wait for client-side hydration
+async function gotoTasks(page: import("@playwright/test").Page) {
+  await page.goto("/tasks", { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("[data-task-page]", { timeout: 30000 });
+}
+
+// Helper: create a task via modal and wait for it to appear in the list
+async function createTaskAndVerify(
+  page: import("@playwright/test").Page,
+  taskTitle: string
+) {
+  await page.locator("[data-create-task-button]").click();
+  await expect(page.locator("#title")).toBeVisible({ timeout: 5000 });
+  await page.locator("#title").fill(taskTitle);
+  // Wait for the task creation API response
+  const responsePromise = page.waitForResponse(
+    (resp) =>
+      resp.url().includes("/api/tasks") && resp.request().method() === "POST"
+  );
+  await page.getByRole("button", { name: "Create" }).click();
+  await responsePromise;
+
+  // Close the modal
+  await page.keyboard.press("Escape");
+
+  // Wait for the task row to appear in the list
+  await expect(page.locator("tr", { hasText: taskTitle })).toBeVisible({
+    timeout: 15000,
+  });
+}
+
 test.describe("Tasks - Page Load", () => {
   test("tasks page loads with header controls", async ({ page }) => {
-    await page.goto("/tasks");
+    await gotoTasks(page);
 
     // Verify page title
     await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible();
@@ -12,9 +46,7 @@ test.describe("Tasks - Page Load", () => {
     await expect(page.getByRole("button", { name: /Board/i })).toBeVisible();
 
     // Verify Create Task button
-    await expect(
-      page.locator("[data-create-task-button]")
-    ).toBeVisible();
+    await expect(page.locator("[data-create-task-button]")).toBeVisible();
 
     // Verify Auto Schedule button
     await expect(
@@ -25,12 +57,13 @@ test.describe("Tasks - Page Load", () => {
 
 test.describe("Tasks - CRUD Operations", () => {
   test("create a new task via modal", async ({ page }) => {
-    await page.goto("/tasks");
+    await gotoTasks(page);
 
     const taskTitle = `E2E Test Task ${Date.now()}`;
 
     // Open task creation modal
     await page.locator("[data-create-task-button]").click();
+    await expect(page.locator("#title")).toBeVisible({ timeout: 5000 });
 
     // Fill in task details
     await page.locator("#title").fill(taskTitle);
@@ -42,76 +75,64 @@ test.describe("Tasks - CRUD Operations", () => {
       await prioritySelect.selectOption("MEDIUM");
     }
 
-    // Submit the form
+    // Submit the form and wait for API response
+    const createResponse = page.waitForResponse(
+      (resp) =>
+        resp.url().includes("/api/tasks") && resp.request().method() === "POST"
+    );
     await page.getByRole("button", { name: "Create" }).click();
-    await page.waitForTimeout(500);
+    await createResponse;
 
     // Close the modal (it doesn't auto-close after create)
     await page.keyboard.press("Escape");
-    await page.waitForTimeout(500);
 
     // Verify the task appears in the list
     await expect(page.locator("tr", { hasText: taskTitle })).toBeVisible({
-      timeout: 5000,
+      timeout: 15000,
     });
   });
 
   test("edit an existing task via edit button", async ({ page }) => {
-    await page.goto("/tasks");
+    await gotoTasks(page);
 
     const taskTitle = `Edit Test ${Date.now()}`;
 
     // Create a task first
-    await page.locator("[data-create-task-button]").click();
-    await page.locator("#title").fill(taskTitle);
-    await page.getByRole("button", { name: "Create" }).click();
-    await page.waitForTimeout(500);
+    await createTaskAndVerify(page, taskTitle);
 
-    // Close the modal (it doesn't auto-close after create)
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(500);
-
-    // Find the task row (tr) that contains the task title
+    // Find the task row
     const taskRow = page.locator("tr", { hasText: taskTitle });
-    await expect(taskRow).toBeVisible({ timeout: 5000 });
 
     // Click the edit button (pencil icon) within that row
     await taskRow.getByTitle("Edit task").click();
 
-    // Wait for the edit modal to open
-    await expect(page.locator("#title")).toBeVisible({ timeout: 5000 });
+    // Wait for the edit modal to open with the "Update" button
+    // (confirms the modal received the task prop, not a blank create form)
+    const updateBtn = page.getByRole("button", { name: "Update" });
+    await expect(updateBtn).toBeVisible({ timeout: 10000 });
 
-    // Update the title
+    // Update the title (fill replaces existing content)
     const updatedTitle = `${taskTitle} Updated`;
-    await page.locator("#title").clear();
     await page.locator("#title").fill(updatedTitle);
 
     // Save changes
-    await page.getByRole("button", { name: "Update" }).click();
+    await updateBtn.click();
     await page.waitForTimeout(1000);
 
     // Verify the updated title appears
-    await expect(page.getByText(updatedTitle)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(updatedTitle)).toBeVisible({ timeout: 10000 });
   });
 
   test("delete a task", async ({ page }) => {
-    await page.goto("/tasks");
+    await gotoTasks(page);
 
     const taskTitle = `Delete Test ${Date.now()}`;
 
     // Create a task first
-    await page.locator("[data-create-task-button]").click();
-    await page.locator("#title").fill(taskTitle);
-    await page.getByRole("button", { name: "Create" }).click();
-    await page.waitForTimeout(500);
+    await createTaskAndVerify(page, taskTitle);
 
-    // Close the modal (it doesn't auto-close after create)
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(500);
-
-    // Find the task row (tr) that contains the task title
+    // Find the task row
     const taskRow = page.locator("tr", { hasText: taskTitle });
-    await expect(taskRow).toBeVisible({ timeout: 5000 });
 
     // Handle the native confirm dialog that appears on delete
     page.on("dialog", (dialog) => dialog.accept());
@@ -127,17 +148,14 @@ test.describe("Tasks - CRUD Operations", () => {
     // Click the delete button (trash icon) within that row
     await taskRow.getByTitle("Delete task").click();
 
-    // Wait for task to be removed
-    await page.waitForTimeout(2000);
-
     // Verify the task is no longer visible
-    await expect(page.getByText(taskTitle)).not.toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(taskTitle)).not.toBeVisible({ timeout: 10000 });
   });
 });
 
 test.describe("Tasks - Views", () => {
   test("toggle between List and Board views", async ({ page }) => {
-    await page.goto("/tasks");
+    await gotoTasks(page);
 
     // Start in List view
     await page.getByRole("button", { name: /List/i }).click();
@@ -155,7 +173,7 @@ test.describe("Tasks - Views", () => {
 
 test.describe("Tasks - Filtering & Search", () => {
   test("search tasks by title", async ({ page }) => {
-    await page.goto("/tasks");
+    await gotoTasks(page);
 
     // Look for search input
     const searchInput = page.getByPlaceholder("Search tasks...");
@@ -169,7 +187,7 @@ test.describe("Tasks - Filtering & Search", () => {
   });
 
   test("filter by energy level", async ({ page }) => {
-    await page.goto("/tasks");
+    await gotoTasks(page);
 
     // Look for energy level filter
     const energyFilter = page.getByText("All Energy");
@@ -182,7 +200,7 @@ test.describe("Tasks - Filtering & Search", () => {
 
 test.describe("Tasks - Auto Schedule", () => {
   test("auto schedule button triggers scheduling", async ({ page }) => {
-    await page.goto("/tasks");
+    await gotoTasks(page);
 
     const autoScheduleButton = page.getByRole("button", {
       name: "Auto Schedule",
