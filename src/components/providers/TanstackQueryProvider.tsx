@@ -2,13 +2,26 @@
 
 import { PropsWithChildren, useState } from "react";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
+import { ApiError, forceSignOut } from "@/lib/services/api";
 
 export function TanstackQueryProvider({ children }: PropsWithChildren) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        queryCache: new QueryCache({
+          onError: (error) => {
+            if (error instanceof ApiError && error.status === 401) {
+              forceSignOut();
+            }
+          },
+        }),
         defaultOptions: {
           queries: {
             staleTime: 60 * 1000, // 1 minute

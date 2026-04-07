@@ -1237,6 +1237,7 @@ export class CalDAVCalendarService {
           isRecurring: event.isRecurring || false,
           recurrenceRule: event.recurrenceRule,
           allDay: event.allDay || false,
+          transparency: event.transparency || "opaque",
           status: event.status,
           isMaster: true,
           masterEventId: null,
@@ -1299,6 +1300,7 @@ export class CalDAVCalendarService {
           isRecurring: event.isRecurring || false, // Instance events are not recurring themselves
           recurrenceRule: event.recurrenceRule, // Instance events don't have recurrence rules
           allDay: event.allDay || false,
+          transparency: event.transparency || "opaque",
           status: event.status,
           isMaster: false,
           masterEventId,

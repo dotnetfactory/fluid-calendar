@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { clearResendInstance } from "@/lib/email/resend";
+import { clearResendInstance } from "@saas/email/resend";
 import { logger } from "@/lib/logger";
 
 import { useSettingsStore } from "@/store/settings";
@@ -40,7 +40,6 @@ export function SystemSettings() {
           outlookClientId: data.outlookClientId,
           outlookClientSecret: data.outlookClientSecret,
           outlookTenantId: data.outlookTenantId,
-          logLevel: data.logLevel,
           disableHomepage: data.disableHomepage,
           resendApiKey: data.resendApiKey,
         });
@@ -177,7 +176,7 @@ export function SystemSettings() {
                   <li>Add platform and configure OAuth settings</li>
                   <li>
                     Add redirect URI: {window.location.origin}
-                    /api/calendar/outlook
+                    /api/auth/callback/azure-ad
                   </li>
                   <li>
                     Copy the Application (client) ID and create a client secret

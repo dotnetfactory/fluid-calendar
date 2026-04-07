@@ -65,7 +65,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Start a transaction to ensure data consistency
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(
+      async (tx) => {
       // Import tags first (if any)
       const tagMap = new Map<string, string>(); // Map old tag IDs to new tag IDs
 
@@ -219,7 +220,9 @@ export async function POST(request: NextRequest) {
       }
 
       return { importedCount };
-    });
+      },
+      { timeout: 60000 }
+    );
 
     logger.info(
       "Tasks imported successfully",

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@saas/*": ["./src/features/*"]
+    }
+  },
+  "exclude": ["node_modules", "saas"]
+}

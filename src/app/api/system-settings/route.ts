@@ -24,7 +24,6 @@ export async function GET(request: NextRequest) {
         return tx.systemSettings.create({
           data: {
             id: "default",
-            logLevel: "none",
             disableHomepage: false,
           },
         });
@@ -52,19 +51,43 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const updates = await request.json();
+    
+    logger.info(
+      "Attempting to update system settings",
+      { updates: Object.keys(updates) },
+      LOG_SOURCE
+    );
 
     const settings = await prisma.$transaction(async (tx) => {
       // Check if any SystemSettings record exists
       const existingSettings = await tx.systemSettings.findFirst();
+      
+      logger.info(
+        "SystemSettings query result",
+        { hasExisting: !!existingSettings, existingId: existingSettings?.id || null },
+        LOG_SOURCE
+      );
 
       if (existingSettings) {
         // Update the existing record
+        logger.info(
+          "Updating existing SystemSettings record",
+          { id: existingSettings.id },
+          LOG_SOURCE
+        );
+        
         return tx.systemSettings.update({
           where: { id: existingSettings.id },
           data: updates,
         });
       } else {
         // Create a new record with default ID
+        logger.info(
+          "Creating new SystemSettings record with default ID",
+          {},
+          LOG_SOURCE
+        );
+        
         return tx.systemSettings.create({
           data: {
             id: "default",
@@ -73,6 +96,12 @@ export async function PATCH(request: NextRequest) {
         });
       }
     });
+
+    logger.info(
+      "System settings updated successfully",
+      { settingsId: settings.id },
+      LOG_SOURCE
+    );
 
     // Log if the homepage setting was updated
     if ("disableHomepage" in updates) {
@@ -87,7 +116,11 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     logger.error(
       "Failed to update system settings",
-      { error: error instanceof Error ? error.message : "Unknown error" },
+      { 
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack || null : null,
+        name: error instanceof Error ? error.name || null : null 
+      },
       LOG_SOURCE
     );
     return NextResponse.json(

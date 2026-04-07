@@ -1,9 +1,8 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-
 import { logger } from "@/lib/logger";
 
 import { Settings } from "@/types/settings";
+
+import { createStandardStore } from "../lib/store-factory";
 
 const LOG_SOURCE = "SettingsStore";
 
@@ -14,12 +13,17 @@ interface ConnectedAccount {
   calendars: Array<{ id: string; name: string }>;
 }
 
-interface SettingsStore extends Settings {
+// Enhanced TypeScript interfaces for better type safety
+interface SettingsState extends Settings {
   accounts: ConnectedAccount[];
   initialized: boolean;
+}
 
-  // Actions
+interface SettingsActions {
+  // Initialization
   initializeSettings: () => Promise<void>;
+
+  // Settings update actions
   updateUserSettings: (settings: Partial<Settings["user"]>) => void;
   updateCalendarSettings: (settings: Partial<Settings["calendar"]>) => void;
   updateNotificationSettings: (
@@ -33,6 +37,8 @@ interface SettingsStore extends Settings {
     settings: Partial<Settings["autoSchedule"]>
   ) => void;
   updateSystemSettings: (settings: Partial<Settings["system"]>) => void;
+
+  // Account management actions
   setAccounts: (accounts: ConnectedAccount[]) => void;
   removeAccount: (accountId: string) => Promise<void>;
   refreshAccounts: () => Promise<void>;
@@ -108,19 +114,21 @@ const defaultSettings: Settings & { accounts: ConnectedAccount[] } = {
     outlookClientId: undefined,
     outlookClientSecret: undefined,
     outlookTenantId: undefined,
-    logLevel: "none",
-    logRetention: undefined,
-    logDestination: "db",
     disableHomepage: false,
   },
   accounts: [],
 };
 
-export const useSettingsStore = create<SettingsStore>()(
-  persist(
-    (set, get) => ({
-      ...defaultSettings,
-      initialized: false,
+// Using our enhanced store factory
+export const useSettingsStore = createStandardStore({
+  name: "calendar-settings",
+  initialState: {
+    ...defaultSettings,
+    initialized: false,
+  } as SettingsState,
+
+  storeCreator: (set, get) =>
+    ({
       updateUserSettings: (settings) =>
         set((state) => {
           // Update local state
@@ -331,7 +339,7 @@ export const useSettingsStore = create<SettingsStore>()(
           });
 
           // Refresh accounts after removal
-          await get().refreshAccounts();
+          await (get() as SettingsState & SettingsActions).refreshAccounts();
         } catch (error) {
           logger.error(
             "Failed to remove account",
@@ -385,7 +393,9 @@ export const useSettingsStore = create<SettingsStore>()(
           set({ initialized: true, accounts });
 
           // Update all settings
-          get().updateUserSettings({
+          const store = get() as SettingsState & SettingsActions;
+
+          store.updateUserSettings({
             theme: userSettings.theme,
             defaultView: userSettings.defaultView,
             timeZone: userSettings.timeZone,
@@ -394,7 +404,7 @@ export const useSettingsStore = create<SettingsStore>()(
           });
 
           // More updates will be added here
-          get().updateCalendarSettings({
+          store.updateCalendarSettings({
             defaultCalendarId: calendarSettings.defaultCalendarId,
             workingHours: {
               enabled: calendarSettings.workingHoursEnabled,
@@ -410,7 +420,7 @@ export const useSettingsStore = create<SettingsStore>()(
             refreshInterval: calendarSettings.refreshInterval,
           });
 
-          get().updateNotificationSettings({
+          store.updateNotificationSettings({
             emailNotifications: notificationSettings.emailNotifications,
             dailyEmailEnabled: notificationSettings.dailyEmailEnabled,
             notifyFor: {
@@ -424,7 +434,7 @@ export const useSettingsStore = create<SettingsStore>()(
             ),
           });
 
-          get().updateIntegrationSettings({
+          store.updateIntegrationSettings({
             googleCalendar: {
               enabled: integrationSettings.googleCalendarEnabled,
               autoSync: integrationSettings.googleCalendarAutoSync,
@@ -437,13 +447,13 @@ export const useSettingsStore = create<SettingsStore>()(
             },
           });
 
-          get().updateDataSettings({
+          store.updateDataSettings({
             autoBackup: dataSettings.autoBackup,
             backupInterval: dataSettings.backupInterval,
             retainDataFor: dataSettings.retainDataFor,
           });
 
-          get().updateAutoScheduleSettings({
+          store.updateAutoScheduleSettings({
             workDays: autoScheduleSettings.workDays,
             workHourStart: autoScheduleSettings.workHourStart,
             workHourEnd: autoScheduleSettings.workHourEnd,
@@ -458,15 +468,12 @@ export const useSettingsStore = create<SettingsStore>()(
             groupByProject: autoScheduleSettings.groupByProject,
           });
 
-          get().updateSystemSettings({
+          store.updateSystemSettings({
             googleClientId: systemSettings.googleClientId,
             googleClientSecret: systemSettings.googleClientSecret,
             outlookClientId: systemSettings.outlookClientId,
             outlookClientSecret: systemSettings.outlookClientSecret,
             outlookTenantId: systemSettings.outlookTenantId,
-            logLevel: systemSettings.logLevel as "none" | "debug",
-            logRetention: systemSettings.logRetention,
-            logDestination: systemSettings.logDestination,
             disableHomepage: systemSettings.disableHomepage,
           });
         } catch (error) {
@@ -477,21 +484,32 @@ export const useSettingsStore = create<SettingsStore>()(
           );
         }
       },
+    }) satisfies SettingsActions,
+
+  // Enable persistence with custom partialize function
+  persist: true,
+  persistOptions: {
+    name: "calendar-settings",
+    partialize: (state: SettingsState & SettingsActions) => ({
+      ...state,
+      system: {
+        ...state.system,
+        googleClientId: undefined,
+        googleClientSecret: undefined,
+        outlookClientId: undefined,
+        outlookClientSecret: undefined,
+        outlookTenantId: undefined,
+        resendApiKey: undefined,
+      },
     }),
-    {
-      name: "calendar-settings",
-      partialize: (state) => ({
-        ...state,
-        system: {
-          ...state.system,
-          googleClientId: undefined,
-          googleClientSecret: undefined,
-          outlookClientId: undefined,
-          outlookClientSecret: undefined,
-          outlookTenantId: undefined,
-          resendApiKey: undefined,
-        },
-      }),
-    }
-  )
-);
+  },
+
+  // Custom clear that resets accounts but preserves all settings
+  customClear: (set) => {
+    set((state: SettingsState) => ({
+      ...state,
+      accounts: [],
+      // Keep all other settings as they're user preferences
+    }));
+  },
+});

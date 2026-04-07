@@ -36,6 +36,7 @@ export interface CalendarEvent {
   isRecurring: boolean;
   recurrenceRule?: string;
   allDay: boolean;
+  transparency?: string | null; // "opaque" (busy) or "transparent" (free)
   color?: string;
   // Additional fields for iCal support
   uid?: string; // Unique identifier from iCal

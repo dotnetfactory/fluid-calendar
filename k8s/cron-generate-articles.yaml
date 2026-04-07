@@ -1,0 +1,109 @@
+# Kubernetes CronJob for SEO Article Generation
+#
+# This CronJob triggers the article generation endpoint twice daily.
+# It uses curl to make a POST request with the CRON_SECRET header.
+#
+# Prerequisites:
+# 1. Create a secret with the CRON_SECRET:
+#    kubectl create secret generic cron-secrets --from-literal=CRON_SECRET=your-secret-here
+#
+# 2. Update APP_URL to match your production URL
+#
+# Deploy:
+#    kubectl apply -f k8s/cron-generate-articles.yaml
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: generate-seo-articles
+  namespace: fluid-calendar
+  labels:
+    app: fluid-calendar
+    component: seo-generator
+spec:
+  # Run every 12 hours at 0:00 and 12:00 UTC
+  schedule: "0 */12 * * *"
+  # For testing, you can use "*/5 * * * *" (every 5 minutes)
+
+  # Keep history of completed jobs
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  # Don't start a new job if the previous one is still running
+  concurrencyPolicy: Forbid
+
+  # How long to wait before considering the job as failed
+  startingDeadlineSeconds: 300
+
+  jobTemplate:
+    spec:
+      # Job will be considered failed after 10 minutes
+      activeDeadlineSeconds: 600
+
+      # Retry up to 3 times on failure
+      backoffLimit: 3
+
+      template:
+        metadata:
+          labels:
+            app: fluid-calendar
+            component: seo-generator
+        spec:
+          containers:
+            - name: trigger
+              image: curlimages/curl:8.5.0
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Triggering article generation..."
+                  response=$(curl -s -w "\n%{http_code}" -X POST \
+                    -H "x-cron-secret: $CRON_SECRET" \
+                    -H "Content-Type: application/json" \
+                    "$APP_URL/api/cron/generate-article")
+
+                  # Extract HTTP status code
+                  http_code=$(echo "$response" | tail -n1)
+                  body=$(echo "$response" | head -n -1)
+
+                  echo "Response: $body"
+                  echo "HTTP Status: $http_code"
+
+                  # Exit with error if not 200
+                  if [ "$http_code" != "200" ]; then
+                    echo "ERROR: Generation failed with status $http_code"
+                    exit 1
+                  fi
+
+                  echo "Article generation triggered successfully!"
+              env:
+                - name: CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: cron-secrets
+                      key: CRON_SECRET
+                - name: APP_URL
+                  value: "https://www.fluidcalendar.com"
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "32Mi"
+                limits:
+                  cpu: "100m"
+                  memory: "64Mi"
+
+          restartPolicy: OnFailure
+
+---
+# Secret for CRON_SECRET (create separately or use external secrets)
+# kubectl create secret generic cron-secrets --from-literal=CRON_SECRET=your-secret-here
+#
+# Alternatively, use this template and apply with kubectl:
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: cron-secrets
+# type: Opaque
+# stringData:
+#   CRON_SECRET: your-secret-here

@@ -1,6 +1,3 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-
 import { ActionType } from "@/components/ui/action-overlay";
 
 import { addDays, addHours, newDate } from "@/lib/date-utils";
@@ -11,24 +8,19 @@ import { useTaskStore } from "@/store/task";
 import { FocusMode } from "@/types/focus";
 import { Task, TaskStatus } from "@/types/task";
 
+import { createStandardStore } from "../lib/store-factory";
+
 const LOG_SOURCE = "focusMode";
 
-// Extended state to include processing information
-interface ProcessingState {
+// Enhanced TypeScript interfaces for better type safety
+interface FocusModeState extends FocusMode {
+  // Extended state to include processing information
   isProcessing: boolean;
   actionType: ActionType | null;
   actionMessage: string | null;
 }
 
-// Initial state that maintains the same interface but removes session stats
-const initialState: FocusMode & ProcessingState = {
-  currentTaskId: null,
-  isProcessing: false,
-  actionType: null,
-  actionMessage: null,
-};
-
-interface FocusModeStore extends FocusMode, ProcessingState {
+interface FocusModeActions {
   // State getters
   getCurrentTask: () => Task | null;
   getQueuedTasks: () => Task[];
@@ -44,11 +36,18 @@ interface FocusModeStore extends FocusMode, ProcessingState {
   postponeTask: (duration: string) => void;
 }
 
-export const useFocusModeStore = create<FocusModeStore>()(
-  persist(
-    (set, get) => ({
-      ...initialState,
+// Using our enhanced store factory with persistence
+export const useFocusModeStore = createStandardStore({
+  name: "focus-mode-storage",
+  initialState: {
+    currentTaskId: null,
+    isProcessing: false,
+    actionType: null,
+    actionMessage: null,
+  } as FocusModeState,
 
+  storeCreator: (set, get) =>
+    ({
       // Processing state actions
       startProcessing: (actionType: ActionType, message?: string) => {
         logger.debug(
@@ -158,7 +157,9 @@ export const useFocusModeStore = create<FocusModeStore>()(
 
       getQueuedTaskIds: () => {
         const currentTaskId = get().currentTaskId;
-        const queuedTasks = get().getQueuedTasks();
+        const queuedTasks = (
+          get() as FocusModeState & FocusModeActions
+        ).getQueuedTasks();
 
         // Filter out the current task from the queued tasks
         return queuedTasks
@@ -181,7 +182,10 @@ export const useFocusModeStore = create<FocusModeStore>()(
         }
 
         // Show loading overlay
-        get().startProcessing("celebration", "Task completed! 🎉");
+        (get() as FocusModeState & FocusModeActions).startProcessing(
+          "celebration",
+          "Task completed! 🎉"
+        );
 
         // First update the task status in the database
         const taskStore = useTaskStore.getState();
@@ -217,22 +221,24 @@ export const useFocusModeStore = create<FocusModeStore>()(
             await taskStore.fetchTasks();
             // Wait for celebration to finish (3 seconds)
             // Move to next task if available
-            const queuedTaskIds = get().getQueuedTaskIds();
+            const queuedTaskIds = (
+              get() as FocusModeState & FocusModeActions
+            ).getQueuedTaskIds();
             const nextTaskId = queuedTaskIds[0];
             set({
               currentTaskId: nextTaskId || null,
             });
-            get().stopProcessing();
+            (get() as FocusModeState & FocusModeActions).stopProcessing();
           } catch (error) {
             // Show error overlay
-            get().startProcessing(
+            (get() as FocusModeState & FocusModeActions).startProcessing(
               "error",
               "Error completing task. Please try again."
             );
 
             // Hide error after 3 seconds
             setTimeout(() => {
-              get().stopProcessing();
+              (get() as FocusModeState & FocusModeActions).stopProcessing();
             }, 3000);
 
             console.error(
@@ -265,7 +271,10 @@ export const useFocusModeStore = create<FocusModeStore>()(
         }
 
         // Show loading overlay
-        get().startProcessing("loading", `Postponing task for ${duration}...`);
+        (get() as FocusModeState & FocusModeActions).startProcessing(
+          "loading",
+          `Postponing task for ${duration}...`
+        );
 
         // First update the task in the database
         const taskStore = useTaskStore.getState();
@@ -322,22 +331,24 @@ export const useFocusModeStore = create<FocusModeStore>()(
             await taskStore.fetchTasks();
 
             // Move to next task if available
-            const queuedTaskIds = get().getQueuedTaskIds();
+            const queuedTaskIds = (
+              get() as FocusModeState & FocusModeActions
+            ).getQueuedTaskIds();
             const nextTaskId = queuedTaskIds[0];
             set({
               currentTaskId: nextTaskId || null,
             });
-            get().stopProcessing();
+            (get() as FocusModeState & FocusModeActions).stopProcessing();
           } catch (error) {
             // Show error overlay
-            get().startProcessing(
+            (get() as FocusModeState & FocusModeActions).startProcessing(
               "error",
               "Error postponing task. Please try again."
             );
 
             // Hide error after 3 seconds
             setTimeout(() => {
-              get().stopProcessing();
+              (get() as FocusModeState & FocusModeActions).stopProcessing();
             }, 3000);
 
             console.error(
@@ -347,13 +358,15 @@ export const useFocusModeStore = create<FocusModeStore>()(
           }
         })();
       },
+    }) satisfies FocusModeActions,
+
+  // Enable persistence with custom partialize function
+  persist: true,
+  persistOptions: {
+    name: "focus-mode-storage",
+    partialize: (state: FocusModeState & FocusModeActions) => ({
+      currentTaskId: state.currentTaskId,
+      // Don't persist processing state
     }),
-    {
-      name: "focus-mode-storage",
-      partialize: (state) => ({
-        currentTaskId: state.currentTaskId,
-        // Don't persist processing state
-      }),
-    }
-  )
-);
+  },
+});

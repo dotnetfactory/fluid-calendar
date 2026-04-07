@@ -139,39 +139,37 @@ export function AvailableCalendars({ accountId, provider }: Props) {
     );
   }
 
-  if (calendars.length === 0) {
-    return (
-      <div className="py-4 text-center text-muted-foreground">
-        No available calendars found
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        {calendars.map((calendar) => (
-          <div
-            key={calendar.id}
-            className="flex items-center justify-between rounded-md border bg-card p-4"
-          >
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="capitalize">
-                {calendar.accessRole?.toLowerCase() ||
-                  (calendar.canEdit ? "owner" : "reader")}
-              </Badge>
-              <span className="text-sm">{calendar.name}</span>
-            </div>
-            <Button
-              size="sm"
-              onClick={() => handleAddCalendar(calendar)}
-              disabled={addingCalendars.has(calendar.id)}
+      {calendars.length === 0 ? (
+        <div className="py-4 text-center text-muted-foreground">
+          All calendars from this account are already connected
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {calendars.map((calendar) => (
+            <div
+              key={calendar.id}
+              className="flex items-center justify-between rounded-md border bg-card p-4"
             >
-              {addingCalendars.has(calendar.id) ? "Adding..." : "Add"}
-            </Button>
-          </div>
-        ))}
-      </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="capitalize">
+                  {calendar.accessRole?.toLowerCase() ||
+                    (calendar.canEdit ? "owner" : "reader")}
+                </Badge>
+                <span className="text-sm">{calendar.name}</span>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => handleAddCalendar(calendar)}
+                disabled={addingCalendars.has(calendar.id)}
+              >
+                {addingCalendars.has(calendar.id) ? "Adding..." : "Add"}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="flex justify-end">
         <Button
           variant="outline"

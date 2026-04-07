@@ -1,9 +1,26 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createStandardStore } from "../lib/store-factory";
 
-import { EnergyLevel, TaskStatus, TimePreference } from "@/types/task";
+// Local type definitions to avoid import path issues during migration
+enum TaskStatus {
+  TODO = "todo",
+  IN_PROGRESS = "in_progress",
+  COMPLETED = "completed",
+}
 
-interface TaskListViewSettings {
+enum EnergyLevel {
+  HIGH = "high",
+  MEDIUM = "medium",
+  LOW = "low",
+}
+
+enum TimePreference {
+  MORNING = "morning",
+  AFTERNOON = "afternoon",
+  EVENING = "evening",
+}
+
+// Enhanced TypeScript interfaces for better type safety
+interface TaskListViewSettingsState {
   // Sort settings
   sortBy:
     | "dueDate"
@@ -25,16 +42,16 @@ interface TaskListViewSettings {
   tagIds?: string[];
   search?: string;
   hideUpcomingTasks?: boolean;
+}
 
-  // Actions
-  setSortBy: (sortBy: TaskListViewSettings["sortBy"]) => void;
-  setSortDirection: (direction: TaskListViewSettings["sortDirection"]) => void;
+interface TaskListViewSettingsActions {
+  setSortBy: (sortBy: TaskListViewSettingsState["sortBy"]) => void;
+  setSortDirection: (
+    direction: TaskListViewSettingsState["sortDirection"]
+  ) => void;
   setFilters: (
     filters: Partial<
-      Omit<
-        TaskListViewSettings,
-        "setSortBy" | "setSortDirection" | "setFilters" | "resetFilters"
-      >
+      Omit<TaskListViewSettingsState, "sortBy" | "sortDirection">
     >
   ) => void;
   resetFilters: () => void;
@@ -42,25 +59,35 @@ interface TaskListViewSettings {
 
 const DEFAULT_STATUS_FILTERS = [TaskStatus.TODO, TaskStatus.IN_PROGRESS];
 
-export const useTaskListViewSettings = create<TaskListViewSettings>()(
-  persist(
-    (set) => ({
-      // Initial sort settings
-      sortBy: "dueDate",
-      sortDirection: "desc",
+// Using our enhanced store factory with persistence
+export const useTaskListViewSettings = createStandardStore({
+  name: "task-list-view-settings",
+  initialState: {
+    // Initial sort settings
+    sortBy: "dueDate",
+    sortDirection: "desc",
 
-      // Initial filter settings
-      status: DEFAULT_STATUS_FILTERS,
-      energyLevel: undefined,
-      timePreference: undefined,
-      tagIds: undefined,
-      search: undefined,
-      hideUpcomingTasks: false,
+    // Initial filter settings
+    status: DEFAULT_STATUS_FILTERS,
+    energyLevel: undefined,
+    timePreference: undefined,
+    tagIds: undefined,
+    search: undefined,
+    hideUpcomingTasks: false,
+  } as TaskListViewSettingsState,
 
-      // Actions
-      setSortBy: (sortBy) => set({ sortBy }),
-      setSortDirection: (sortDirection) => set({ sortDirection }),
-      setFilters: (filters) => set(filters),
+  storeCreator: (set) =>
+    ({
+      setSortBy: (sortBy: TaskListViewSettingsState["sortBy"]) =>
+        set({ sortBy }),
+      setSortDirection: (
+        sortDirection: TaskListViewSettingsState["sortDirection"]
+      ) => set({ sortDirection }),
+      setFilters: (
+        filters: Partial<
+          Omit<TaskListViewSettingsState, "sortBy" | "sortDirection">
+        >
+      ) => set(filters),
       resetFilters: () =>
         set({
           status: DEFAULT_STATUS_FILTERS,
@@ -70,9 +97,11 @@ export const useTaskListViewSettings = create<TaskListViewSettings>()(
           search: undefined,
           hideUpcomingTasks: false,
         }),
-    }),
-    {
-      name: "task-list-view-settings",
-    }
-  )
-);
+    }) satisfies TaskListViewSettingsActions,
+
+  // Enable persistence with same configuration
+  persist: true,
+  persistOptions: {
+    name: "task-list-view-settings",
+  },
+});

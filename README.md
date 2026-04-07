@@ -35,22 +35,6 @@ By becoming a sponsor, you:
 - Get early access to new features
 - Support open-source software development
 
-## Sponsored By                                                                                     
-                                                                                                  
-<a href="https://www.nitroclaw.com?ref=fluid-calendar">                                             
-
-   <img width="600" alt="NitroClaw - Your Own OpenClaw Assistant, Zero Server Hassle" src="https://github.com/user-attachments/assets/c258d98c-b06b-4580-82b0-e54281613e54" />
-
-</a>
-
-**[NitroClaw](https://www.nitroclaw.com?ref=fluid-calendar)** - Your Own OpenClaw Assistant, Zero
-Server Hassle
-
-Deploy a dedicated OpenClaw AI assistant in under 2 minutes. Pick your LLM, connect Telegram, and
-start chatting - we handle all the infrastructure. $100/month with $50 in AI credits included.
-
-[Get Started](https://www.nitroclaw.com?ref=fluid-calendar)
-
 ## Try the SaaS Version
 
 Don't want to self-host? We're currently beta testing our hosted version at [FluidCalendar.com](https://fluidcalendar.com). Sign up for the waitlist to be among the first to experience the future of intelligent calendar management, with all the features of the open-source version plus:
@@ -113,7 +97,6 @@ To enable Google Calendar integration:
      - `./auth/calendar`
      - `./auth/userinfo.email`
      - `openid`
-     - `/auth/tasks` _(Required if you plan to sync Google Tasks)_
    - Add test users if in testing mode
 
 4. Create OAuth 2.0 Credentials:
@@ -352,62 +335,8 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 Please make sure to update tests as appropriate.
 
-## SAAS Development
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
-FluidCalendar is available as both an open source self-hosted solution and a managed SAAS service. The open source version contains all the core functionality, while the SAAS version includes additional premium features.
+## License
 
-### Open Source vs SAAS Features
-
-| Feature                           | Open Source | SAAS |
-| --------------------------------- | ----------- | ---- |
-| Calendar Management               | ✅          | ✅   |
-| Task Management                   | ✅          | ✅   |
-| Google Calendar Integration       | ✅          | ✅   |
-| Outlook Calendar Integration      | ✅          | ✅   |
-| CalDAV Integration                | ✅          | ✅   |
-| Billing & Subscription Management | ❌          | ✅   |
-
-### SAAS Development Setup
-
-If you're a contributor to the SAAS version, follow these steps to set up your development environment:
-
-1. Clone the private SAAS repository:
-
-   ```
-   git clone https://github.com/dotnetfactory/fluid-calendar-saas.git
-   ```
-
-2. Enable SAAS features in your environment:
-
-   ```
-   # .env.local
-   ENABLE_SAAS_FEATURES=true
-   ```
-
-3. Run the development server:
-   ```
-   npm run dev
-   ```
-
-### Syncing Changes Between Repositories
-
-To sync changes from the private SAAS repository to the public open source repository:
-
-1. Use the provided sync script:
-
-   ```
-   ./scripts/sync-repos.sh /path/to/private/repo /path/to/public/repo
-   ```
-
-2. Review the changes in the public repository
-3. Commit and push the changes to the public repository
-
-### Contributing to SAAS Features
-
-When developing SAAS features:
-
-1. Place all SAAS-specific code in the `src/saas` directory
-2. Use the feature flag system to conditionally enable SAAS features
-3. Provide fallbacks for SAAS features in the open source version
-
-For more information about contributing to the SAAS version, please contact the maintainers.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

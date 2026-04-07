@@ -1,11 +1,19 @@
-import { create } from "zustand";
+import { createStandardStore } from "../lib/store-factory";
 
-interface TaskModalStore {
+interface TaskModalState {
   isOpen: boolean;
+}
+
+interface TaskModalActions {
   setOpen: (open: boolean) => void;
 }
 
-export const useTaskModalStore = create<TaskModalStore>((set) => ({
-  isOpen: false,
-  setOpen: (open) => set({ isOpen: open }),
-}));
+// Using our standardized store factory
+export const useTaskModalStore = createStandardStore({
+  name: "task-modal",
+  initialState: { isOpen: false } as TaskModalState,
+  storeCreator: (set) =>
+    ({
+      setOpen: (open: boolean) => set({ isOpen: open }),
+    }) satisfies TaskModalActions,
+});

@@ -1,0 +1,3 @@
+[submodule "saas"]
+	path = saas
+	url = git@github.com:dotnetfactory/fluidcalendar-saas.git

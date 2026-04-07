@@ -57,7 +57,7 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
     }>
   >([]);
   const calendarRef = useRef<FullCalendar>(null);
-  const tasks = useTaskStore((state) => state.tasks);
+  const tasks = useTaskStore.getState().tasks;
   const [quickViewItem, setQuickViewItem] = useState<CalendarEvent | Task>();
   const [isTask, setIsTask] = useState(false);
   const eventModalStore = useEventModalStore();
@@ -90,13 +90,22 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
           allDay: item.allDay,
           classNames: [
             item.extendedProps?.isTask ? "calendar-task" : "calendar-event",
-          ],
+            // Add duration-based classes for better readability of short events
+            (() => {
+              const duration = newDate(item.end).getTime() - newDate(item.start).getTime();
+              if (duration <= 900000) return "very-short-duration"; // ≤ 15 minutes
+              if (duration <= 1800000) return "short-duration"; // ≤ 30 minutes
+              return "";
+            })(),
+          ].filter(Boolean),
           extendedProps: {
             ...item,
             isTask: item.extendedProps?.isTask,
             isRecurring: item.isRecurring,
             status: item.extendedProps?.status,
             priority: item.extendedProps?.priority,
+            transparency: item.transparency,
+            location: item.location,
           },
         }));
 
@@ -243,15 +252,8 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
 
     await updateTask(taskId, { status });
 
-    // Update the quick view item to reflect the new status
-    if (isTask) {
-      const updatedTask = useTaskStore
-        .getState()
-        .tasks.find((t) => t.id === taskId);
-      if (updatedTask) {
-        setQuickViewItem(updatedTask);
-      }
-    }
+    // Close the quick view popup after updating the task status
+    handleQuickViewClose();
   };
 
   const renderEventContent = useCallback(

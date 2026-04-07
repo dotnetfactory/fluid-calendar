@@ -1,0 +1,107 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Core Rules
+
+You have two modes of operation:
+
+1. Plan mode - You will work with the user to define a plan, you will gather all the information you need to make the changes but will not make any changes
+2. Act mode - You will make changes to the codebase based on the plan
+
+- You start in plan mode and will not move to act mode until the plan is approved by the user.
+- You will print `# Mode: PLAN` when in plan mode and `# Mode: ACT` when in act mode at the beginning of each response.
+- Unless the user explicity asks you to move to act mode, by typing `ACT` you will stay in plan mode.
+- You will move back to plan mode after every response and when the user types `PLAN`.
+- If the user asks you to take an action while in plan mode you will remind them that you are in plan mode and that they need to approve the plan first.
+- When in plan mode always output the full updated plan in every response.
+
+# Core Project Intelligence
+
+## Webhook-First Subscription Architecture ✅ **NEW**
+
+**CRITICAL PATTERN**: All subscription-related database changes must be handled by Stripe webhooks, not success pages.
+
+### Success Page Pattern (Read-Only)
+```typescript
+// ✅ CORRECT: Read-only success page
+export default async function SuccessPage() {
+  // 1. Verify payment with Stripe (read-only)
+  const result = await verifyPaymentStatus(sessionId);
+  
+  // 2. Read current subscription state from DB
+  const user = await prisma.user.findUnique({ 
+    where: { email: userEmail },
+    include: { subscription: true }
+  });
+  
+  // 3. Show loading if webhook hasn't processed yet
+  if (paymentComplete && !subscriptionUpdated) {
+    return <LoadingDisplay />;
+  }
+  
+  // 4. Display success confirmation
+  return <SuccessClient />;
+}
+
+// ❌ WRONG: Never do DB writes in success pages
+await prisma.subscription.upsert({ ... }); // DON'T DO THIS
+```
+
+### Webhook Handler Pattern (Single Source of Truth)
+```typescript
+// ✅ CORRECT: All DB changes in webhooks
+export async function handleCheckoutSessionCompleted(session) {
+  // 1. Handle user creation for new customers
+  if (!userId && userEmail) {
+    user = await prisma.user.create({ ... });
+  }
+  
+  // 2. Create/update subscription
+  await prisma.subscription.upsert({ ... });
+  
+  // 3. Create audit trail
+  await prisma.subscriptionHistory.create({ ... });
+}
+```
+
+### Benefits of This Architecture
+- **Reliability**: Webhooks are guaranteed delivery with retries
+- **Consistency**: Single source of truth for all subscription changes  
+- **Completeness**: Handles renewals, cancellations, failures automatically
+- **Industry Standard**: Used by Vercel, Linear, and other successful SaaS
+
+### Webhook Events We Handle
+- `checkout.session.completed` - Initial purchases + user creation
+- `customer.subscription.updated` - Plan changes
+- `customer.subscription.deleted` - Cancellations
+- `invoice.payment_succeeded` - Renewals
+- `invoice.payment_failed` - Failed payments
+- `customer.subscription.trial_will_end` - Trial endings
+
+## Logging Infrastructure Patterns
+
+### Logger Usage
+- Always import from `@/lib/logger` and use structured logging
+- Always specify LOG_SOURCE as third parameter: `logger.info("message", { data }, LOG_SOURCE)`
+- Use structured metadata objects for context, not string concatenation
+- Log errors with error.message in metadata, not the full error object
+
+### Infrastructure Deployment
+- Kubernetes-first approach for production logging (Loki + Promtail + Grafana)
+- Global cluster deployment for multi-application reusability
+- Resource optimization critical for node scheduling (memory constraints)
+- Always include proper RBAC for DaemonSet deployments
+
+### Migration Strategy
+- Complete removal of legacy systems preferred over gradual migration
+- Maintain backward compatibility at interface level during transitions
+- Database schema cleanup should be comprehensive (remove all related fields/models)
+- TypeScript compilation must be clean after any major refactoring
+
+### Code Organization
+- Structured JSON logging with app/environment detection
+- Container-first design (stdout/stderr output)
+- Kubernetes context awareness for proper labeling
+- Comprehensive cleanup of related components (APIs, stores, components)

@@ -105,6 +105,9 @@ export function createBaseEventData(
     end = convertToUTC(event.end.dateTime, event.end.timeZone);
   }
 
+  // Map Outlook showAs to transparency: "free" = transparent, everything else = opaque
+  const transparency = event.showAs === "free" ? "transparent" : "opaque";
+
   return {
     feedId,
     externalEventId: event.id,
@@ -116,6 +119,7 @@ export function createBaseEventData(
     isRecurring,
     isMaster,
     allDay: event.isAllDay || false,
+    transparency,
     status: event.showAs || "busy",
     created: event.createdDateTime ? newDate(event.createdDateTime) : newDate(),
     lastModified: event.lastModifiedDateTime

@@ -1,3 +1,5 @@
+import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
+
 import { RecurrenceConverter } from "./recurrence-converter";
 import { OutlookTaskRecurrence } from "./recurrence-types";
 
@@ -14,8 +16,11 @@ export class OutlookRecurrenceConverter extends RecurrenceConverter {
    * @returns Outlook recurrence format
    */
   convertFromRRule(rrule: string): OutlookTaskRecurrence {
+    // Normalize the recurrence rule to handle non-standard formats
+    const normalizedRule = normalizeRecurrenceRule(rrule) || rrule;
+
     // Parse the RRule string into components
-    const parts = this.parseRRule(rrule);
+    const parts = this.parseRRule(normalizedRule);
 
     // Extract frequency and interval
     const freq = parts.FREQ as string;
@@ -190,6 +195,8 @@ export class OutlookRecurrenceConverter extends RecurrenceConverter {
         return "weekly";
       case "MONTHLY":
         return "absoluteMonthly"; // Default to absolute monthly pattern
+      case "ABSOLUTEMONTHLY":
+        return "absoluteMonthly"; // Handle non-standard but internally used frequency
       case "YEARLY":
         return "absoluteYearly"; // Default to absolute yearly pattern
       default:

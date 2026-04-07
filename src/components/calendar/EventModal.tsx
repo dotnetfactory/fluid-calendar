@@ -159,6 +159,7 @@ export function EventModal({
   const [recurrenceFreq, setRecurrenceFreq] = useState("");
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [recurrenceByDay, setRecurrenceByDay] = useState<string[]>([]);
+  const [isFree, setIsFree] = useState(event?.transparency === "transparent");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset form when modal opens
@@ -184,6 +185,7 @@ export function EventModal({
       setSelectedFeedId(event?.feedId || calendar.defaultCalendarId || "");
       setIsAllDay(event?.allDay || false);
       setIsRecurring(event?.isRecurring || false);
+      setIsFree(event?.transparency === "transparent");
       const { freq, interval, byDay } = parseRecurrenceRule(
         event?.recurrenceRule
       );
@@ -241,6 +243,7 @@ export function EventModal({
             )
           : undefined,
         isMaster: false,
+        transparency: isFree ? "transparent" : "opaque",
       };
 
       if (event?.id) {
@@ -463,15 +466,27 @@ export function EventModal({
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="all-day"
-                checked={isAllDay}
-                onCheckedChange={(checked) => setIsAllDay(checked as boolean)}
-              />
-              <Label htmlFor="all-day" className="text-sm">
-                All day
-              </Label>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="all-day"
+                  checked={isAllDay}
+                  onCheckedChange={(checked) => setIsAllDay(checked as boolean)}
+                />
+                <Label htmlFor="all-day" className="text-sm">
+                  All day
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="free-time"
+                  checked={isFree}
+                  onCheckedChange={(checked) => setIsFree(checked as boolean)}
+                />
+                <Label htmlFor="free-time" className="text-sm">
+                  Show as free
+                </Label>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -613,6 +628,7 @@ export function EventModal({
     setEndDate(newDate(Date.now() + 3600000));
     setIsAllDay(false);
     setIsRecurring(false);
+    setIsFree(false);
     setRecurrenceFreq("");
     setRecurrenceInterval(1);
     setRecurrenceByDay([]);

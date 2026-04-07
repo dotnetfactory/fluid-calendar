@@ -14,22 +14,22 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    // Get system settings
     const settings = await prisma.systemSettings.findFirst();
 
-    // Only return boolean status of whether integrations are configured
+    const has = (dbVal?: string | null, envVal?: string) =>
+      !!(dbVal || envVal);
+
     return NextResponse.json({
       google: {
-        configured: !!(
-          settings?.googleClientId && settings?.googleClientSecret
-        ),
+        configured:
+          has(settings?.googleClientId, process.env.GOOGLE_CLIENT_ID) &&
+          has(settings?.googleClientSecret, process.env.GOOGLE_CLIENT_SECRET),
       },
       outlook: {
-        configured: !!(
-          settings?.outlookClientId &&
-          settings?.outlookClientSecret &&
-          settings?.outlookTenantId
-        ),
+        configured:
+          has(settings?.outlookClientId, process.env.AZURE_AD_CLIENT_ID) &&
+          has(settings?.outlookClientSecret, process.env.AZURE_AD_CLIENT_SECRET) &&
+          has(settings?.outlookTenantId, process.env.AZURE_AD_TENANT_ID),
       },
     });
   } catch (error) {

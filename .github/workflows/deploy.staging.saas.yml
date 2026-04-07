@@ -1,0 +1,122 @@
+name: Deploy to DigitalOcean Kubernetes (Staging)
+
+on:
+  push:
+    branches:
+      - staging
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+# Prevent concurrent deployments to staging
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: true
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      NAMESPACE: fluid-calendar-staging
+      INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
+      PROJECT_ID: ${{ secrets.INFISICAL_PROJECT_ID }}
+      INFISICAL_SECRET_ENV: "staging"
+      INFISICAL_API_URL: ${{ secrets.INFISICAL_API_URL }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.SAAS_SUBMODULE_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Digital Ocean Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry.digitalocean.com
+          username: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          password: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Build and push container image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./saas/Dockerfile.saas
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            INFISICAL_TOKEN=${{ env.INFISICAL_TOKEN }}
+            PROJECT_ID=${{ env.PROJECT_ID }}
+            INFISICAL_SECRET_ENV=${{ env.INFISICAL_SECRET_ENV }}
+            INFISICAL_API_URL=${{ env.INFISICAL_API_URL }}
+          tags: |
+            ${{ secrets.CONTAINER_REGISTRY }}/fluid-calendar-website-staging:${{ github.sha }}
+            ${{ secrets.CONTAINER_REGISTRY }}/fluid-calendar-website-staging:latest
+          # Use registry cache with mode=min (faster export, caches final layers only)
+          cache-from: type=registry,ref=${{ secrets.CONTAINER_REGISTRY }}/fluid-calendar-website-staging:cache
+          cache-to: type=registry,ref=${{ secrets.CONTAINER_REGISTRY }}/fluid-calendar-website-staging:cache,mode=min
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN_K8S }}
+
+      - name: Save DigitalOcean kubeconfig
+        run: doctl kubernetes cluster kubeconfig save ${{ secrets.CLUSTER_NAME }}
+
+      - name: Create namespace and secrets
+        run: |
+          kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret generic app-secrets \
+            --namespace=$NAMESPACE \
+            --from-literal=INFISICAL_TOKEN=$INFISICAL_TOKEN \
+            --from-literal=PROJECT_ID=$PROJECT_ID \
+            --from-literal=INFISICAL_SECRET_ENV=$INFISICAL_SECRET_ENV \
+            --from-literal=INFISICAL_API_URL=$INFISICAL_API_URL \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Run database migrations
+        run: |
+          # Delete any existing migration job
+          kubectl delete job db-migrate -n $NAMESPACE --ignore-not-found
+
+          # Apply and wait for the migration job
+          kubectl apply -f saas/k8s/deployment.staging.saas.yaml -n $NAMESPACE
+          kubectl wait --for=condition=complete job/db-migrate -n $NAMESPACE --timeout=2m
+
+          # Check if migration was successful
+          if [ $? -ne 0 ]; then
+            echo "Migration failed. Check job logs:"
+            kubectl logs job/db-migrate -n $NAMESPACE
+            exit 1
+          fi
+
+      - name: Deploy to DigitalOcean Kubernetes
+        run: |
+          # Apply deployment and force a rollout
+          kubectl apply -f saas/k8s/deployment.staging.saas.yaml -n $NAMESPACE
+          kubectl rollout restart deployment/fluid-calendar -n $NAMESPACE
+          kubectl rollout restart deployment/fluid-calendar-worker -n $NAMESPACE
+
+          # Wait for rollout
+          kubectl rollout status deployment/fluid-calendar -n $NAMESPACE --timeout=2m
+          kubectl rollout status deployment/fluid-calendar-worker -n $NAMESPACE --timeout=2m
+
+      - name: Verify Deployment
+        run: |
+          echo "Checking deployment status..."
+          kubectl get pods -n $NAMESPACE
+          echo "Checking service status..."
+          kubectl get svc -n $NAMESPACE
+          echo "Checking Redis status..."
+          kubectl get statefulset -n $NAMESPACE
+          echo "Checking worker status..."
+          kubectl get deployment/fluid-calendar-worker -n $NAMESPACE
+          echo "Checking ingress status..."
+          kubectl get ingress -n $NAMESPACE

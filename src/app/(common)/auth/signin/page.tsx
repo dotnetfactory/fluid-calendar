@@ -4,13 +4,25 @@ import { redirect } from "next/navigation";
 import { SignInForm } from "@/components/auth/SignInForm";
 
 import { getAuthOptions } from "@/lib/auth/auth-options";
+import { checkSetupStatus } from "@/lib/setup-actions";
 
 export const metadata = {
   title: "Sign In | FluidCalendar",
   description: "Sign in to your FluidCalendar account",
 };
 
+// Force dynamic rendering to avoid caching issues with setup status
+export const dynamic = "force-dynamic";
+
 export default async function SignInPage() {
+  // Check if setup is completed
+  const { needsSetup } = await checkSetupStatus();
+
+  // If setup is not completed, redirect to setup page
+  if (needsSetup) {
+    redirect("/setup");
+  }
+
   // Check if user is already signed in
   const authOptions = await getAuthOptions();
   const session = await getServerSession(authOptions);

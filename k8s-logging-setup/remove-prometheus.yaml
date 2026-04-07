@@ -1,0 +1,36 @@
+# Remove Prometheus but keep Grafana for logging
+# This removes the Prometheus StatefulSet and updates Grafana config
+
+---
+# Update Grafana datasource to remove Prometheus dependency
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-prometheus-stack-grafana-datasource
+  namespace: kube-prometheus-stack
+  labels:
+    app: kube-prometheus-stack-grafana
+    grafana_datasource: "1"
+data:
+  datasource.yaml: |-
+    apiVersion: 1
+    datasources:
+    - name: Alertmanager
+      type: alertmanager
+      uid: alertmanager
+      url: http://kube-prometheus-stack-alertmanager.kube-prometheus-stack:9093/
+      access: proxy
+      isDefault: false
+      jsonData:
+        handleGrafanaManagedAlerts: false
+        implementation: prometheus
+
+---
+# Scale down Prometheus to 0 replicas (instead of deleting)
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: prometheus-kube-prometheus-stack-prometheus
+  namespace: kube-prometheus-stack
+spec:
+  replicas: 0 

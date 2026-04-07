@@ -1,27 +1,26 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createStandardStore } from "../lib/store-factory";
 
+// Type definitions
 type ViewMode = "list" | "board";
 
-interface TaskPageSettings {
-  // View settings
+// Separate state and actions for enhanced TypeScript support
+interface TaskPageSettingsState {
   viewMode: ViewMode;
+}
 
-  // Actions
+interface TaskPageSettingsActions {
   setViewMode: (mode: ViewMode) => void;
 }
 
-export const useTaskPageSettings = create<TaskPageSettings>()(
-  persist(
-    (set) => ({
-      // Initial view settings
-      viewMode: "list",
-
-      // Actions
-      setViewMode: (viewMode) => set({ viewMode }),
-    }),
-    {
-      name: "task-page-settings",
-    }
-  )
-);
+export const useTaskPageSettings = createStandardStore({
+  name: "task-page-settings",
+  initialState: { viewMode: "list" } as TaskPageSettingsState,
+  storeCreator: (set) =>
+    ({
+      setViewMode: (viewMode: ViewMode) => set({ viewMode }),
+    }) satisfies TaskPageSettingsActions,
+  persist: true,
+  persistOptions: {
+    storageKey: "task-page-settings",
+  },
+});

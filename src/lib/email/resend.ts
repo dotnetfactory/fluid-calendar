@@ -1,45 +1,15 @@
-import { Resend } from "resend";
-
-import { logger } from "@/lib/logger";
-import { prisma } from "@/lib/prisma";
-
-const LOG_SOURCE = "ResendAPI";
-
-let resendInstance: Resend | null = null;
-
 /**
- * Gets or creates a Resend instance using the API key from SystemSettings
+ * Open-source stub for Resend email client.
+ * When SaaS submodule is present, this is replaced via symlink.
  */
-export async function getResend(): Promise<Resend> {
-  try {
-    // If we already have an instance, return it
-    if (resendInstance) {
-      return resendInstance;
-    }
 
-    // Get the API key from SystemSettings
-    const settings = await prisma.systemSettings.findFirst();
-    if (!settings?.resendApiKey) {
-      throw new Error("Resend API key not found in system settings");
-    }
-
-    // Create and cache the instance
-    resendInstance = new Resend(settings.resendApiKey);
-    return resendInstance;
-  } catch (error) {
-    logger.error(
-      "Failed to initialize Resend",
-      { error: error instanceof Error ? error.message : "Unknown error" },
-      LOG_SOURCE
-    );
-    throw error;
-  }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getResend(): Promise<any> {
+  throw new Error(
+    "Resend email service is not available in open-source mode. Configure the SaaS submodule to enable email sending."
+  );
 }
 
-/**
- * Clears the cached Resend instance, forcing a new one to be created next time
- * This should be called when the API key is updated in SystemSettings
- */
 export function clearResendInstance() {
-  resendInstance = null;
+  // No-op in open-source version
 }

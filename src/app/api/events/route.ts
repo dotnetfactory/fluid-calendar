@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create event in database
+    // Events created manually from the UI default to "opaque" (busy)
     const event = await prisma.calendarEvent.create({
       data: {
         feedId,
@@ -115,6 +116,7 @@ export async function POST(request: NextRequest) {
         isRecurring: isRecurring || false,
         recurrenceRule,
         allDay: allDay || false,
+        transparency: "opaque",
       },
     });
 

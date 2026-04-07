@@ -1,6 +1,3 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-
 import { isSaasEnabled } from "@/lib/config";
 
 import {
@@ -12,48 +9,56 @@ import {
   UpdateTask,
 } from "@/types/task";
 
+import { createStandardStore } from "../lib/store-factory";
+
+// Enhanced TypeScript interfaces for better type safety
 interface TaskState {
   tasks: Task[];
   tags: Tag[];
   filters: TaskFilters;
   loading: boolean;
   error: Error | null;
+}
 
-  // Task actions
+interface TaskActions {
+  // Task CRUD operations
   fetchTasks: () => Promise<void>;
   createTask: (task: NewTask) => Promise<Task>;
   updateTask: (id: string, updates: UpdateTask) => Promise<Task>;
   deleteTask: (id: string) => Promise<void>;
   setFilters: (filters: Partial<TaskFilters>) => void;
 
-  // Tag actions
+  // Tag management
   fetchTags: () => Promise<void>;
   createTag: (tag: NewTag) => Promise<Tag>;
   updateTag: (id: string, updates: Partial<NewTag>) => Promise<Tag>;
   deleteTag: (id: string) => Promise<void>;
 
-  // Project actions
+  // Project assignment
   assignToProject: (taskId: string, projectId: string | null) => Promise<Task>;
   bulkAssignToProject: (
     taskIds: string[],
     projectId: string | null
   ) => Promise<void>;
 
-  // Auto-scheduling actions
+  // Auto-scheduling
   scheduleAllTasks: () => Promise<void>;
   triggerScheduleAllTasks: () => Promise<void>;
 }
 
-export const useTaskStore = create<TaskState>()(
-  persist(
-    (set, get) => ({
-      tasks: [],
-      tags: [],
-      filters: {},
-      loading: false,
-      error: null,
+export const useTaskStore = createStandardStore({
+  name: "task-store",
+  initialState: {
+    tasks: [],
+    tags: [],
+    filters: {},
+    loading: false,
+    error: null,
+  } as TaskState,
 
-      // Task actions
+  storeCreator: (set, get) =>
+    ({
+      // Task CRUD operations
       fetchTasks: async () => {
         set({ loading: true, error: null });
         try {
@@ -104,8 +109,8 @@ export const useTaskStore = create<TaskState>()(
           });
           if (!response.ok) throw new Error("Failed to create task");
           const newTask = await response.json();
-          set((state) => ({ tasks: [...state.tasks, newTask] }));
-          await get().triggerScheduleAllTasks();
+          set((state: TaskState) => ({ tasks: [...state.tasks, newTask] }));
+          await (get() as TaskState & TaskActions).triggerScheduleAllTasks();
           return newTask;
         } catch (error) {
           set({ error: error as Error });
@@ -130,12 +135,12 @@ export const useTaskStore = create<TaskState>()(
           }
 
           const updatedTask = await response.json();
-          set((state) => ({
+          set((state: TaskState) => ({
             tasks: state.tasks.map((task) =>
               task.id === id ? updatedTask : task
             ),
           }));
-          await get().triggerScheduleAllTasks();
+          await (get() as TaskState & TaskActions).triggerScheduleAllTasks();
           return updatedTask;
         } catch (error) {
           set({ error: error as Error });
@@ -152,10 +157,10 @@ export const useTaskStore = create<TaskState>()(
             method: "DELETE",
           });
           if (!response.ok) throw new Error("Failed to delete task");
-          set((state) => ({
+          set((state: TaskState) => ({
             tasks: state.tasks.filter((task) => task.id !== id),
           }));
-          await get().triggerScheduleAllTasks();
+          await (get() as TaskState & TaskActions).triggerScheduleAllTasks();
         } catch (error) {
           set({ error: error as Error });
           throw error;
@@ -165,12 +170,12 @@ export const useTaskStore = create<TaskState>()(
       },
 
       setFilters: (filters: Partial<TaskFilters>) => {
-        set((state) => ({
+        set((state: TaskState) => ({
           filters: { ...state.filters, ...filters },
         }));
       },
 
-      // Tag actions
+      // Tag management
       fetchTags: async () => {
         set({ loading: true, error: null });
         try {
@@ -195,7 +200,7 @@ export const useTaskStore = create<TaskState>()(
           });
           if (!response.ok) throw new Error("Failed to create tag");
           const newTag = await response.json();
-          set((state) => ({ tags: [...state.tags, newTag] }));
+          set((state: TaskState) => ({ tags: [...state.tags, newTag] }));
           return newTag;
         } catch (error) {
           set({ error: error as Error });
@@ -215,7 +220,7 @@ export const useTaskStore = create<TaskState>()(
           });
           if (!response.ok) throw new Error("Failed to update tag");
           const updatedTag = await response.json();
-          set((state) => ({
+          set((state: TaskState) => ({
             tags: state.tags.map((tag) => (tag.id === id ? updatedTag : tag)),
           }));
           return updatedTag;
@@ -234,7 +239,7 @@ export const useTaskStore = create<TaskState>()(
             method: "DELETE",
           });
           if (!response.ok) throw new Error("Failed to delete tag");
-          set((state) => ({
+          set((state: TaskState) => ({
             tags: state.tags.filter((tag) => tag.id !== id),
           }));
         } catch (error) {
@@ -245,6 +250,7 @@ export const useTaskStore = create<TaskState>()(
         }
       },
 
+      // Project assignment
       assignToProject: async (taskId: string, projectId: string | null) => {
         set({ loading: true, error: null });
         try {
@@ -255,10 +261,10 @@ export const useTaskStore = create<TaskState>()(
           });
           if (!response.ok) throw new Error("Failed to assign task to project");
           const updatedTask = await response.json();
-          set((state) => ({
+          set((state: TaskState) => ({
             tasks: state.tasks.map((t) => (t.id === taskId ? updatedTask : t)),
           }));
-          await get().triggerScheduleAllTasks();
+          await (get() as TaskState & TaskActions).triggerScheduleAllTasks();
           return updatedTask;
         } catch (error) {
           set({ error: error as Error });
@@ -283,8 +289,8 @@ export const useTaskStore = create<TaskState>()(
               })
             )
           );
-          await get().fetchTasks(); // Refresh task list
-          await get().triggerScheduleAllTasks();
+          await (get() as TaskState & TaskActions).fetchTasks(); // Refresh task list
+          await (get() as TaskState & TaskActions).triggerScheduleAllTasks();
         } catch (error) {
           set({ error: error as Error });
           throw error;
@@ -293,12 +299,13 @@ export const useTaskStore = create<TaskState>()(
         }
       },
 
+      // Auto-scheduling
       triggerScheduleAllTasks: async () => {
         set({ loading: true, error: null });
         try {
           // For open source version, call scheduleAllTasks directly
           if (!isSaasEnabled) {
-            await get().scheduleAllTasks();
+            await (get() as TaskState & TaskActions).scheduleAllTasks();
             return;
           }
 
@@ -328,7 +335,7 @@ export const useTaskStore = create<TaskState>()(
                 try {
                   const data = JSON.parse(event.data);
                   if (data.type === "TASK_SCHEDULE_COMPLETE") {
-                    get().fetchTasks();
+                    (get() as TaskState & TaskActions).fetchTasks();
                     // Dispatch a custom event for the NotificationProvider
                     window.dispatchEvent(
                       new CustomEvent("task-schedule-complete", {
@@ -364,7 +371,6 @@ export const useTaskStore = create<TaskState>()(
         }
       },
 
-      // Auto-scheduling actions
       scheduleAllTasks: async () => {
         set({ loading: true, error: null });
         try {
@@ -396,13 +402,26 @@ export const useTaskStore = create<TaskState>()(
           set({ loading: false });
         }
       },
+    }) satisfies TaskActions,
+
+  persist: true,
+  persistOptions: {
+    name: "task-data-storage",
+    partialize: (state: TaskState & TaskActions) => ({
+      tasks: state.tasks,
+      tags: state.tags,
     }),
-    {
-      name: "task-data-storage",
-      partialize: (state) => ({
-        tasks: state.tasks,
-        tags: state.tags,
-      }),
-    }
-  )
-);
+  },
+
+  // Custom clear that resets all data but preserves filters as user preference
+  customClear: (set) => {
+    set((state: TaskState) => ({
+      ...state,
+      tasks: [],
+      tags: [],
+      loading: false,
+      error: null,
+      // Keep filters as they're user preferences
+    }));
+  },
+});

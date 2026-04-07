@@ -9,7 +9,6 @@ import { AccountManager } from "@/components/settings/AccountManager";
 import { AutoScheduleSettings } from "@/components/settings/AutoScheduleSettings";
 import { CalendarSettings } from "@/components/settings/CalendarSettings";
 import { ImportExportSettings } from "@/components/settings/ImportExportSettings";
-import { LogViewer } from "@/components/settings/LogViewer";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { SystemSettings } from "@/components/settings/SystemSettings";
 import { TaskSyncSettings } from "@/components/settings/TaskSyncSettings";
@@ -25,19 +24,19 @@ import { useAdmin } from "@/hooks/use-admin";
 
 import { useSettingsStore } from "@/store/settings";
 
-// Add dynamic import for the waitlist page
+// WaitlistPage — OS stub shows "SaaS only" message, SaaS provides real admin page via @saas alias
 const WaitlistPage = dynamic(
+  () => import("@saas/routes/waitlist-settings"),
+  { loading: () => <p>Loading...</p> }
+);
+
+// BookingLinksSettings — OS stub returns null, SaaS provides real component via @saas alias
+const BookingLinksSettings = dynamic(
   () =>
-    import(
-      `./waitlist/page${
-        process.env.NEXT_PUBLIC_ENABLE_SAAS_FEATURES === "true"
-          ? ".saas"
-          : ".open"
-      }`
+    import("@saas/components/BookingLinksSettings").then(
+      (mod) => mod.BookingLinksSettings
     ),
-  {
-    loading: () => <p>Loading...</p>,
-  }
+  { loading: () => <p>Loading...</p> }
 );
 
 type SettingsTab =
@@ -47,12 +46,12 @@ type SettingsTab =
   | "auto-schedule"
   | "system"
   | "task-sync"
-  | "logs"
   | "user-management"
   | "waitlist"
   | "import-export"
   | "admin-dashboard"
-  | "notifications";
+  | "notifications"
+  | "booking-links";
 
 export default function SettingsPage() {
   const [isHydrated, setIsHydrated] = useState(false);
@@ -65,11 +64,14 @@ export default function SettingsPage() {
   }, [initializeSettings]);
 
   const tabs = useMemo(() => {
-    const baseTabs = [
+    const coreTabs = [
       { id: "accounts", label: "Accounts" },
       { id: "user", label: "User" },
       { id: "calendar", label: "Calendar" },
       { id: "auto-schedule", label: "Auto-Schedule" },
+      ...(isSaasEnabled
+        ? [{ id: "booking-links", label: "Booking Links" }]
+        : []),
       { id: "task-sync", label: "Task Sync" },
       { id: "notifications", label: "Notifications" },
       { id: "import-export", label: "Import/Export" },
@@ -79,24 +81,23 @@ export default function SettingsPage() {
     if (isAdmin) {
       const adminTabs = [
         { id: "system", label: "System" },
-        { id: "logs", label: "Logs" },
         { id: "user-management", label: "Users" },
       ] as const;
 
       // Only add the waitlist tab if SAAS features are enabled
       if (isSaasEnabled) {
         return [
-          ...baseTabs,
+          ...coreTabs,
           ...adminTabs,
           { id: "waitlist", label: "Beta Waitlist" },
           { id: "admin-dashboard", label: "Admin Dashboard" },
         ] as const;
       }
 
-      return [...baseTabs, ...adminTabs] as const;
+      return [...coreTabs, ...adminTabs] as const;
     }
 
-    return baseTabs;
+    return coreTabs;
   }, [isAdmin]);
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("accounts");
@@ -112,9 +113,9 @@ export default function SettingsPage() {
         "user",
         "calendar",
         "auto-schedule",
+        "booking-links",
         "task-sync",
         "system",
-        "logs",
         "user-management",
         "waitlist",
         "import-export",
@@ -151,7 +152,6 @@ export default function SettingsPage() {
     // Admin-only tabs
     const adminOnlyTabs = [
       "system",
-      "logs",
       "user-management",
       "waitlist",
       "admin-dashboard",
@@ -187,14 +187,14 @@ export default function SettingsPage() {
         return <CalendarSettings />;
       case "auto-schedule":
         return <AutoScheduleSettings />;
+      case "booking-links":
+        return <BookingLinksSettings />;
       case "task-sync":
         return <TaskSyncSettings />;
       case "notifications":
         return <NotificationSettings />;
       case "system":
         return <SystemSettings />;
-      case "logs":
-        return <LogViewer />;
       case "user-management":
         return <UserManagement />;
       case "import-export":
