@@ -4,9 +4,16 @@
  */
 
 // Environment-based configuration
-// Use NEXT_PUBLIC_ prefix to make it available on the client side
+// Use NEXT_PUBLIC_ prefix to make it available on the client side.
+// NEXT_PUBLIC_HAS_SAAS is injected by next.config.ts when the saas/ submodule
+// is present, so a developer running `npm run dev` (without explicitly setting
+// NEXT_PUBLIC_ENABLE_SAAS_FEATURES) still ends up in SaaS mode at runtime —
+// matching what was bundled at build time. Set NEXT_PUBLIC_ENABLE_SAAS_FEATURES=false
+// (e.g. via `npm run dev:os` / `npm run build:os`) to force OS mode.
 export const isSaasEnabled =
-  process.env.NEXT_PUBLIC_ENABLE_SAAS_FEATURES === "true";
+  process.env.NEXT_PUBLIC_ENABLE_SAAS_FEATURES === "true" ||
+  (process.env.NEXT_PUBLIC_ENABLE_SAAS_FEATURES !== "false" &&
+    process.env.NEXT_PUBLIC_HAS_SAAS === "true");
 
 // Feature flags for specific SAAS features
 export const featureFlags = {
