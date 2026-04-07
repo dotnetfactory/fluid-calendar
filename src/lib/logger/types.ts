@@ -7,6 +7,7 @@ export type LogMetadata = Record<
   | number
   | boolean
   | null
+  | undefined
   | LogMetadata[]
   | string[]
   | { [key: string]: LogMetadata }
