@@ -10,6 +10,7 @@ export interface Project {
   color?: string | null;
   status: ProjectStatus;
   scheduleId?: string | null;
+  areaId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   _count?: {
@@ -24,6 +25,7 @@ export interface NewProject {
   color?: string;
   status?: ProjectStatus;
   scheduleId?: string;
+  areaId?: string;
 }
 
 export type UpdateProject = Partial<NewProject>;

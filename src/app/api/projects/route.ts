@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
         color: json.color,
         status: json.status || ProjectStatus.ACTIVE,
         scheduleId: json.scheduleId,
+        areaId: json.areaId,
         // Associate the project with the current user
         userId,
       },

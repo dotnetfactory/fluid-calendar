@@ -1,17 +1,21 @@
-import { Schedule, ScheduleTimeBlock, Task, Project } from "@prisma/client";
+import { Schedule, ScheduleTimeBlock, Task, Project, Area } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
 export type ScheduleWithBlocks = Schedule & { timeBlocks: ScheduleTimeBlock[] };
 
-type TaskWithProject = Task & { project: Project | null };
+type ProjectWithArea = Project & { area: Area | null };
+type TaskWithProject = Task & { project: ProjectWithArea | null };
 
 /**
  * Resolve the effective schedule for a task.
- * Priority: task.scheduleId > project.scheduleId > 24/7 system schedule
+ * Priority: task.scheduleId > project.scheduleId > area.scheduleId > 24/7 system schedule
  */
 export function resolveScheduleId(task: TaskWithProject): string | null {
-  return task.scheduleId || task.project?.scheduleId || null;
+  return task.scheduleId
+    || task.project?.scheduleId
+    || task.project?.area?.scheduleId
+    || null;
 }
 
 /**

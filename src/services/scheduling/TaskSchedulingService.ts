@@ -119,7 +119,7 @@ export async function scheduleAllTasksForUser(
         },
         userId,
       },
-      include: { project: true, tags: true },
+      include: { project: { include: { area: true } }, tags: true },
     });
 
     // Get locked tasks (global, all schedules -- they block time everywhere)
@@ -132,7 +132,7 @@ export async function scheduleAllTasksForUser(
         },
         userId,
       },
-      include: { project: true, tags: true },
+      include: { project: { include: { area: true } }, tags: true },
     });
 
     logger.info(
@@ -238,7 +238,7 @@ export async function scheduleAllTasksForUser(
     // Fetch final results with relations
     const dbTasks = (await prisma.task.findMany({
       where: { id: { in: allTaskIds }, userId },
-      include: { tags: true, project: true },
+      include: { tags: true, project: { include: { area: true } } },
     })) as DbTaskWithRelations[];
 
     const tasksWithRelations = dbTasks.map(convertDbTaskToTaskWithRelations);

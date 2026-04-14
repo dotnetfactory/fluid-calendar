@@ -87,6 +87,7 @@ model User {
   PasswordReset        PasswordReset[]
   apiKeys              ApiKey[]
   schedules            Schedule[]
+  areas                Area[]
 }
 
 model VerificationToken {
@@ -178,6 +179,10 @@ model Project {
   userId String?
   user   User?   @relation(fields: [userId], references: [id])
 
+  // Area
+  areaId String?
+  area   Area?   @relation(fields: [areaId], references: [id], onDelete: SetNull)
+
   // Schedule
   scheduleId String?
   schedule   Schedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
@@ -188,6 +193,7 @@ model Project {
 
   @@index([status])
   @@index([userId])
+  @@index([areaId])
   @@index([scheduleId])
   @@index([externalId, externalSource])
 }
@@ -644,8 +650,26 @@ model Schedule {
   timeBlocks        ScheduleTimeBlock[]
   projects          Project[]
   tasks             Task[]
+  areas             Area[]
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Area {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  icon       String?
+  color      String?
+  scheduleId String?
+  schedule   Schedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  projects   Project[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@unique([userId, name])
   @@index([userId])

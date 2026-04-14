@@ -77,6 +77,7 @@ export async function PUT(
         color: json.color,
         status: json.status,
         scheduleId: json.scheduleId,
+        areaId: json.areaId,
       },
       include: {
         _count: {
