@@ -1,6 +1,5 @@
-import { AutoScheduleSettings, Task } from "@prisma/client";
+import { Task } from "@prisma/client";
 
-import { getEnergyLevelForTime } from "@/lib/autoSchedule";
 import {
   differenceInHours,
   differenceInMinutes,
@@ -10,16 +9,44 @@ import {
 import { EnergyLevel, SlotScore, TimeSlot } from "@/types/scheduling";
 import { Priority } from "@/types/task";
 
+/** Minimal interface for schedule energy level fields */
+export interface ScheduleEnergyConfig {
+  highEnergyStart: number | null;
+  highEnergyEnd: number | null;
+  mediumEnergyStart: number | null;
+  mediumEnergyEnd: number | null;
+  lowEnergyStart: number | null;
+  lowEnergyEnd: number | null;
+}
+
 interface ProjectTask {
   start: Date;
   end: Date;
 }
 
+function getEnergyLevelForHour(
+  hour: number,
+  config: ScheduleEnergyConfig
+): "high" | "medium" | "low" | null {
+  if (config.highEnergyStart != null && config.highEnergyEnd != null &&
+      hour >= config.highEnergyStart && hour < config.highEnergyEnd) return "high";
+  if (config.mediumEnergyStart != null && config.mediumEnergyEnd != null &&
+      hour >= config.mediumEnergyStart && hour < config.mediumEnergyEnd) return "medium";
+  if (config.lowEnergyStart != null && config.lowEnergyEnd != null &&
+      hour >= config.lowEnergyStart && hour < config.lowEnergyEnd) return "low";
+  return null;
+}
+
 export class SlotScorer {
+  private groupByProject: boolean;
+
   constructor(
-    private settings: AutoScheduleSettings,
-    private scheduledTasks: Map<string, ProjectTask[]> = new Map()
-  ) {}
+    private energyConfig: ScheduleEnergyConfig,
+    private scheduledTasks: Map<string, ProjectTask[]> = new Map(),
+    groupByProject: boolean = false
+  ) {
+    this.groupByProject = groupByProject;
+  }
 
   // Add method to update scheduled tasks
   updateScheduledTasks(tasks: Task[]) {
@@ -80,9 +107,9 @@ export class SlotScorer {
   private scoreEnergyLevelMatch(slot: TimeSlot, task: Task): number {
     if (!task.energyLevel) return 0.5; // Neutral score if task has no energy level
 
-    const slotEnergy = getEnergyLevelForTime(
+    const slotEnergy = getEnergyLevelForHour(
       slot.start.getHours(),
-      this.settings
+      this.energyConfig
     );
     if (!slotEnergy) return 0.5; // Neutral score if time has no energy level
 
@@ -162,7 +189,7 @@ export class SlotScorer {
   }
 
   private scoreProjectProximity(slot: TimeSlot, task: Task): number {
-    if (!task.projectId || !this.settings.groupByProject) return 0.5;
+    if (!task.projectId || !this.groupByProject) return 0.5;
 
     const projectTasks = this.scheduledTasks.get(task.projectId);
     if (!projectTasks || projectTasks.length === 0) return 0.5;

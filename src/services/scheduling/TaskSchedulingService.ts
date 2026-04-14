@@ -10,6 +10,8 @@ import {
   TimePreference,
 } from "@/types/task";
 
+import { CalendarServiceImpl } from "./CalendarServiceImpl";
+import { groupTasksBySchedule, loadSchedules } from "./ScheduleResolver";
 import { SchedulingService } from "./SchedulingService";
 
 const LOG_SOURCE = "TaskSchedulingService";
@@ -85,16 +87,9 @@ function convertDbTaskToTaskWithRelations(
 }
 
 /**
- * Schedule all tasks for a user
- * @param userId The user ID
- * @returns The updated tasks
- */
-export async function scheduleAllTasksForUser(
-  userId: string
-): Promise<TaskWithRelations[]>;
-
-/**
- * Implementation of scheduleAllTasksForUser
+ * Schedule all tasks for a user using multi-schedule resolution.
+ * Groups tasks by their resolved schedule, processes named schedules first,
+ * then 24/7 system schedule last. Cross-schedule conflicts are shared.
  */
 export async function scheduleAllTasksForUser(
   userId: string
@@ -102,20 +97,15 @@ export async function scheduleAllTasksForUser(
   try {
     logger.info("Starting task scheduling for user", { userId }, LOG_SOURCE);
 
-    // Fetch scheduling settings and user timezone from database
-    const [userSettings, userPrefs] = await Promise.all([
-      prisma.autoScheduleSettings.findUnique({ where: { userId } }),
-      prisma.userSettings.findUnique({
-        where: { userId },
-        select: { timeZone: true },
-      }),
-    ]);
+    // Load all schedules for the user
+    const { schedules: allSchedules, byId: scheduleMap, systemSchedule } =
+      await loadSchedules(userId);
 
-    if (!userSettings) {
-      throw new Error("Auto-schedule settings not found for user");
-    }
-
-    const timeZone = userPrefs?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // Check if groupByProject is enabled (still on AutoScheduleSettings for now)
+    const autoSettings = await prisma.autoScheduleSettings.findUnique({
+      where: { userId },
+    });
+    const groupByProject = autoSettings?.groupByProject ?? false;
 
     // Get all tasks marked for auto-scheduling that are not locked or blocked
     const tasksToSchedule = await prisma.task.findMany({
@@ -124,34 +114,24 @@ export async function scheduleAllTasksForUser(
         scheduleLocked: false,
         isBlocked: false,
         status: {
-          not: {
-            in: [TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS],
-          },
+          not: { in: [TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS] },
         },
         userId,
       },
-      include: {
-        project: true,
-        tags: true,
-      },
+      include: { project: true, tags: true },
     });
 
-    // Get locked tasks (we'll keep their schedules)
+    // Get locked tasks (global, all schedules -- they block time everywhere)
     const lockedTasks = await prisma.task.findMany({
       where: {
         isAutoScheduled: true,
         scheduleLocked: true,
         status: {
-          not: {
-            in: [TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS],
-          },
+          not: { in: [TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS] },
         },
         userId,
       },
-      include: {
-        project: true,
-        tags: true,
-      },
+      include: { project: true, tags: true },
     });
 
     logger.info(
@@ -159,66 +139,115 @@ export async function scheduleAllTasksForUser(
       {
         tasksToScheduleCount: tasksToSchedule.length,
         lockedTasksCount: lockedTasks.length,
+        scheduleCount: allSchedules.length,
       },
       LOG_SOURCE
     );
 
-    // Initialize scheduling service with settings and timezone
-    const schedulingService = new SchedulingService(userSettings, timeZone);
-
     // Clear existing schedules for non-locked tasks
-    await prisma.task.updateMany({
-      where: {
-        id: {
-          in: tasksToSchedule.map((task) => task.id),
+    if (tasksToSchedule.length > 0) {
+      await prisma.task.updateMany({
+        where: {
+          id: { in: tasksToSchedule.map((t) => t.id) },
+          userId,
         },
-        userId,
-      },
-      data: {
-        scheduledStart: null,
-        scheduledEnd: null,
-        scheduleScore: null,
-      },
-    });
+        data: {
+          scheduledStart: null,
+          scheduledEnd: null,
+          scheduleScore: null,
+        },
+      });
+    }
 
-    // Schedule all tasks
-    const updatedTasks = await schedulingService.scheduleMultipleTasks(
-      [...tasksToSchedule, ...lockedTasks],
-      userId
+    // Group tasks by resolved schedule (named first, 24/7 last)
+    const scheduleGroups = groupTasksBySchedule(
+      tasksToSchedule,
+      scheduleMap,
+      systemSchedule
     );
 
-    // Update the lastScheduled timestamp for all tasks
-    await prisma.task.updateMany({
-      where: {
-        id: {
-          in: updatedTasks.map((task) => task.id),
-        },
-      },
-      data: {
-        lastScheduled: new Date(),
-      },
-    });
+    // Shared calendar service (event cache shared across all groups)
+    const calendarService = new CalendarServiceImpl();
 
-    // Fetch the tasks again with their relations to return
-    const dbTasks = (await prisma.task.findMany({
-      where: {
-        id: {
-          in: updatedTasks.map((task) => task.id),
-        },
+    // Shared conflict map: seeded with locked tasks, grows as groups are scheduled
+    const sharedConflicts = new Map<string, { start: Date; end: Date }[]>();
+    for (const task of lockedTasks) {
+      if (task.scheduledStart && task.scheduledEnd) {
+        const key = task.projectId || "none";
+        const list = sharedConflicts.get(key) || [];
+        list.push({ start: task.scheduledStart, end: task.scheduledEnd });
+        sharedConflicts.set(key, list);
+      }
+    }
+
+    const allUpdatedTaskIds: string[] = [];
+
+    // Process each schedule group
+    for (const group of scheduleGroups) {
+      logger.info(
+        `Scheduling ${group.tasks.length} tasks for schedule "${group.schedule.name}"`,
+        { scheduleId: group.schedule.id, taskCount: group.tasks.length },
+        LOG_SOURCE
+      );
+
+      const schedulingService = new SchedulingService(
+        group.schedule,
+        calendarService,
+        groupByProject
+      );
+
+      // Include locked tasks in the group so they show as conflicts
+      const groupWithLocked = [...group.tasks, ...lockedTasks];
+      const updatedTasks = await schedulingService.scheduleMultipleTasks(
+        groupWithLocked,
         userId,
-      },
-      include: {
-        tags: true,
-        project: true,
-      },
+        sharedConflicts
+      );
+
+      // Add newly scheduled tasks to shared conflicts for next group
+      for (const task of updatedTasks) {
+        if (task.scheduledStart && task.scheduledEnd && !task.scheduleLocked) {
+          const key = task.projectId || "none";
+          const list = sharedConflicts.get(key) || [];
+          list.push({ start: task.scheduledStart, end: task.scheduledEnd });
+          sharedConflicts.set(key, list);
+        }
+      }
+
+      // Collect non-locked task IDs
+      for (const t of updatedTasks) {
+        if (!t.scheduleLocked) allUpdatedTaskIds.push(t.id);
+      }
+    }
+
+    // Update lastScheduled timestamp
+    const allTaskIds = [
+      ...allUpdatedTaskIds,
+      ...lockedTasks.map((t) => t.id),
+    ];
+
+    if (allTaskIds.length > 0) {
+      await prisma.task.updateMany({
+        where: { id: { in: allTaskIds } },
+        data: { lastScheduled: new Date() },
+      });
+    }
+
+    // Fetch final results with relations
+    const dbTasks = (await prisma.task.findMany({
+      where: { id: { in: allTaskIds }, userId },
+      include: { tags: true, project: true },
     })) as DbTaskWithRelations[];
 
-    // Convert database tasks to TaskWithRelations
     const tasksWithRelations = dbTasks.map(convertDbTaskToTaskWithRelations);
 
     logger.info(
       "Task scheduling completed successfully",
-      { userId, tasksScheduled: updatedTasks.length },
+      {
+        userId,
+        tasksScheduled: allUpdatedTaskIds.length,
+        scheduleGroups: scheduleGroups.length,
+      },
       LOG_SOURCE
     );
 

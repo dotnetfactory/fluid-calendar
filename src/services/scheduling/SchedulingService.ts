@@ -1,10 +1,11 @@
-import { AutoScheduleSettings, Task } from "@prisma/client";
+import { Task } from "@prisma/client";
 
 import { addDays, newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
 import { CalendarServiceImpl } from "./CalendarServiceImpl";
+import { ScheduleWithBlocks } from "./ScheduleResolver";
 import { TimeSlotManager, TimeSlotManagerImpl } from "./TimeSlotManager";
 
 // Import the global Prisma instance
@@ -22,14 +23,18 @@ interface PerformanceMetrics {
 
 export class SchedulingService {
   private calendarService: CalendarServiceImpl;
-  private settings: AutoScheduleSettings | null;
-  private timeZone: string;
+  private schedule: ScheduleWithBlocks;
   private metrics: PerformanceMetrics[] = [];
+  private groupByProject: boolean;
 
-  constructor(settings?: AutoScheduleSettings, timeZone?: string) {
-    this.calendarService = new CalendarServiceImpl();
-    this.settings = settings || null;
-    this.timeZone = timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  constructor(
+    schedule: ScheduleWithBlocks,
+    calendarService: CalendarServiceImpl,
+    groupByProject: boolean = false
+  ) {
+    this.calendarService = calendarService;
+    this.schedule = schedule;
+    this.groupByProject = groupByProject;
   }
 
   private startMetric(
@@ -85,20 +90,27 @@ export class SchedulingService {
     this.metrics = [];
   }
 
-  private getTimeSlotManager(): TimeSlotManagerImpl {
+  private getTimeSlotManager(
+    existingConflicts?: Map<string, { start: Date; end: Date }[]>
+  ): TimeSlotManagerImpl {
     const startTime = this.startMetric("getTimeSlotManager");
 
-    if (!this.settings) {
-      throw new Error("AutoScheduleSettings must be provided to SchedulingService");
-    }
-
-    const manager = new TimeSlotManagerImpl(this.settings, this.calendarService, this.timeZone);
+    const manager = new TimeSlotManagerImpl(
+      this.schedule,
+      this.calendarService,
+      existingConflicts,
+      this.groupByProject
+    );
 
     this.endMetric("getTimeSlotManager", startTime);
     return manager;
   }
 
-  async scheduleMultipleTasks(tasks: Task[], userId: string): Promise<Task[]> {
+  async scheduleMultipleTasks(
+    tasks: Task[],
+    userId: string,
+    existingConflicts?: Map<string, { start: Date; end: Date }[]>
+  ): Promise<Task[]> {
     const overallStart = this.startMetric("scheduleMultipleTasks", {
       totalTasks: tasks.length,
     });
@@ -107,7 +119,7 @@ export class SchedulingService {
     const tasksToSchedule = tasks.filter((t) => !t.scheduleLocked);
 
     // Get initial scores for all tasks
-    const timeSlotManager = this.getTimeSlotManager();
+    const timeSlotManager = this.getTimeSlotManager(existingConflicts);
     const now = newDate();
 
     const scoringStart = this.startMetric("calculateInitialScores", {
@@ -119,9 +131,7 @@ export class SchedulingService {
     //TODO: move to utils
     // Use the same windows as scheduling
     const windows = [
-      { days: 7, label: "1 week" },
-      // { days: 14, label: "2 weeks" },
-      // { days: 30, label: "1 month" },
+      { days: 90, label: "3 months" },
     ];
 
     // Process tasks in parallel batches
@@ -246,9 +256,7 @@ export class SchedulingService {
 
     const now = newDate();
     const windows = [
-      { days: 7, label: "1 week" },
-      // { days: 14, label: "2 weeks" },
-      // { days: 30, label: "1 month" },
+      { days: 90, label: "3 months" },
     ];
 
     for (const window of windows) {
