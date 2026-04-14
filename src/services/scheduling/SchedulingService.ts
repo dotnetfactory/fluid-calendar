@@ -4,8 +4,6 @@ import { addDays, newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
-import { useSettingsStore } from "@/store/settings";
-
 import { CalendarServiceImpl } from "./CalendarServiceImpl";
 import { TimeSlotManager, TimeSlotManagerImpl } from "./TimeSlotManager";
 
@@ -25,11 +23,13 @@ interface PerformanceMetrics {
 export class SchedulingService {
   private calendarService: CalendarServiceImpl;
   private settings: AutoScheduleSettings | null;
+  private timeZone: string;
   private metrics: PerformanceMetrics[] = [];
 
-  constructor(settings?: AutoScheduleSettings) {
+  constructor(settings?: AutoScheduleSettings, timeZone?: string) {
     this.calendarService = new CalendarServiceImpl();
     this.settings = settings || null;
+    this.timeZone = timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   }
 
   private startMetric(
@@ -88,23 +88,11 @@ export class SchedulingService {
   private getTimeSlotManager(): TimeSlotManagerImpl {
     const startTime = this.startMetric("getTimeSlotManager");
 
-    let settings: AutoScheduleSettings;
-
-    if (this.settings) {
-      settings = this.settings;
-    } else {
-      // Fallback to store settings if none provided (for backward compatibility)
-      const storeSettings = useSettingsStore.getState().autoSchedule;
-      settings = {
-        ...storeSettings,
-        id: "store",
-        userId: "store",
-        createdAt: newDate(),
-        updatedAt: newDate(),
-      };
+    if (!this.settings) {
+      throw new Error("AutoScheduleSettings must be provided to SchedulingService");
     }
 
-    const manager = new TimeSlotManagerImpl(settings, this.calendarService);
+    const manager = new TimeSlotManagerImpl(this.settings, this.calendarService, this.timeZone);
 
     this.endMetric("getTimeSlotManager", startTime);
     return manager;
@@ -172,12 +160,23 @@ export class SchedulingService {
 
     this.endMetric("calculateInitialScores", scoringStart);
 
-    // Sort tasks by their best possible score
+    // Sort tasks: priority tier first, then by best slot score within tier
     this.startMetric("sortTasks");
+    const priorityRank: Record<string, number> = {
+      high: 0,
+      medium: 1,
+      low: 2,
+      none: 3,
+    };
     const sortedTasks = [...tasksToSchedule].sort((a, b) => {
+      const aPriority = priorityRank[a.priority || "none"] ?? 3;
+      const bPriority = priorityRank[b.priority || "none"] ?? 3;
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority; // Higher priority first (lower rank number)
+      }
       const aScore = initialScores.get(a.id) || 0;
       const bScore = initialScores.get(b.id) || 0;
-      return bScore - aScore; // Higher scores first
+      return bScore - aScore; // Higher scores first within same priority
     });
 
     const schedulingStart = this.startMetric("scheduleTasks", {
@@ -188,6 +187,11 @@ export class SchedulingService {
 
     // Schedule each task
     for (const task of sortedTasks) {
+      // Tasks with no duration or < 1 min are reminders, not schedulable blocks
+      if (!task.duration || task.duration < 1) {
+        continue;
+      }
+
       const taskStart = this.startMetric("scheduleIndividualTask", {
         taskId: task.id,
         title: task.title,
@@ -195,7 +199,7 @@ export class SchedulingService {
 
       const taskWithDuration = {
         ...task,
-        duration: task.duration || DEFAULT_TASK_DURATION,
+        duration: task.duration,
       };
 
       const scheduledTask = await this.scheduleTask(

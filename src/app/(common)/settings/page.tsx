@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import dynamic from "next/dynamic";
 
 import { AccountManager } from "@/components/settings/AccountManager";
+import { ApiKeySettings } from "@/components/settings/ApiKeySettings";
 import { AutoScheduleSettings } from "@/components/settings/AutoScheduleSettings";
 import { CalendarSettings } from "@/components/settings/CalendarSettings";
 import { ImportExportSettings } from "@/components/settings/ImportExportSettings";
@@ -52,7 +53,8 @@ type SettingsTab =
   | "waitlist"
   | "import-export"
   | "admin-dashboard"
-  | "notifications";
+  | "notifications"
+  | "api-keys";
 
 export default function SettingsPage() {
   const [isHydrated, setIsHydrated] = useState(false);
@@ -73,6 +75,7 @@ export default function SettingsPage() {
       { id: "task-sync", label: "Task Sync" },
       { id: "notifications", label: "Notifications" },
       { id: "import-export", label: "Import/Export" },
+      { id: "api-keys", label: "API Keys" },
     ] as const;
 
     // Add admin-only tabs
@@ -120,6 +123,7 @@ export default function SettingsPage() {
         "import-export",
         "admin-dashboard",
         "notifications",
+        "api-keys",
       ];
 
       if (allPossibleTabIds.includes(hash)) {
@@ -199,6 +203,8 @@ export default function SettingsPage() {
         return <UserManagement />;
       case "import-export":
         return <ImportExportSettings />;
+      case "api-keys":
+        return <ApiKeySettings />;
       case "waitlist":
         return (
           <Suspense fallback={<div>Loading...</div>}>

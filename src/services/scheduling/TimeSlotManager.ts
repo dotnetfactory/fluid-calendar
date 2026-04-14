@@ -16,8 +16,6 @@ import {
 } from "@/lib/date-utils";
 import { prisma } from "@/lib/prisma";
 
-import { useSettingsStore } from "@/store/settings";
-
 import { Conflict, TimeSlot } from "@/types/scheduling";
 
 import { CalendarService } from "./CalendarService";
@@ -53,10 +51,11 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
 
   constructor(
     private settings: AutoScheduleSettings,
-    private calendarService: CalendarService
+    private calendarService: CalendarService,
+    timeZone?: string
   ) {
     this.slotScorer = new SlotScorer(settings);
-    this.timeZone = useSettingsStore.getState().user.timeZone;
+    this.timeZone = timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   }
 
   async updateScheduledTasks(userId: string): Promise<void> {
@@ -95,11 +94,16 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       return [];
     }
 
-    // If task has a startDate and it's after the provided startDate but within window, use the task's startDate
-    const effectiveStartDate =
-      task.startDate instanceof Date && task.startDate > startDate
-        ? task.startDate
-        : startDate;
+    // Use the latest of: provided startDate, task's startDate, or now
+    const now = newDate();
+    let effectiveStartDate = startDate;
+    if (task.startDate instanceof Date && task.startDate > effectiveStartDate) {
+      effectiveStartDate = task.startDate;
+    }
+    // Never schedule in the past
+    if (effectiveStartDate < now) {
+      effectiveStartDate = now;
+    }
 
     // 1. Generate potential slots
     const potentialSlots = this.generatePotentialSlots(
@@ -339,6 +343,11 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
   }
 
   private hasInMemoryConflict(slot: TimeSlot): boolean {
+    const bufferMinutes = this.settings.bufferMinutes;
+    // Expand the check window by buffer on both sides
+    const checkStart = addMinutes(slot.start, -bufferMinutes);
+    const checkEnd = addMinutes(slot.end, bufferMinutes);
+
     // Check all project tasks for conflicts
     for (const [, projectTasks] of this.slotScorer
       .getScheduledTasks()
@@ -346,7 +355,7 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       for (const projectTask of projectTasks) {
         if (
           areIntervalsOverlapping(
-            { start: slot.start, end: slot.end },
+            { start: checkStart, end: checkEnd },
             { start: projectTask.start, end: projectTask.end }
           )
         ) {
@@ -366,9 +375,17 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       this.settings.selectedCalendars
     );
 
-    // Prepare slots for batch checking
+    const bufferMinutes = this.settings.bufferMinutes;
+
+    // Prepare slots for batch checking with buffer-expanded windows
     const slotsToCheck = slots.map((slot) => ({
-      slot,
+      slot: {
+        ...slot,
+        // Expand conflict check window by buffer on both sides
+        start: addMinutes(slot.start, -bufferMinutes),
+        end: addMinutes(slot.end, bufferMinutes),
+      },
+      originalSlot: slot,
       taskId: task.id,
     }));
 
@@ -381,19 +398,22 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     );
 
     // Process results and check for conflicts with in-memory scheduled tasks
-    for (const result of batchResults) {
+    for (let i = 0; i < batchResults.length; i++) {
+      const result = batchResults[i];
+      const original = slotsToCheck[i]?.originalSlot;
+
       // Add null check to prevent "Cannot read properties of undefined (reading 'slot')"
-      if (!result || !result.slot) {
+      if (!result || !result.slot || !original) {
         continue;
       }
 
       if (result.conflicts.length === 0) {
-        // Check for conflicts with in-memory scheduled tasks
-        if (!this.hasInMemoryConflict(result.slot)) {
-          availableSlots.push(result.slot);
+        // Check for conflicts with in-memory scheduled tasks (also uses buffer expansion)
+        if (!this.hasInMemoryConflict(original)) {
+          availableSlots.push(original);
         }
       } else {
-        result.slot.conflicts = result.conflicts;
+        original.conflicts = result.conflicts;
       }
     }
 

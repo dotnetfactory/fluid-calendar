@@ -323,7 +323,7 @@ export async function POST(request: NextRequest) {
             ),
             recurringEventId: masterEventData.recurringEventId,
             allDay: isAllDay,
-            status: masterEventData.status,
+            status: masterEventData.transparency === "transparent" ? "free" : "busy",
             sequence: masterEventData.sequence,
             created: masterEventData.created
               ? newDate(masterEventData.created)
@@ -397,7 +397,7 @@ export async function POST(request: NextRequest) {
                     : undefined
                 ),
             allDay: isAllDay,
-            status: event.status,
+            status: event.transparency === "transparent" ? "free" : "busy",
             sequence: event.sequence,
             created: event.created ? newDate(event.created) : undefined,
             lastModified: event.updated ? newDate(event.updated) : undefined,
@@ -574,7 +574,7 @@ export async function PUT(request: NextRequest) {
                 : undefined
             ),
             allDay: isAllDay,
-            status: event.status,
+            status: event.transparency === "transparent" ? "free" : "busy",
             sequence: event.sequence,
             created: event.created ? newDate(event.created) : undefined,
             lastModified: event.updated ? newDate(event.updated) : undefined,

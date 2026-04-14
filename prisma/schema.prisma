@@ -85,6 +85,8 @@ model User {
   taskProviders        TaskProvider[]
   TaskChange           TaskChange[]
   PasswordReset        PasswordReset[]
+  apiKeys              ApiKey[]
+  schedules            Schedule[]
 }
 
 model VerificationToken {
@@ -176,12 +178,17 @@ model Project {
   userId String?
   user   User?   @relation(fields: [userId], references: [id])
 
+  // Schedule
+  scheduleId String?
+  schedule   Schedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([userId])
+  @@index([scheduleId])
   @@index([externalId, externalSource])
 }
 
@@ -217,6 +224,10 @@ model Task {
   lastCompletedDate DateTime?
   completedAt       DateTime? // When the task was marked as completed
 
+  // Dependency tracking
+  isBlocked     Boolean @default(false)
+  blockedReason String?
+
   // External Integration
   externalTaskId String?
   source         String?
@@ -231,6 +242,10 @@ model Task {
   syncHash          String? // Hash of task data for detecting changes
   skipSync          Boolean   @default(false) // Flag to skip syncing this task
 
+  // Dependencies
+  dependencies    TaskDependency[] @relation("TaskDependencies")
+  prerequisiteFor TaskDependency[] @relation("TaskPrerequisites")
+
   // Change tracking relation
   changes TaskChange[]
 
@@ -242,10 +257,13 @@ model Task {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id])
+  scheduleId String?
+  schedule   Schedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
 
   @@index([status])
+  @@index([scheduleId])
   @@index([dueDate])
   @@index([startDate])
   @@index([priority])
@@ -604,6 +622,74 @@ model PasswordReset {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
+  @@index([userId])
+}
+
+model Schedule {
+  id                String              @id @default(cuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  timezone          String              @default("America/New_York")
+  isSystem          Boolean             @default(false)
+  color             String?
+  selectedCalendars String              @default("[]")
+  bufferMinutes     Int                 @default(15)
+  highEnergyStart   Int?
+  highEnergyEnd     Int?
+  mediumEnergyStart Int?
+  mediumEnergyEnd   Int?
+  lowEnergyStart    Int?
+  lowEnergyEnd      Int?
+  timeBlocks        ScheduleTimeBlock[]
+  projects          Project[]
+  tasks             Task[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model ScheduleTimeBlock {
+  id          String   @id @default(cuid())
+  scheduleId  String
+  schedule    Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  dayOfWeek   Int
+  startHour   Int
+  startMinute Int      @default(0)
+  endHour     Int
+  endMinute   Int      @default(0)
+
+  @@index([scheduleId, dayOfWeek])
+}
+
+model TaskDependency {
+  id              String   @id @default(cuid())
+  dependentTaskId String
+  dependentTask   Task     @relation("TaskDependencies", fields: [dependentTaskId], references: [id], onDelete: Cascade)
+  prerequisiteId  String
+  prerequisite    Task     @relation("TaskPrerequisites", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+  type            String   @default("finish_to_start")
+  source          String?
+  createdAt       DateTime @default(now())
+
+  @@unique([dependentTaskId, prerequisiteId])
+  @@index([dependentTaskId])
+  @@index([prerequisiteId])
+}
+
+model ApiKey {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keyHash   String    @unique
+  name      String
+  prefix    String    // First 8 chars of the key for identification
+  lastUsed  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([keyHash])
   @@index([userId])
 }
 

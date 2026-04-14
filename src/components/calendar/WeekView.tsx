@@ -277,6 +277,7 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
         events={events}
         nowIndicator={true}
         allDaySlot={true}
+        dayMaxEvents={3}
         slotMinTime="00:00:00"
         slotMaxTime="24:00:00"
         scrollTime={calendarSettings.workingHours.start}

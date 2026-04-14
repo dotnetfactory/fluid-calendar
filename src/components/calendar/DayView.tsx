@@ -270,6 +270,7 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
         events={events}
         nowIndicator={true}
         allDaySlot={true}
+        dayMaxEvents={3}
         slotMinTime="00:00:00"
         slotMaxTime="24:00:00"
         scrollTime={calendarSettings.workingHours.start}

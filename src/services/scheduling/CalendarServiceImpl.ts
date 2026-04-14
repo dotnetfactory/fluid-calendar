@@ -80,6 +80,11 @@ export class CalendarServiceImpl implements CalendarService {
     );
 
     for (const event of events) {
+      // Skip events marked as "free" or "transparent" — they don't block scheduling
+      if (event.status === "free" || event.status === "transparent") {
+        continue;
+      }
+
       if (
         areIntervalsOverlapping(
           { start: slot.start, end: slot.end },
@@ -241,8 +246,12 @@ export class CalendarServiceImpl implements CalendarService {
     return slots.map(({ slot, taskId }) => {
       const conflicts: Conflict[] = [];
 
-      // Check calendar conflicts
+      // Check calendar conflicts (skip free/transparent events)
       for (const event of events) {
+        if (event.status === "free" || event.status === "transparent") {
+          continue;
+        }
+
         if (
           areIntervalsOverlapping(
             { start: slot.start, end: slot.end },

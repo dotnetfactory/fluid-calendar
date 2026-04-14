@@ -1,12 +1,22 @@
+import { createHash } from "crypto";
+
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "APIAuth";
 
 /**
- * Authenticates a request and returns the user ID if authenticated
+ * Hash an API key for storage/lookup
+ */
+export function hashApiKey(key: string): string {
+  return createHash("sha256").update(key).digest("hex");
+}
+
+/**
+ * Authenticates a request via NextAuth session OR API key (Bearer token)
  * @param request The NextRequest object
  * @param logSource The source for logging
  * @returns An object with userId if authenticated, or a NextResponse if unauthorized
@@ -15,13 +25,40 @@ export async function authenticateRequest(
   request: NextRequest,
   logSource: string
 ) {
-  // Get the user token from the request
+  // Check for API key in Authorization header first
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const apiKey = authHeader.slice(7);
+    const keyHash = hashApiKey(apiKey);
+
+    const keyRecord = await prisma.apiKey.findUnique({
+      where: { keyHash },
+    });
+
+    if (keyRecord) {
+      // Update lastUsed timestamp (fire and forget)
+      prisma.apiKey
+        .update({
+          where: { id: keyRecord.id },
+          data: { lastUsed: new Date() },
+        })
+        .catch((err) =>
+          logger.warn("Failed to update API key lastUsed", { error: String(err) }, LOG_SOURCE)
+        );
+
+      return { userId: keyRecord.userId };
+    }
+
+    logger.warn("Invalid API key", {}, logSource);
+    return { response: new NextResponse("Unauthorized", { status: 401 }) };
+  }
+
+  // Fall back to NextAuth session
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  // If there's no token, return unauthorized
   if (!token) {
     logger.warn("Unauthorized access attempt to API", {}, logSource);
     return { response: new NextResponse("Unauthorized", { status: 401 }) };
