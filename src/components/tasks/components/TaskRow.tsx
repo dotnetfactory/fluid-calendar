@@ -34,6 +34,53 @@ import { useDraggableTask } from "../../dnd/useDragAndDrop";
 import { formatEnumValue, statusColors } from "../utils/task-list-utils";
 import { EditableCell } from "./EditableCell";
 
+function DepSearchDropdown({
+  candidates,
+  onSelect,
+  onClose,
+}: {
+  candidates: Task[];
+  onSelect: (id: string) => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const filtered = search
+    ? candidates.filter((t) =>
+        t.title.toLowerCase().includes(search.toLowerCase())
+      )
+    : candidates;
+
+  return (
+    <div className="relative">
+      <input
+        autoFocus
+        type="text"
+        placeholder="Search tasks..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        onBlur={() => setTimeout(onClose, 200)}
+        className="w-full rounded border bg-background px-1.5 py-0.5 text-xs"
+      />
+      {filtered.length > 0 && (
+        <div className="absolute left-0 top-full z-20 mt-0.5 max-h-32 w-48 overflow-y-auto rounded border bg-background shadow-lg">
+          {filtered.map((t) => (
+            <button
+              key={t.id}
+              className="w-full px-2 py-1 text-left text-xs hover:bg-muted truncate"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onSelect(t.id);
+              }}
+            >
+              {t.title}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface DepItem {
   depId: string;
   taskId: string;
@@ -112,7 +159,7 @@ function DependencyCell({
                   : "bg-blue-500"
             }`}
           />
-          <span className="truncate max-w-[120px]">{item.title}</span>
+          <span className="block truncate">{item.title}</span>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -125,21 +172,11 @@ function DependencyCell({
         </span>
       ))}
       {adding ? (
-        <select
-          autoFocus
-          className="w-full rounded border bg-background px-1 py-0.5 text-xs"
-          onChange={(e) => {
-            if (e.target.value) addDependency(e.target.value);
-          }}
-          onBlur={() => setAdding(false)}
-        >
-          <option value="">Select task...</option>
-          {candidates.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.title}
-            </option>
-          ))}
-        </select>
+        <DepSearchDropdown
+          candidates={candidates}
+          onSelect={(id) => { addDependency(id); }}
+          onClose={() => setAdding(false)}
+        />
       ) : (
         candidates.length > 0 && (
           <button
@@ -331,7 +368,7 @@ export function TaskRow({
         )}
       </td>
       {/* Blocked By (prerequisites) */}
-      <td className="px-3 py-2 text-sm">
+      <td className="overflow-hidden px-3 py-2 text-sm">
         <DependencyCell
           task={task}
           direction="blockedBy"
@@ -345,7 +382,7 @@ export function TaskRow({
         />
       </td>
       {/* Blocking (dependents) */}
-      <td className="px-3 py-2 text-sm">
+      <td className="overflow-hidden px-3 py-2 text-sm">
         <DependencyCell
           task={task}
           direction="blocking"

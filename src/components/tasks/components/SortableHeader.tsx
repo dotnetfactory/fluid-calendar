@@ -49,6 +49,7 @@ export function SortableHeader({
         const newWidth = Math.max(40, startWidth + moveEvent.clientX - startX);
         th.style.width = `${newWidth}px`;
         th.style.minWidth = `${newWidth}px`;
+        th.style.maxWidth = `${newWidth}px`;
       };
 
       const onMouseUp = () => {
@@ -67,7 +68,7 @@ export function SortableHeader({
       ref={thRef}
       scope="col"
       className={cn(
-        "group relative cursor-pointer px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground",
+        "group relative cursor-pointer overflow-hidden px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground",
         className
       )}
       onClick={() => onSort(column)}
@@ -88,7 +89,7 @@ export function SortableHeader({
       </div>
       {/* Resize handle */}
       <div
-        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50"
+        className="absolute right-0 top-0 z-10 h-full w-2 cursor-col-resize hover:bg-primary/50"
         onMouseDown={handleResizeStart}
         onClick={(e) => e.stopPropagation()}
       />

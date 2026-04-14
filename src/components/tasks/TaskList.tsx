@@ -343,24 +343,30 @@ export function TaskList({
                   className="w-32"
                 />
                 {/* Energy and Time Preference columns hidden for now - future enhancement */}
-                <th
-                  scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground w-28"
-                >
-                  Blocked
-                </th>
-                <th
-                  scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground w-44"
-                >
-                  Blocked By
-                </th>
-                <th
-                  scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground w-44"
-                >
-                  Blocking
-                </th>
+                <SortableHeader
+                  column="status"
+                  label="Blocked"
+                  currentSort=""
+                  direction="asc"
+                  onSort={() => {}}
+                  className="w-28"
+                />
+                <SortableHeader
+                  column="status"
+                  label="Blocked By"
+                  currentSort=""
+                  direction="asc"
+                  onSort={() => {}}
+                  className="w-44"
+                />
+                <SortableHeader
+                  column="status"
+                  label="Blocking"
+                  currentSort=""
+                  direction="asc"
+                  onSort={() => {}}
+                  className="w-44"
+                />
                 <SortableHeader
                   column="dueDate"
                   label="Due Date"
@@ -393,12 +399,13 @@ export function TaskList({
                   onSort={handleSort}
                   className="w-40"
                 />
-                <th
-                  scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
-                >
-                  Auto Scheduled
-                </th>
+                <SortableHeader
+                  column="status"
+                  label="Auto Scheduled"
+                  currentSort=""
+                  direction="asc"
+                  onSort={() => {}}
+                />
                 <SortableHeader
                   column="startDate"
                   label="Start Date"
