@@ -307,10 +307,10 @@ export function TaskList({
 
       <div className="flex-1 rounded-lg border bg-background">
         <div
-          className="overflow-auto"
+          className="overflow-scroll [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-muted/50"
           style={{ maxHeight: "calc(100vh - 250px)" }}
         >
-          <table className="min-w-full table-fixed divide-y divide-border">
+          <table className="w-max min-w-full table-fixed divide-y divide-border">
             <thead className="sticky top-0 bg-muted">
               <tr>
                 <th
