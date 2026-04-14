@@ -173,13 +173,13 @@ function DragGrid({
 
               {/* Existing blocks */}
               {dayBlockList.map((block, idx) => {
-                const top =
-                  (block.startHour - GRID_START_HOUR) * ROW_HEIGHT +
-                  (block.startMinute || 0) * (ROW_HEIGHT / 60);
-                const height =
-                  (block.endHour - block.startHour) * ROW_HEIGHT +
-                  ((block.endMinute || 0) - (block.startMinute || 0)) *
-                    (ROW_HEIGHT / 60);
+                // Clamp to visible grid area
+                const visStart = Math.max(block.startHour + (block.startMinute || 0) / 60, GRID_START_HOUR);
+                const visEnd = Math.min(block.endHour + (block.endMinute || 0) / 60, GRID_END_HOUR);
+                if (visEnd <= visStart) return null;
+
+                const top = (visStart - GRID_START_HOUR) * ROW_HEIGHT;
+                const height = (visEnd - visStart) * ROW_HEIGHT;
 
                 return (
                   <div
