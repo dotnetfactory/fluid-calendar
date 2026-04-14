@@ -12,9 +12,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 import { useProjectStore } from "@/store/project";
+import { useScheduleStore } from "@/store/schedule";
 
 import { Project, ProjectStatus } from "@/types/project";
 
@@ -28,23 +36,30 @@ interface ProjectModalProps {
 
 export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
   const { createProject, updateProject } = useProjectStore();
+  const { schedules, fetchSchedules } = useScheduleStore();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#E5E7EB");
+  const [scheduleId, setScheduleId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
+    if (isOpen) {
+      fetchSchedules();
+    }
     if (project && isOpen) {
       setName(project.name);
       setDescription(project.description || "");
       setColor(project.color || "#E5E7EB");
+      setScheduleId(project.scheduleId || null);
     } else if (!project && isOpen) {
       setName("");
       setDescription("");
       setColor("#E5E7EB");
+      setScheduleId(null);
     }
-  }, [project, isOpen]);
+  }, [project, isOpen, fetchSchedules]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +72,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
           name: name.trim(),
           description: description.trim() || undefined,
           color: color === "#E5E7EB" ? undefined : color,
+          scheduleId: scheduleId || undefined,
         });
       } else {
         await createProject({
@@ -64,6 +80,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
           description: description.trim() || undefined,
           color: color === "#E5E7EB" ? undefined : color,
           status: ProjectStatus.ACTIVE,
+          scheduleId: scheduleId || undefined,
         });
       }
       onClose();
@@ -121,6 +138,32 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
                   style={{ backgroundColor: color }}
                 />
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="schedule">Schedule</Label>
+              <Select
+                value={scheduleId || "default"}
+                onValueChange={(value) =>
+                  setScheduleId(value === "default" ? null : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Use default (24/7)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Use default (24/7)</SelectItem>
+                  {schedules.map((schedule) => (
+                    <SelectItem key={schedule.id} value={schedule.id}>
+                      {schedule.name}
+                      {schedule.isSystem ? " (System)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                All tasks in this project will use this schedule unless overridden.
+              </p>
             </div>
 
             <div className="flex justify-between pt-4">
