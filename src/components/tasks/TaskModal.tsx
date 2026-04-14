@@ -28,6 +28,7 @@ import { RecurrenceConverterFactory } from "@/lib/task-sync/recurrence/recurrenc
 import { cn } from "@/lib/utils";
 
 import { useProjectStore } from "@/store/project";
+import { useScheduleStore } from "@/store/schedule";
 
 import {
   EnergyLevel,
@@ -89,6 +90,7 @@ export function TaskModal({
   initialProjectId,
 }: TaskModalProps) {
   const { projects } = useProjectStore();
+  const { schedules, fetchSchedules } = useScheduleStore();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.TODO);
@@ -103,6 +105,9 @@ export function TaskModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectId, setProjectId] = useState<string | null | undefined>(
     initialProjectId || task?.projectId
+  );
+  const [scheduleId, setScheduleId] = useState<string | null | undefined>(
+    task?.scheduleId
   );
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceRule, setRecurrenceRule] = useState<string | undefined>();
@@ -130,6 +135,7 @@ export function TaskModal({
     setNewTagName("");
     setNewTagColor("#E5E7EB");
     setProjectId(initialProjectId ?? null);
+    setScheduleId(null);
     setIsRecurring(false);
     setRecurrenceRule(undefined);
     setIsAutoScheduled(true);
@@ -141,8 +147,10 @@ export function TaskModal({
   useEffect(() => {
     if (!isOpen) {
       resetForm();
+    } else {
+      fetchSchedules();
     }
-  }, [isOpen, resetForm]);
+  }, [isOpen, resetForm, fetchSchedules]);
 
   // Populate form with task data when editing
   useEffect(() => {
@@ -168,6 +176,7 @@ export function TaskModal({
       setPreferredTime(task.preferredTime || "");
       setSelectedTagIds(task.tags.map((t) => t.id));
       setProjectId(task.projectId || null);
+      setScheduleId(task.scheduleId || null);
       setIsRecurring(task.isRecurring);
       setRecurrenceRule(task.recurrenceRule || undefined);
       setIsAutoScheduled(task.isAutoScheduled);
@@ -207,6 +216,7 @@ export function TaskModal({
         isAutoScheduled,
         scheduleLocked,
         priority,
+        scheduleId: scheduleId || undefined,
       });
       onClose();
     } catch (error) {
@@ -453,6 +463,31 @@ export function TaskModal({
                       {project.name}
                     </SelectItem>
                   ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="schedule">Schedule</Label>
+            <Select
+              value={scheduleId || "inherit"}
+              onValueChange={(value) =>
+                setScheduleId(value === "inherit" ? null : value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Inherit from project" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="inherit">
+                  Inherit from project
+                </SelectItem>
+                {schedules.map((schedule) => (
+                  <SelectItem key={schedule.id} value={schedule.id}>
+                    {schedule.name}
+                    {schedule.isSystem ? " (System)" : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

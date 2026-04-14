@@ -7,8 +7,8 @@ import dynamic from "next/dynamic";
 
 import { AccountManager } from "@/components/settings/AccountManager";
 import { ApiKeySettings } from "@/components/settings/ApiKeySettings";
-import { AutoScheduleSettings } from "@/components/settings/AutoScheduleSettings";
 import { CalendarSettings } from "@/components/settings/CalendarSettings";
+import { ScheduleSettings } from "@/components/settings/ScheduleSettings";
 import { ImportExportSettings } from "@/components/settings/ImportExportSettings";
 import { LogViewer } from "@/components/settings/LogViewer";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
@@ -190,7 +190,7 @@ export default function SettingsPage() {
       case "calendar":
         return <CalendarSettings />;
       case "auto-schedule":
-        return <AutoScheduleSettings />;
+        return <ScheduleSettings />;
       case "task-sync":
         return <TaskSyncSettings />;
       case "notifications":
