@@ -93,7 +93,34 @@ export async function PUT(
     logger.info(`Update payload for task ${id}`, { payload: json }, LOG_SOURCE);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { tagIds, project, projectId, userId: _, ...updates } = json;
+    const { tagIds, project: _p, projectId, userId: _u, scheduleId, ...rawUpdates } = json;
+
+    // Only allow known writeable scalar Task fields to prevent Prisma errors
+    const allowedFields = new Set([
+      "title", "description", "status", "dueDate", "startDate", "duration",
+      "priority", "energyLevel", "preferredTime", "isAutoScheduled",
+      "scheduleLocked", "scheduledStart", "scheduledEnd", "scheduleScore",
+      "lastScheduled", "postponedUntil", "isRecurring", "recurrenceRule",
+      "lastCompletedDate", "completedAt", "isBlocked", "blockedReason",
+      "externalTaskId", "source", "lastSyncedAt", "externalListId",
+      "externalCreatedAt", "externalUpdatedAt", "syncStatus", "syncError",
+      "syncHash", "skipSync",
+    ]);
+    const updates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(rawUpdates)) {
+      if (allowedFields.has(key)) {
+        updates[key] = value;
+      }
+    }
+
+    // Handle schedule relation (scheduleId -> schedule: { connect/disconnect })
+    if (scheduleId !== undefined) {
+      if (scheduleId) {
+        updates.schedule = { connect: { id: scheduleId } };
+      } else {
+        updates.schedule = { disconnect: true };
+      }
+    }
 
     // Set completedAt when task is marked as completed
     if (
@@ -206,7 +233,7 @@ export async function PUT(
 
     // Normalize recurrence rule if it exists in updates
     if (updates.recurrenceRule) {
-      updates.recurrenceRule = normalizeRecurrenceRule(updates.recurrenceRule);
+      updates.recurrenceRule = normalizeRecurrenceRule(updates.recurrenceRule as string);
     }
 
     // Find the project's task mapping if it exists
@@ -284,14 +311,13 @@ export async function PUT(
 
     return NextResponse.json(updatedTask);
   } catch (error) {
-    logger.error(
-      "Error updating task:",
-      {
-        error: error instanceof Error ? error.message : String(error),
-      },
-      LOG_SOURCE
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("Task PUT error:", errMsg, error);
+    logger.error("Error updating task:", { error: errMsg }, LOG_SOURCE);
+    return NextResponse.json(
+      { error: errMsg },
+      { status: 500 }
     );
-    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
 

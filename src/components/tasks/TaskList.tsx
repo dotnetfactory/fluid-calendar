@@ -342,22 +342,7 @@ export function TaskList({
                   onSort={handleSort}
                   className="w-32"
                 />
-                <SortableHeader
-                  column="energyLevel"
-                  label="Energy"
-                  currentSort={sortBy}
-                  direction={sortDirection}
-                  onSort={handleSort}
-                  className="w-32"
-                />
-                <SortableHeader
-                  column="preferredTime"
-                  label="Time"
-                  currentSort={sortBy}
-                  direction={sortDirection}
-                  onSort={handleSort}
-                  className="w-32"
-                />
+                {/* Energy and Time Preference columns hidden for now - future enhancement */}
                 <SortableHeader
                   column="dueDate"
                   label="Due Date"
@@ -388,7 +373,14 @@ export function TaskList({
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
+                  className="w-40"
                 />
+                <th
+                  scope="col"
+                  className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                >
+                  Auto Scheduled
+                </th>
                 <SortableHeader
                   column="startDate"
                   label="Start Date"

@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 
 import { Task, TaskStatus } from "@/types/task";
 
+import { useScheduleStore } from "@/store/schedule";
+
 import { useDraggableTask } from "../../dnd/useDragAndDrop";
 import { formatEnumValue, statusColors } from "../utils/task-list-utils";
 import { EditableCell } from "./EditableCell";
@@ -42,6 +44,7 @@ export function TaskRow({
   onInlineEdit,
 }: TaskRowProps) {
   const { draggableProps, isDragging } = useDraggableTask(task);
+  const { schedules } = useScheduleStore();
   const isFutureTask = task.startDate && isFutureDate(task.startDate);
 
   return (
@@ -186,22 +189,7 @@ export function TaskRow({
           onSave={onInlineEdit}
         />
       </td>
-      <td className="whitespace-nowrap px-3 py-2">
-        <EditableCell
-          task={task}
-          field="energyLevel"
-          value={task.energyLevel}
-          onSave={onInlineEdit}
-        />
-      </td>
-      <td className="whitespace-nowrap px-3 py-2">
-        <EditableCell
-          task={task}
-          field="preferredTime"
-          value={task.preferredTime}
-          onSave={onInlineEdit}
-        />
-      </td>
+      {/* Energy and Time Preference columns hidden for now - future enhancement */}
       <td className="whitespace-nowrap px-3 py-2 text-sm text-muted-foreground">
         <EditableCell
           task={task}
@@ -226,6 +214,47 @@ export function TaskRow({
           onSave={onInlineEdit}
         />
       </td>
+      {/* Schedule assignment dropdown */}
+      <td className="whitespace-nowrap px-3 py-2">
+        <Select
+          value={task.scheduleId || "inherit"}
+          onValueChange={(value) => {
+            onInlineEdit({
+              ...task,
+              scheduleId: value === "inherit" ? null : value,
+            } as Task);
+          }}
+        >
+          <SelectTrigger className="h-7 w-full border-none bg-transparent px-1 text-xs shadow-none">
+            <span className="flex items-center gap-1.5">
+              {(() => {
+                const sched = schedules.find((s) => s.id === task.scheduleId);
+                if (sched) {
+                  return (
+                    <>
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: sched.color || "#6b7280" }}
+                      />
+                      {sched.name}
+                    </>
+                  );
+                }
+                return <span className="text-muted-foreground">Inherit</span>;
+              })()}
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="inherit">Inherit from project</SelectItem>
+            {schedules.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}{s.isSystem ? " (System)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </td>
+      {/* Auto-scheduled info */}
       <td className="whitespace-nowrap px-3 py-2">
         <div className="flex items-center gap-2">
           {task.isAutoScheduled ? (

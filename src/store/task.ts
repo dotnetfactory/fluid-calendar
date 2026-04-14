@@ -116,7 +116,7 @@ export const useTaskStore = create<TaskState>()(
       },
 
       updateTask: async (id: string, updates: UpdateTask) => {
-        set({ loading: true, error: null });
+        set({ error: null });
         try {
           const response = await fetch(`/api/tasks/${id}`, {
             method: "PUT",
@@ -126,6 +126,7 @@ export const useTaskStore = create<TaskState>()(
 
           if (!response.ok) {
             const errorText = await response.text();
+            console.error("UPDATE TASK FAILED - URL:", `/api/tasks/${id}`, "Body:", JSON.stringify(updates).slice(0, 500), "Response:", errorText);
             throw new Error(`Failed to update task: ${errorText}`);
           }
 
@@ -135,7 +136,12 @@ export const useTaskStore = create<TaskState>()(
               task.id === id ? updatedTask : task
             ),
           }));
-          await get().triggerScheduleAllTasks();
+          // Reschedule in background (don't block UI)
+          const scheduleFields = ["duration", "dueDate", "startDate", "isAutoScheduled", "scheduleId", "isBlocked", "status"];
+          const needsReschedule = scheduleFields.some((f) => f in updates);
+          if (needsReschedule) {
+            get().triggerScheduleAllTasks().then(() => get().fetchTasks()).catch(() => {});
+          }
           return updatedTask;
         } catch (error) {
           set({ error: error as Error });

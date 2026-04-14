@@ -219,12 +219,13 @@ export class SlotScorer {
   private scorePriority(task: Task): number {
     if (!task.priority || task.priority === Priority.NONE) return 0.25;
 
-    // Higher priority tasks get higher scores
     switch (task.priority) {
-      case Priority.HIGH:
+      case Priority.URGENT:
         return 1.0;
+      case Priority.HIGH:
+        return 0.9;
       case Priority.MEDIUM:
-        return 0.75;
+        return 0.7;
       case Priority.LOW:
         return 0.5;
       default:

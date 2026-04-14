@@ -47,6 +47,7 @@ interface EventQuickViewProps {
 
 //TODO: move to utils
 const priorityColors = {
+  [Priority.URGENT]: "text-purple-600 dark:text-purple-400",
   [Priority.HIGH]: "text-destructive dark:text-destructive",
   [Priority.MEDIUM]: "text-warning dark:text-warning",
   [Priority.LOW]: "text-primary dark:text-primary",

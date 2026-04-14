@@ -39,6 +39,8 @@ export const timePreferenceColors = {
 };
 
 export const priorityColors = {
+  [Priority.URGENT]:
+    "bg-purple-500/20 text-purple-700 dark:text-purple-400",
   [Priority.HIGH]: "bg-red-500/20 text-red-700 dark:text-red-400",
   [Priority.MEDIUM]: "bg-orange-500/20 text-orange-700 dark:text-orange-400",
   [Priority.LOW]: "bg-blue-500/20 text-blue-700 dark:text-blue-400",

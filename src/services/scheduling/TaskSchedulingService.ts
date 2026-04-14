@@ -92,7 +92,8 @@ function convertDbTaskToTaskWithRelations(
  * then 24/7 system schedule last. Cross-schedule conflicts are shared.
  */
 export async function scheduleAllTasksForUser(
-  userId: string
+  userId: string,
+  fullRebalance: boolean = false
 ): Promise<TaskWithRelations[]> {
   try {
     logger.info("Starting task scheduling for user", { userId }, LOG_SOURCE);
@@ -193,7 +194,8 @@ export async function scheduleAllTasksForUser(
       const schedulingService = new SchedulingService(
         group.schedule,
         calendarService,
-        groupByProject
+        groupByProject,
+        fullRebalance
       );
 
       // Include locked tasks in the group so they show as conflicts

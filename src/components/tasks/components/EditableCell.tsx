@@ -305,21 +305,20 @@ export function EditableCell({
           onValueChange={(value) => {
             onSave({
               ...task,
-              [field]: value !== "none" ? (value as Priority) : null,
+              priority: value as Priority,
             });
             setIsEditing(false);
           }}
         >
           <SelectTrigger className="h-8 min-w-[140px]">
-            <SelectValue placeholder="No Priority" />
+            <SelectValue placeholder="None" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">No Priority</SelectItem>
-            {Object.values(Priority).map((priority) => (
-              <SelectItem key={priority} value={priority}>
-                {formatEnumValue(priority)}
-              </SelectItem>
-            ))}
+            <SelectItem value="urgent">Urgent</SelectItem>
+            <SelectItem value="high">High</SelectItem>
+            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="low">Low</SelectItem>
+            <SelectItem value="none">None</SelectItem>
           </SelectContent>
         </Select>
       ) : field === "duration" ? (

@@ -26,15 +26,18 @@ export class SchedulingService {
   private schedule: ScheduleWithBlocks;
   private metrics: PerformanceMetrics[] = [];
   private groupByProject: boolean;
+  private fullRebalance: boolean;
 
   constructor(
     schedule: ScheduleWithBlocks,
     calendarService: CalendarServiceImpl,
-    groupByProject: boolean = false
+    groupByProject: boolean = false,
+    fullRebalance: boolean = false
   ) {
     this.calendarService = calendarService;
     this.schedule = schedule;
     this.groupByProject = groupByProject;
+    this.fullRebalance = fullRebalance;
   }
 
   private startMetric(
@@ -118,75 +121,24 @@ export class SchedulingService {
     // Clear existing schedules for non-locked tasks
     const tasksToSchedule = tasks.filter((t) => !t.scheduleLocked);
 
-    // Get initial scores for all tasks
     const timeSlotManager = this.getTimeSlotManager(existingConflicts);
-    const now = newDate();
 
-    const scoringStart = this.startMetric("calculateInitialScores", {
-      tasksToScore: tasksToSchedule.length,
-    });
-
-    const initialScores = new Map<string, number>();
-
-    //TODO: move to utils
-    // Use the same windows as scheduling
-    const windows = [
-      { days: 90, label: "3 months" },
-    ];
-
-    // Process tasks in parallel batches
-    const batchSize = 8;
-    for (let i = 0; i < tasksToSchedule.length; i += batchSize) {
-      const batch = tasksToSchedule.slice(i, i + batchSize);
-      const batchPromises = batch.map(async (task) => {
-        const taskStart = this.startMetric("calculateTaskScore", {
-          taskId: task.id,
-          title: task.title,
-        });
-
-        let bestScore = 0;
-        for (const window of windows) {
-          const slots = await timeSlotManager.findAvailableSlots(
-            task,
-            now,
-            addDays(now, window.days),
-            userId
-          );
-          if (slots.length > 0) {
-            bestScore = Math.max(bestScore, slots[0].score);
-            break; // Found a slot, no need to look further
-          }
-        }
-
-        this.endMetric("calculateTaskScore", taskStart);
-        return { taskId: task.id, score: bestScore };
-      });
-
-      const batchResults = await Promise.all(batchPromises);
-      batchResults.forEach((result) => {
-        initialScores.set(result.taskId, result.score);
-      });
-    }
-
-    this.endMetric("calculateInitialScores", scoringStart);
-
-    // Sort tasks: priority tier first, then by best slot score within tier
+    // Sort by priority then due date (skip expensive pre-scoring)
     this.startMetric("sortTasks");
     const priorityRank: Record<string, number> = {
-      high: 0,
-      medium: 1,
-      low: 2,
-      none: 3,
+      urgent: 0,
+      high: 1,
+      medium: 2,
+      low: 3,
+      none: 4,
     };
     const sortedTasks = [...tasksToSchedule].sort((a, b) => {
-      const aPriority = priorityRank[a.priority || "none"] ?? 3;
-      const bPriority = priorityRank[b.priority || "none"] ?? 3;
-      if (aPriority !== bPriority) {
-        return aPriority - bPriority; // Higher priority first (lower rank number)
-      }
-      const aScore = initialScores.get(a.id) || 0;
-      const bScore = initialScores.get(b.id) || 0;
-      return bScore - aScore; // Higher scores first within same priority
+      const aPriority = priorityRank[a.priority || "none"] ?? 4;
+      const bPriority = priorityRank[b.priority || "none"] ?? 4;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const bDue = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      return aDue - bDue;
     });
 
     const schedulingStart = this.startMetric("scheduleTasks", {
@@ -255,9 +207,9 @@ export class SchedulingService {
     });
 
     const now = newDate();
-    const windows = [
-      { days: 90, label: "3 months" },
-    ];
+    const windows = this.fullRebalance
+      ? [{ days: 14, label: "2 weeks" }, { days: 90, label: "3 months" }]
+      : [{ days: 14, label: "2 weeks" }];
 
     for (const window of windows) {
       const windowStart = this.startMetric("tryWindow", {

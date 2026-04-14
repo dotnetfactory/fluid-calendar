@@ -18,7 +18,9 @@ export async function POST(request: NextRequest) {
 
     // Use the common function to schedule all tasks
     // If settings are provided, use them, otherwise use the overloaded function
-    const tasksWithRelations = await scheduleAllTasksForUser(userId);
+    const { searchParams } = new URL(request.url);
+    const fullRebalance = searchParams.get("full") === "true";
+    const tasksWithRelations = await scheduleAllTasksForUser(userId, fullRebalance);
 
     return NextResponse.json(tasksWithRelations);
   } catch (error) {

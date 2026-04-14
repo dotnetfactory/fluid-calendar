@@ -16,6 +16,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
 
 import { useProjectStore } from "@/store/project";
+import { useScheduleStore } from "@/store/schedule";
 import { useTaskStore } from "@/store/task";
 import { useTaskModalStore } from "@/store/taskModal";
 import { useTaskPageSettings } from "@/store/taskPageSettings";
@@ -37,6 +38,7 @@ export default function TasksPage() {
     scheduleAllTasks,
   } = useTaskStore();
   const { fetchProjects, activeProject } = useProjectStore();
+  const { fetchSchedules } = useScheduleStore();
   const { viewMode, setViewMode } = useTaskPageSettings();
   const { isOpen, setOpen } = useTaskModalStore();
 
@@ -50,7 +52,8 @@ export default function TasksPage() {
     fetchTasks();
     fetchTags();
     fetchProjects();
-  }, [fetchTasks, fetchTags, fetchProjects]);
+    fetchSchedules();
+  }, [fetchTasks, fetchTags, fetchProjects, fetchSchedules]);
 
   const handleCreateTask = async (task: NewTask) => {
     await createTask(task);
@@ -92,11 +95,23 @@ export default function TasksPage() {
   };
 
   const handleInlineEdit = async (task: Task) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, tags, createdAt, updatedAt, project, ...updates } = task;
-    console.log("Updating task:", { id, updates });
+    const { id } = task;
+    // Only send writeable fields to avoid Prisma relation errors
+    const updates: Record<string, unknown> = {};
+    const writeable = [
+      "title", "description", "status", "dueDate", "startDate", "duration",
+      "priority", "energyLevel", "preferredTime", "isAutoScheduled",
+      "scheduleLocked", "isRecurring", "recurrenceRule", "isBlocked",
+      "blockedReason", "projectId", "scheduleId", "externalTaskId", "source",
+    ];
+    for (const key of writeable) {
+      if (key in task) {
+        updates[key] = (task as unknown as Record<string, unknown>)[key];
+      }
+    }
+    console.log("INLINE EDIT - sending:", JSON.stringify({ id, fields: Object.keys(updates) }));
     try {
-      await updateTask(id, updates);
+      await updateTask(id, updates as Parameters<typeof updateTask>[1]);
       await fetchTasks();
       // If projectId was changed, refresh projects to update task counts
       if ("projectId" in updates) {
