@@ -147,9 +147,11 @@ function DependencyCell({
       {items.map((item) => (
         <span
           key={item.depId}
-          className="group inline-flex items-center gap-1 text-xs text-muted-foreground"
-          title={item.title}
+          className="group/tip relative inline-flex items-center gap-1 text-xs text-muted-foreground"
         >
+          <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1 hidden whitespace-nowrap rounded bg-foreground px-2 py-1 text-[10px] text-background shadow-lg group-hover/tip:block">
+            {item.title}
+          </span>
           <span
             className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
               item.status === "completed"
@@ -368,7 +370,7 @@ export function TaskRow({
         )}
       </td>
       {/* Blocked By (prerequisites) */}
-      <td className="overflow-hidden px-3 py-2 text-sm">
+      <td className="overflow-hidden px-3 py-2 text-sm" style={{ maxWidth: 0 }}>
         <DependencyCell
           task={task}
           direction="blockedBy"
@@ -382,7 +384,7 @@ export function TaskRow({
         />
       </td>
       {/* Blocking (dependents) */}
-      <td className="overflow-hidden px-3 py-2 text-sm">
+      <td className="overflow-hidden px-3 py-2 text-sm" style={{ maxWidth: 0 }}>
         <DependencyCell
           task={task}
           direction="blocking"
