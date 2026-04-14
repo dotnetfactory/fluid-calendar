@@ -1,3 +1,5 @@
+import { useCallback, useRef } from "react";
+
 import { HiChevronDown, HiChevronUp } from "react-icons/hi";
 
 import { cn } from "@/lib/utils";
@@ -31,11 +33,41 @@ export function SortableHeader({
   onSort,
   className = "",
 }: SortableHeaderProps) {
+  const thRef = useRef<HTMLTableCellElement>(null);
+
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const th = thRef.current;
+      if (!th) return;
+
+      const startX = e.clientX;
+      const startWidth = th.offsetWidth;
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        const newWidth = Math.max(40, startWidth + moveEvent.clientX - startX);
+        th.style.width = `${newWidth}px`;
+        th.style.minWidth = `${newWidth}px`;
+      };
+
+      const onMouseUp = () => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      };
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    },
+    []
+  );
+
   return (
     <th
+      ref={thRef}
       scope="col"
       className={cn(
-        "group cursor-pointer px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground",
+        "group relative cursor-pointer px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground",
         className
       )}
       onClick={() => onSort(column)}
@@ -54,6 +86,12 @@ export function SortableHeader({
           )}
         </span>
       </div>
+      {/* Resize handle */}
+      <div
+        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50"
+        onMouseDown={handleResizeStart}
+        onClick={(e) => e.stopPropagation()}
+      />
     </th>
   );
 }

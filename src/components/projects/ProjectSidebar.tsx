@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BsArrowRepeat } from "react-icons/bs";
 import { HiFolderOpen, HiPencil, HiPlus } from "react-icons/hi";
@@ -37,6 +37,28 @@ interface TaskListMapping {
 }
 
 export function ProjectSidebar() {
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(256);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const newWidth = Math.max(180, Math.min(500, startWidth + moveEvent.clientX - startX));
+      setSidebarWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, [sidebarWidth]);
+
   const {
     projects,
     loading,
@@ -154,7 +176,11 @@ export function ProjectSidebar() {
 
   return (
     <>
-      <div className="flex h-full w-64 flex-col border-r bg-background">
+      <div
+        ref={sidebarRef}
+        className="relative flex h-full flex-col border-r bg-background"
+        style={{ width: sidebarWidth }}
+      >
         <div className="border-b p-4">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">Projects</h2>
@@ -261,6 +287,11 @@ export function ProjectSidebar() {
             </div>
           )}
         </ScrollArea>
+        {/* Resize handle */}
+        <div
+          className="absolute right-0 top-0 z-10 h-full w-1.5 cursor-col-resize hover:bg-primary/30 active:bg-primary/50"
+          onMouseDown={handleResizeStart}
+        />
       </div>
 
       <ProjectModal
@@ -321,8 +352,8 @@ function ProjectItem({
           style={{ backgroundColor: project.color }}
         />
       )}
-      <span className="project-name flex-1 truncate">{project.name}</span>
-      <span className="text-xs text-muted-foreground">{taskCount}</span>
+      <span className="project-name min-w-0 flex-1 truncate">{project.name}</span>
+      <span className="flex-shrink-0 text-xs text-muted-foreground">{taskCount}</span>
 
       {hasMappings && (
         <Button
@@ -344,11 +375,12 @@ function ProjectItem({
       <Button
         variant="ghost"
         size="icon"
-        className="h-6 w-6 p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+        className="h-6 w-6 p-0.5 text-muted-foreground hover:text-foreground"
         onClick={(e) => {
           e.stopPropagation();
           onEdit(project);
         }}
+        title="Edit project settings"
       >
         <HiPencil className="h-3 w-3" />
       </Button>

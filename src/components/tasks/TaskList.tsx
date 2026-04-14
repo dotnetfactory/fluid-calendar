@@ -310,7 +310,7 @@ export function TaskList({
           className="overflow-auto"
           style={{ maxHeight: "calc(100vh - 250px)" }}
         >
-          <table className="min-w-full divide-y divide-border">
+          <table className="min-w-full table-fixed divide-y divide-border">
             <thead className="sticky top-0 bg-muted">
               <tr>
                 <th
