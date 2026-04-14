@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useAreaStore } from "@/store/area";
 import { useProjectStore } from "@/store/project";
 import { useScheduleStore } from "@/store/schedule";
 
@@ -37,29 +38,34 @@ interface ProjectModalProps {
 export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
   const { createProject, updateProject } = useProjectStore();
   const { schedules, fetchSchedules } = useScheduleStore();
+  const { areas, fetchAreas } = useAreaStore();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#E5E7EB");
   const [scheduleId, setScheduleId] = useState<string | null>(null);
+  const [areaId, setAreaId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchSchedules();
+      fetchAreas();
     }
     if (project && isOpen) {
       setName(project.name);
       setDescription(project.description || "");
       setColor(project.color || "#E5E7EB");
       setScheduleId(project.scheduleId || null);
+      setAreaId(project.areaId || null);
     } else if (!project && isOpen) {
       setName("");
       setDescription("");
       setColor("#E5E7EB");
       setScheduleId(null);
+      setAreaId(null);
     }
-  }, [project, isOpen, fetchSchedules]);
+  }, [project, isOpen, fetchSchedules, fetchAreas]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +79,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
           description: description.trim() || undefined,
           color: color === "#E5E7EB" ? undefined : color,
           scheduleId: scheduleId || undefined,
+          areaId: areaId || undefined,
         });
       } else {
         await createProject({
@@ -81,6 +88,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
           color: color === "#E5E7EB" ? undefined : color,
           status: ProjectStatus.ACTIVE,
           scheduleId: scheduleId || undefined,
+          areaId: areaId || undefined,
         });
       }
       onClose();
@@ -138,6 +146,26 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
                   style={{ backgroundColor: color }}
                 />
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="area">Area</Label>
+              <Select
+                value={areaId || "none"}
+                onValueChange={(v) => setAreaId(v === "none" ? null : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No Area" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Area</SelectItem>
+                  {areas.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.icon ? `${a.icon} ` : ""}{a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>

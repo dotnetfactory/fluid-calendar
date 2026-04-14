@@ -3,18 +3,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BsArrowRepeat } from "react-icons/bs";
-import { HiFolderOpen, HiPencil, HiPlus } from "react-icons/hi";
+import { HiChevronDown, HiChevronRight, HiFolderOpen, HiPencil, HiPlus } from "react-icons/hi";
 import { toast } from "sonner";
 
+import { AreaModal } from "@/components/areas/AreaModal";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { isSaasEnabled } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
+import { useAreaStore } from "@/store/area";
 import { useProjectStore } from "@/store/project";
 import { useTaskStore } from "@/store/task";
 
+import { Area } from "@/types/area";
 import { Project, ProjectStatus } from "@/types/project";
 import { TaskStatus } from "@/types/task";
 
@@ -68,8 +71,12 @@ export function ProjectSidebar() {
     activeProject,
   } = useProjectStore();
   const { tasks } = useTaskStore();
+  const { areas, fetchAreas } = useAreaStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
+  const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
+  const [selectedArea, setSelectedArea] = useState<Area | undefined>();
+  const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set());
   const [projectMappings, setProjectMappings] = useState<
     Record<string, TaskListMapping[]>
   >({});
@@ -82,7 +89,8 @@ export function ProjectSidebar() {
 
   useEffect(() => {
     fetchProjects();
-  }, [fetchProjects]);
+    fetchAreas();
+  }, [fetchProjects, fetchAreas]);
 
   // Fetch task list mappings for projects
   useEffect(() => {
@@ -157,12 +165,37 @@ export function ProjectSidebar() {
     [syncingProjects]
   );
 
+  const toggleArea = (areaId: string) => {
+    setCollapsedAreas((prev) => {
+      const next = new Set(prev);
+      if (next.has(areaId)) next.delete(areaId);
+      else next.add(areaId);
+      return next;
+    });
+  };
+
+  const handleEditArea = (area: Area) => {
+    setSelectedArea(area);
+    setIsAreaModalOpen(true);
+  };
+
   const activeProjects = projects.filter(
     (project) => project.status === ProjectStatus.ACTIVE
   );
   const archivedProjects = projects.filter(
     (project) => project.status === ProjectStatus.ARCHIVED
   );
+
+  // Group active projects by area
+  const projectsByArea = new Map<string | null, Project[]>();
+  for (const p of activeProjects) {
+    const areaId = (p as unknown as { areaId?: string }).areaId || null;
+    const list = projectsByArea.get(areaId) || [];
+    list.push(p);
+    projectsByArea.set(areaId, list);
+  }
+
+  const unassignedProjects = projectsByArea.get(null) || [];
 
   // Count non-completed tasks with no project
   const unassignedTasksCount = tasks.filter(
@@ -183,16 +216,30 @@ export function ProjectSidebar() {
       >
         <div className="border-b p-4">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Projects</h2>
-            <Button
-              size="icon"
-              onClick={() => {
-                setSelectedProject(undefined);
-                setIsModalOpen(true);
-              }}
-            >
-              <HiPlus className="h-4 w-4" />
-            </Button>
+            <h2 className="text-lg font-semibold">Areas</h2>
+            <div className="flex gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                title="New Area"
+                onClick={() => {
+                  setSelectedArea(undefined);
+                  setIsAreaModalOpen(true);
+                }}
+              >
+                <HiFolderOpen className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                title="New Project"
+                onClick={() => {
+                  setSelectedProject(undefined);
+                  setIsModalOpen(true);
+                }}
+              >
+                <HiPlus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <div className="space-y-1">
             <Button
@@ -228,39 +275,105 @@ export function ProjectSidebar() {
           ) : error ? (
             <div className="p-2 text-sm text-destructive">{error.message}</div>
           ) : (
-            <div className="space-y-4">
-              {activeProjects.length > 0 && (
-                <div className="space-y-1">
-                  {activeProjects.map((project) => (
-                    <ProjectItem
-                      key={project.id}
-                      project={project}
-                      isActive={activeProject?.id === project.id}
-                      onEdit={handleEditProject}
-                      mappings={projectMappings[project.id] || []}
-                      isSyncing={syncingProjects.has(project.id)}
-                      onSync={handleSyncProject}
-                    />
-                  ))}
+            <div className="space-y-2">
+              {/* Areas with nested projects */}
+              {areas.map((area) => {
+                const areaProjects = projectsByArea.get(area.id) || [];
+                const isCollapsed = collapsedAreas.has(area.id);
+
+                return (
+                  <div key={area.id}>
+                    <div
+                      className="group flex items-center gap-1 rounded-md px-2 py-1.5 hover:bg-muted cursor-pointer"
+                      onClick={() => toggleArea(area.id)}
+                    >
+                      {isCollapsed ? (
+                        <HiChevronRight className="h-3 w-3 text-muted-foreground" />
+                      ) : (
+                        <HiChevronDown className="h-3 w-3 text-muted-foreground" />
+                      )}
+                      {area.icon && <span className="text-sm">{area.icon}</span>}
+                      {area.color && !area.icon && (
+                        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: area.color }} />
+                      )}
+                      <span className="flex-1 text-xs font-semibold uppercase tracking-wider truncate">
+                        {area.name}
+                      </span>
+                      {area.schedule && (
+                        <span className="text-[10px] text-muted-foreground">{area.schedule.name}</span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
+                        onClick={(e) => { e.stopPropagation(); handleEditArea(area); }}
+                      >
+                        <HiPencil className="h-2.5 w-2.5" />
+                      </Button>
+                    </div>
+                    {!isCollapsed && (
+                      <div className="ml-4 space-y-0.5">
+                        {areaProjects.map((project) => (
+                          <ProjectItem
+                            key={project.id}
+                            project={project}
+                            isActive={activeProject?.id === project.id}
+                            onEdit={handleEditProject}
+                            mappings={projectMappings[project.id] || []}
+                            isSyncing={syncingProjects.has(project.id)}
+                            onSync={handleSyncProject}
+                          />
+                        ))}
+                        {areaProjects.length === 0 && (
+                          <div className="px-3 py-1 text-xs text-muted-foreground italic">No projects</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Unassigned projects */}
+              {unassignedProjects.length > 0 && (
+                <div>
+                  <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Unassigned
+                  </div>
+                  <div className="space-y-0.5">
+                    {unassignedProjects.map((project) => (
+                      <ProjectItem
+                        key={project.id}
+                        project={project}
+                        isActive={activeProject?.id === project.id}
+                        onEdit={handleEditProject}
+                        mappings={projectMappings[project.id] || []}
+                        isSyncing={syncingProjects.has(project.id)}
+                        onSync={handleSyncProject}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 
+              {/* Archived */}
               {archivedProjects.length > 0 && (
-                <div className="space-y-1">
-                  <div className="py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <div>
+                  <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Archived
                   </div>
-                  {archivedProjects.map((project) => (
-                    <ProjectItem
-                      key={project.id}
-                      project={project}
-                      isActive={activeProject?.id === project.id}
-                      onEdit={handleEditProject}
-                      mappings={projectMappings[project.id] || []}
-                      isSyncing={syncingProjects.has(project.id)}
-                      onSync={handleSyncProject}
-                    />
-                  ))}
+                  <div className="space-y-0.5">
+                    {archivedProjects.map((project) => (
+                      <ProjectItem
+                        key={project.id}
+                        project={project}
+                        isActive={activeProject?.id === project.id}
+                        onEdit={handleEditProject}
+                        mappings={projectMappings[project.id] || []}
+                        isSyncing={syncingProjects.has(project.id)}
+                        onSync={handleSyncProject}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -301,6 +414,16 @@ export function ProjectSidebar() {
           setSelectedProject(undefined);
         }}
         project={selectedProject}
+      />
+
+      <AreaModal
+        isOpen={isAreaModalOpen}
+        onClose={() => {
+          setIsAreaModalOpen(false);
+          setSelectedArea(undefined);
+          fetchAreas();
+        }}
+        area={selectedArea}
       />
     </>
   );
