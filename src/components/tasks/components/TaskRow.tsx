@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import {
   HiCheck,
   HiClock,
@@ -5,9 +7,12 @@ import {
   HiLockClosed,
   HiMenuAlt4,
   HiPencil,
+  HiPlus,
   HiRefresh,
   HiTrash,
+  HiX,
 } from "react-icons/hi";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,10 +28,134 @@ import { cn } from "@/lib/utils";
 import { Task, TaskStatus } from "@/types/task";
 
 import { useScheduleStore } from "@/store/schedule";
+import { useTaskStore } from "@/store/task";
 
 import { useDraggableTask } from "../../dnd/useDragAndDrop";
 import { formatEnumValue, statusColors } from "../utils/task-list-utils";
 import { EditableCell } from "./EditableCell";
+
+interface DepItem {
+  depId: string;
+  taskId: string;
+  title: string;
+  status: string;
+}
+
+function DependencyCell({
+  task,
+  direction,
+  items,
+  onRefresh,
+}: {
+  task: Task;
+  direction: "blockedBy" | "blocking";
+  items: DepItem[];
+  onRefresh: (task: Task) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const { tasks } = useTaskStore();
+
+  // Get other tasks in the same project as candidates
+  const candidates = task.projectId
+    ? tasks.filter(
+        (t) =>
+          t.projectId === task.projectId &&
+          t.id !== task.id &&
+          t.status !== TaskStatus.COMPLETED &&
+          !items.some((d) => d.taskId === t.id)
+      )
+    : [];
+
+  const addDependency = async (otherTaskId: string) => {
+    try {
+      const taskId = direction === "blockedBy" ? task.id : otherTaskId;
+      const prereqId = direction === "blockedBy" ? otherTaskId : task.id;
+      await fetch(`/api/tasks/${taskId}/dependencies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prerequisiteId: prereqId, source: "manual" }),
+      });
+      onRefresh(task);
+      setAdding(false);
+    } catch {
+      toast.error("Failed to add dependency");
+    }
+  };
+
+  const removeDependency = async (otherTaskId: string) => {
+    try {
+      const taskId = direction === "blockedBy" ? task.id : otherTaskId;
+      const prereqId = direction === "blockedBy" ? otherTaskId : task.id;
+      await fetch(`/api/tasks/${taskId}/dependencies?prerequisiteId=${prereqId}`, {
+        method: "DELETE",
+      });
+      onRefresh(task);
+    } catch {
+      toast.error("Failed to remove dependency");
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      {items.map((item) => (
+        <span
+          key={item.depId}
+          className="group inline-flex items-center gap-1 text-xs text-muted-foreground"
+          title={item.title}
+        >
+          <span
+            className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
+              item.status === "completed"
+                ? "bg-green-500"
+                : direction === "blockedBy"
+                  ? "bg-orange-500"
+                  : "bg-blue-500"
+            }`}
+          />
+          <span className="truncate max-w-[120px]">{item.title}</span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              removeDependency(item.taskId);
+            }}
+            className="hidden group-hover:inline text-muted-foreground hover:text-destructive"
+          >
+            <HiX className="h-3 w-3" />
+          </button>
+        </span>
+      ))}
+      {adding ? (
+        <select
+          autoFocus
+          className="w-full rounded border bg-background px-1 py-0.5 text-xs"
+          onChange={(e) => {
+            if (e.target.value) addDependency(e.target.value);
+          }}
+          onBlur={() => setAdding(false)}
+        >
+          <option value="">Select task...</option>
+          {candidates.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.title}
+            </option>
+          ))}
+        </select>
+      ) : (
+        candidates.length > 0 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setAdding(true);
+            }}
+            className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+          >
+            <HiPlus className="h-2.5 w-2.5" /> Add
+          </button>
+        )
+      )}
+    </div>
+  );
+}
 
 interface TaskRowProps {
   task: Task;
@@ -190,6 +319,45 @@ export function TaskRow({
         />
       </td>
       {/* Energy and Time Preference columns hidden for now - future enhancement */}
+      {/* Blocked status */}
+      <td className="whitespace-nowrap px-3 py-2 text-sm">
+        {task.isBlocked ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs text-red-600 dark:text-red-400" title={task.blockedReason || "Blocked"}>
+            <HiLockClosed className="h-3 w-3" />
+            Blocked
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">-</span>
+        )}
+      </td>
+      {/* Blocked By (prerequisites) */}
+      <td className="px-3 py-2 text-sm">
+        <DependencyCell
+          task={task}
+          direction="blockedBy"
+          items={task.dependencies?.map((d) => ({
+            depId: d.id,
+            taskId: d.prerequisite.id,
+            title: d.prerequisite.title,
+            status: d.prerequisite.status,
+          })) || []}
+          onRefresh={onInlineEdit}
+        />
+      </td>
+      {/* Blocking (dependents) */}
+      <td className="px-3 py-2 text-sm">
+        <DependencyCell
+          task={task}
+          direction="blocking"
+          items={task.prerequisiteFor?.map((d) => ({
+            depId: d.id,
+            taskId: d.dependentTask.id,
+            title: d.dependentTask.title,
+            status: d.dependentTask.status,
+          })) || []}
+          onRefresh={onInlineEdit}
+        />
+      </td>
       <td className="whitespace-nowrap px-3 py-2 text-sm text-muted-foreground">
         <EditableCell
           task={task}

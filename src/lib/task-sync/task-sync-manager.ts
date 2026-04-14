@@ -898,14 +898,13 @@ export class TaskSyncManager {
 
       // Extract and remove nested objects that can't be used directly in the update
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { tags, project, ...updateData } = mergedData;
+      const { tags, project, scheduleId, ...updateData } = mergedData;
 
       // Update local task with the merged data
       await prisma.task.update({
         where: { id: localTask.id },
         data: {
-          // Use type assertion to handle the TaskUpdateInput type
-          ...updateData,
+          ...(updateData as Record<string, unknown>),
           externalUpdatedAt: externalUpdatedAt,
           lastSyncedAt: newDate(),
           syncStatus: "SYNCED",

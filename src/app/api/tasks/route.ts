@@ -74,6 +74,16 @@ export async function GET(request: NextRequest) {
       include: {
         tags: true,
         project: true,
+        dependencies: {
+          include: {
+            prerequisite: { select: { id: true, title: true, status: true } },
+          },
+        },
+        prerequisiteFor: {
+          include: {
+            dependentTask: { select: { id: true, title: true, status: true } },
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",

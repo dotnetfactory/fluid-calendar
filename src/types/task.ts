@@ -62,6 +62,17 @@ export interface Task {
   lastScheduled?: Date | null;
   scheduleLocked: boolean;
   postponedUntil?: Date | null;
+  // Dependencies
+  isBlocked?: boolean;
+  blockedReason?: string;
+  dependencies?: {
+    id: string;
+    prerequisite: { id: string; title: string; status: string };
+  }[];
+  prerequisiteFor?: {
+    id: string;
+    dependentTask: { id: string; title: string; status: string };
+  }[];
   // Schedule
   scheduleId?: string | null;
   // External sync fields
