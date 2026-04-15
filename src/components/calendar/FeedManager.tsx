@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 
 import { useCalendarStore } from "@/store/calendar";
 import { useViewStore } from "@/store/calendar";
+import { useSettingsStore } from "@/store/settings";
 
 import { MiniCalendar } from "./MiniCalendar";
 
@@ -23,9 +24,18 @@ export function FeedManager() {
   const [expandedFeed, setExpandedFeed] = useState<string | null>(null);
   const { feeds, removeFeed, toggleFeed, syncFeed, updateFeed } = useCalendarStore();
   const { date: currentDate, setDate } = useViewStore();
+  const taskCalendarId = useSettingsStore((s) => s.calendar.taskCalendarId);
 
   const handleRemoveFeed = useCallback(
     async (feedId: string) => {
+      // Warn if deleting the Task Calendar feed
+      if (feedId === taskCalendarId) {
+        const confirmed = window.confirm(
+          "This calendar is used for auto-scheduling task events. " +
+          "Deleting it will break the auto-schedule to Google Calendar sync. Continue?"
+        );
+        if (!confirmed) return;
+      }
       try {
         await removeFeed(feedId);
       } catch (error) {
@@ -89,28 +99,32 @@ export function FeedManager() {
                   )}
                 </div>
                 <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setExpandedFeed(expandedFeed === feed.id ? null : feed.id)}
-                    className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground focus:outline-none"
-                  >
-                    <BsGearFill className={cn("h-3 w-3", expandedFeed === feed.id && "text-primary")} />
-                  </button>
-                  <button
-                    onClick={() => handleSyncFeed(feed.id)}
-                    disabled={syncingFeeds.has(feed.id)}
-                    className={cn(
-                      "rounded-full p-1.5 text-muted-foreground hover:text-foreground",
-                      "hover:bg-muted/50 focus:outline-none",
-                      "disabled:opacity-50"
-                    )}
-                  >
-                    <BsArrowRepeat
-                      className={cn(
-                        "h-3.5 w-3.5",
-                        syncingFeeds.has(feed.id) && "animate-spin"
-                      )}
-                    />
-                  </button>
+                  {feed.id !== taskCalendarId && (
+                    <>
+                      <button
+                        onClick={() => setExpandedFeed(expandedFeed === feed.id ? null : feed.id)}
+                        className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground focus:outline-none"
+                      >
+                        <BsGearFill className={cn("h-3 w-3", expandedFeed === feed.id && "text-primary")} />
+                      </button>
+                      <button
+                        onClick={() => handleSyncFeed(feed.id)}
+                        disabled={syncingFeeds.has(feed.id)}
+                        className={cn(
+                          "rounded-full p-1.5 text-muted-foreground hover:text-foreground",
+                          "hover:bg-muted/50 focus:outline-none",
+                          "disabled:opacity-50"
+                        )}
+                      >
+                        <BsArrowRepeat
+                          className={cn(
+                            "h-3.5 w-3.5",
+                            syncingFeeds.has(feed.id) && "animate-spin"
+                          )}
+                        />
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={() => handleRemoveFeed(feed.id)}
                     className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-destructive focus:outline-none"

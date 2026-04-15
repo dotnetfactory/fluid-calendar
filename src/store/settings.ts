@@ -152,6 +152,14 @@ export const useSettingsStore = create<SettingsStore>()(
           // Update local state
           const newSettings = { ...state.calendar, ...settings };
 
+          // When a feed is selected as Task Calendar, disable auto-sync on it
+          // (Task Calendar is write-only — FC pushes to GCal, never pulls back)
+          if (settings.taskCalendarId && settings.taskCalendarId !== state.calendar.taskCalendarId) {
+            import("@/store/calendar").then(({ useCalendarStore }) => {
+              useCalendarStore.getState().updateFeed(settings.taskCalendarId!, { autoSync: false });
+            });
+          }
+
           // Save to database
           fetch("/api/calendar-settings", {
             method: "PATCH",
