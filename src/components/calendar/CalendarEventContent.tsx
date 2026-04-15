@@ -12,6 +12,21 @@ interface CalendarEventContentProps {
   eventInfo: EventContentArg;
 }
 
+/**
+ * Returns true if the color is light (text should be dark), false if dark (text should be light).
+ */
+function isLightColor(hex: string | undefined): boolean {
+  if (!hex) return true;
+  const c = hex.replace("#", "");
+  if (c.length < 6) return true;
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  // Relative luminance formula
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.55;
+}
+
 const priorityColors = {
   [Priority.URGENT]: "border-purple-500",
   [Priority.HIGH]: "border-red-500",
@@ -35,14 +50,18 @@ export const CalendarEventContent = memo(function CalendarEventContent({
   const duration = endTime - startTime;
 
   const isOverdue = isTask && isTaskOverdue({ dueDate, status });
+  const bgColor = eventInfo.event.backgroundColor;
+  const lightBg = isLightColor(bgColor);
 
   return (
     <div
       data-testid={isTask ? "calendar-task" : "calendar-event"}
+      style={!lightBg ? { color: "#ffffff" } : undefined}
       className={cn(
         "flex h-full flex-col justify-start gap-1 overflow-hidden text-[11px]",
         isTask && "border-l-4",
-        isTask && "text-gray-700",
+        lightBg && "text-gray-700",
+        !lightBg && "text-white",
         isTask && priority && priorityColors[priority as Priority],
         isTask &&
           !priority && {
@@ -50,8 +69,10 @@ export const CalendarEventContent = memo(function CalendarEventContent({
             "border-yellow-500": status === TaskStatus.IN_PROGRESS,
             "border-gray-500": status === TaskStatus.TODO,
           },
-        isOverdue && "border-red-500 font-medium text-red-600",
-        status === TaskStatus.COMPLETED && "text-gray-500 line-through"
+        isOverdue && lightBg && "border-red-500 font-medium text-red-600",
+        isOverdue && !lightBg && "border-red-400 font-medium",
+        status === TaskStatus.COMPLETED && lightBg && "text-gray-500 line-through",
+        status === TaskStatus.COMPLETED && !lightBg && "opacity-70 line-through"
       )}
     >
       <div className="flex w-full items-center gap-1.5">
