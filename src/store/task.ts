@@ -395,6 +395,11 @@ export const useTaskStore = create<TaskState>()(
           ) as Task[];
 
           set({ tasks: mergedTasks });
+
+          // Delayed refetch to pick up gcalEventId from background GCal push
+          setTimeout(() => {
+            get().fetchTasks();
+          }, 5000);
         } catch (error) {
           set({ error: error as Error });
           throw error;

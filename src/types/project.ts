@@ -11,6 +11,7 @@ export interface Project {
   status: ProjectStatus;
   scheduleId?: string | null;
   areaId?: string | null;
+  area?: { color?: string | null } | null;
   createdAt: Date;
   updatedAt: Date;
   _count?: {

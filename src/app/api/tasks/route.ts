@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       },
       include: {
         tags: true,
-        project: true,
+        project: { include: { area: { select: { color: true } } } },
         dependencies: {
           include: {
             prerequisite: { select: { id: true, title: true, status: true } },

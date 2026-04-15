@@ -895,6 +895,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
             allDay: false,
             color:
               task.project?.color ||
+              task.project?.area?.color ||
               task.tags[0]?.color ||
               DEFAULT_TASK_COLOR,
             extendedProps: {
