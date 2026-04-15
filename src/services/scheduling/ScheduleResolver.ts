@@ -21,6 +21,9 @@ export function resolveScheduleId(task: TaskWithProject): string | null {
 /**
  * Load all schedules for a user, indexed by ID.
  * Also returns the system (24/7) schedule separately.
+ *
+ * The system schedule's time blocks are derived from Calendar Settings
+ * working hours, so users configure availability in one place.
  */
 export async function loadSchedules(userId: string) {
   const schedules = await prisma.schedule.findMany({
@@ -30,14 +33,35 @@ export async function loadSchedules(userId: string) {
     },
   });
 
+  // Load working hours from Calendar Settings to use for the system schedule
+  const calSettings = await prisma.calendarSettings.findUnique({
+    where: { userId },
+  });
+
   const byId = new Map<string, ScheduleWithBlocks>();
   let systemSchedule: ScheduleWithBlocks | null = null;
 
   for (const schedule of schedules) {
-    byId.set(schedule.id, schedule);
     if (schedule.isSystem) {
+      // Override system schedule time blocks with Calendar Settings working hours
+      if (calSettings) {
+        const days: number[] = JSON.parse(calSettings.workingHoursDays || "[1,2,3,4,5]");
+        const [startHour, startMinute] = (calSettings.workingHoursStart || "09:00").split(":").map(Number);
+        const [endHour, endMinute] = (calSettings.workingHoursEnd || "17:00").split(":").map(Number);
+
+        schedule.timeBlocks = days.map((day) => ({
+          id: `system-${day}`,
+          scheduleId: schedule.id,
+          dayOfWeek: day,
+          startHour,
+          startMinute,
+          endHour,
+          endMinute,
+        }));
+      }
       systemSchedule = schedule;
     }
+    byId.set(schedule.id, schedule);
   }
 
   if (!systemSchedule) {
