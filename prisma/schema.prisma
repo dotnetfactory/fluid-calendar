@@ -106,6 +106,8 @@ model CalendarFeed {
   type              String // "LOCAL", "GOOGLE", "OUTLOOK", "CALDAV"
   color             String? // Add back color field
   enabled           Boolean           @default(true)
+  autoSync          Boolean           @default(true)
+  syncInterval      Int               @default(5) // minutes
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   lastSync          DateTime?
@@ -369,6 +371,8 @@ model CalendarSettings {
   defaultColor        String   @default("#3b82f6")
   defaultReminder     Int      @default(30) // minutes
   refreshInterval     Int      @default(5) // minutes
+  slotDuration        Int      @default(30) // minutes (15, 30, 60)
+  allDayMaxEvents     Int      @default(3) // max visible all-day rows
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

@@ -59,6 +59,8 @@ const defaultSettings: Settings & { accounts: ConnectedAccount[] } = {
       defaultReminder: 30,
     },
     refreshInterval: 5,
+    slotDuration: 30,
+    allDayMaxEvents: 3,
   },
   notifications: {
     emailNotifications: true,
@@ -167,6 +169,8 @@ export const useSettingsStore = create<SettingsStore>()(
               defaultColor: newSettings.eventDefaults.defaultColor,
               defaultReminder: newSettings.eventDefaults.defaultReminder,
               refreshInterval: newSettings.refreshInterval,
+              slotDuration: newSettings.slotDuration,
+              allDayMaxEvents: newSettings.allDayMaxEvents,
             }),
           }).catch((error) => {
             logger.error(
@@ -410,6 +414,8 @@ export const useSettingsStore = create<SettingsStore>()(
               defaultReminder: calendarSettings.defaultReminder,
             },
             refreshInterval: calendarSettings.refreshInterval,
+            slotDuration: calendarSettings.slotDuration ?? 30,
+            allDayMaxEvents: calendarSettings.allDayMaxEvents ?? 3,
           });
 
           get().updateNotificationSettings({

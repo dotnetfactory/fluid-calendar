@@ -26,6 +26,8 @@ export interface CalendarSettings {
     defaultReminder: number; // minutes before event
   };
   refreshInterval: number; // minutes
+  slotDuration: number; // minutes (15, 30, 60)
+  allDayMaxEvents: number; // max visible all-day rows before "+more"
 }
 
 export interface NotificationSettings {

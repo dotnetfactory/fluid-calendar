@@ -10,6 +10,8 @@ const LOG_SOURCE = "GoogleCalendarIdAPI";
 interface UpdateRequest {
   enabled?: boolean;
   color?: string;
+  autoSync?: boolean;
+  syncInterval?: number;
 }
 
 // Update a Google Calendar feed
@@ -49,6 +51,8 @@ export async function PATCH(
       data: {
         enabled: updates.enabled,
         color: updates.color,
+        autoSync: updates.autoSync,
+        syncInterval: updates.syncInterval,
       },
     });
 

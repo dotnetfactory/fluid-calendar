@@ -553,7 +553,6 @@ export async function PUT(request: NextRequest) {
 
         await tx.calendarEvent.create({
           data: {
-            id: event.id || undefined,
             feedId: feed.id,
             externalEventId: event.id,
             title: event.summary || "Untitled Event",

@@ -347,14 +347,14 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
         events={events}
         nowIndicator={true}
         allDaySlot={true}
-        dayMaxEvents={3}
+        dayMaxEvents={calendarSettings.allDayMaxEvents || 3}
         slotMinTime="00:00:00"
         slotMaxTime="24:00:00"
         scrollTime={calendarSettings.workingHours.start}
         expandRows={true}
         slotEventOverlap={true}
         stickyHeaderDates={true}
-        slotDuration="00:30:00"
+        slotDuration={`00:${String(calendarSettings.slotDuration || 30).padStart(2, "0")}:00`}
         timeZone="local"
         displayEventEnd={true}
         eventTimeFormat={{

@@ -120,6 +120,51 @@ export function CalendarSettings() {
       </SettingRow>
 
       <SettingRow
+        label="Time Slot Duration"
+        description="Set the calendar grid interval"
+      >
+        <Select
+          value={String(calendar.slotDuration || 30)}
+          onValueChange={(value) =>
+            updateCalendarSettings({ slotDuration: parseInt(value) })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="15">15 minutes</SelectItem>
+            <SelectItem value="30">30 minutes</SelectItem>
+            <SelectItem value="60">60 minutes</SelectItem>
+          </SelectContent>
+        </Select>
+      </SettingRow>
+
+      <SettingRow
+        label="All-Day Row Limit"
+        description="Maximum visible all-day events before showing +more"
+      >
+        <Select
+          value={String(calendar.allDayMaxEvents || 3)}
+          onValueChange={(value) =>
+            updateCalendarSettings({ allDayMaxEvents: parseInt(value) })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="2">2 rows</SelectItem>
+            <SelectItem value="3">3 rows</SelectItem>
+            <SelectItem value="4">4 rows</SelectItem>
+            <SelectItem value="5">5 rows</SelectItem>
+            <SelectItem value="6">6 rows</SelectItem>
+            <SelectItem value="8">8 rows</SelectItem>
+          </SelectContent>
+        </Select>
+      </SettingRow>
+
+      <SettingRow
         label="Working Hours"
         description="Set your working hours for better calendar visualization"
       >

@@ -55,6 +55,7 @@ export async function createGoogleEvent(
     allDay?: boolean;
     isRecurring?: boolean;
     recurrenceRule?: string;
+    status?: string;
   },
   timeZone: string
 ) {
@@ -76,6 +77,7 @@ export async function createGoogleEvent(
       summary: event.title,
       description: event.description,
       location: event.location,
+      transparency: event.status === "free" ? "transparent" : "opaque",
       start: {
         dateTime: event.allDay ? undefined : event.start.toISOString(),
         date: event.allDay
@@ -110,6 +112,7 @@ export async function updateGoogleEvent(
     isRecurring?: boolean;
     recurrenceRule?: string;
     mode?: "single" | "series";
+    status?: string;
   },
   timeZone: string
 ) {
@@ -140,6 +143,7 @@ export async function updateGoogleEvent(
           summary: event.title,
           description: event.description,
           location: event.location,
+          transparency: event.status === "free" ? "transparent" : event.status === "busy" ? "opaque" : undefined,
           start: event.start
             ? {
                 dateTime: event.allDay ? undefined : event.start.toISOString(),
@@ -182,6 +186,7 @@ export async function updateGoogleEvent(
             summary: event.title,
             description: event.description,
             location: event.location,
+            transparency: event.status === "free" ? "transparent" : event.status === "busy" ? "opaque" : undefined,
             start: event.start
               ? {
                   dateTime: event.allDay
@@ -216,6 +221,7 @@ export async function updateGoogleEvent(
         summary: event.title,
         description: event.description,
         location: event.location,
+        transparency: event.status === "free" ? "transparent" : event.status === "busy" ? "opaque" : undefined,
         start: event.start
           ? {
               dateTime: event.allDay ? undefined : event.start.toISOString(),

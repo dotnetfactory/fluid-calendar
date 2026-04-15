@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import dynamic from "next/dynamic";
 import { HiMenu } from "react-icons/hi";
@@ -20,6 +20,7 @@ import {
   useCalendarUIStore,
   useViewStore,
 } from "@/store/calendar";
+import { useSettingsStore } from "@/store/settings";
 import { useTaskStore } from "@/store/task";
 
 import { CalendarEvent, CalendarFeed } from "@/types/calendar";
@@ -44,6 +45,7 @@ export function Calendar({
   const { date: currentDate, setDate, view, setView } = useViewStore();
   const { isSidebarOpen, setSidebarOpen, isHydrated } = useCalendarUIStore();
   const { scheduleAllTasks } = useTaskStore();
+  const { calendar: calendarSettings, updateCalendarSettings } = useSettingsStore();
   const { setFeeds, setEvents } = useCalendarStore();
 
   // Use initial data from server for hydration
@@ -64,6 +66,51 @@ export function Calendar({
     // Always fetch tasks since they're not pre-loaded
     useTaskStore.getState().fetchTasks();
   }, [initialFeeds, initialEvents, setFeeds, setEvents]);
+
+  // Auto-sync: poll feeds based on their individual autoSync + syncInterval settings
+  const { feeds: allFeeds, syncFeed } = useCalendarStore();
+  const syncInProgress = useRef(false);
+  const lastSyncTimes = useRef<Map<string, number>>(new Map());
+
+  const runAutoSync = useCallback(async () => {
+    if (syncInProgress.current) return;
+    syncInProgress.current = true;
+    const now = Date.now();
+    try {
+      const feedsToSync = allFeeds.filter((f) => {
+        if (!f.enabled || !f.autoSync) return false;
+        const lastSync = lastSyncTimes.current.get(f.id) || 0;
+        const intervalMs = (f.syncInterval || 5) * 60 * 1000;
+        return now - lastSync >= intervalMs;
+      });
+      for (let i = 0; i < feedsToSync.length; i++) {
+        try {
+          await syncFeed(feedsToSync[i].id);
+          lastSyncTimes.current.set(feedsToSync[i].id, Date.now());
+        } catch {
+          // Quiet fail on auto-sync
+        }
+        // Stagger requests to avoid hitting GCal API rate limits
+        if (i < feedsToSync.length - 1) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
+    } finally {
+      syncInProgress.current = false;
+    }
+  }, [allFeeds, syncFeed]);
+
+  useEffect(() => {
+    const hasAutoSync = allFeeds.some((f) => f.enabled && f.autoSync);
+    if (!hasAutoSync) return;
+
+    // Run initial sync on mount
+    runAutoSync();
+
+    // Check every minute which feeds are due for sync
+    const id = setInterval(runAutoSync, 60 * 1000);
+    return () => clearInterval(id);
+  }, [allFeeds, runAutoSync]);
 
   const handlePrevWeek = () => {
     if (view === "month" || view === "multiMonth") {
@@ -166,8 +213,27 @@ export function Calendar({
             </h1>
           </div>
 
+          {/* Slot Duration Toggle */}
+          <div className="ml-auto mr-4 flex items-center gap-1 rounded-lg border border-border p-0.5">
+            {[15, 30, 60].map((mins) => (
+              <button
+                key={mins}
+                onClick={() => updateCalendarSettings({ slotDuration: mins })}
+                className={cn(
+                  "rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                  (calendarSettings.slotDuration || 30) === mins
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+                title={`${mins} minute intervals`}
+              >
+                {mins}m
+              </button>
+            ))}
+          </div>
+
           {/* View Switching Buttons */}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setView("day")}
               className={cn(

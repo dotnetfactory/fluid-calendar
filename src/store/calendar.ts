@@ -781,7 +781,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
 
       const endpoint =
         feed.type === "GOOGLE"
-          ? `/api/calendar/google/${feedId}`
+          ? `/api/calendar/google`
           : feed.type === "CALDAV"
             ? `/api/calendar/caldav/sync`
             : `/api/calendar/outlook/sync`;
@@ -853,7 +853,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
             isRecurring: task.isRecurring,
             isMaster: false,
             allDay: false,
-            color: task.tags[0]?.color || DEFAULT_TASK_COLOR,
+            color: task.project?.color || task.tags[0]?.color || DEFAULT_TASK_COLOR,
             extendedProps: {
               isTask: true,
               taskId: task.id,
@@ -895,7 +895,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
             isRecurring: false,
             isMaster: false,
             allDay: true,
-            color: task.tags[0]?.color || DEFAULT_TASK_COLOR,
+            color: task.project?.color || task.tags[0]?.color || DEFAULT_TASK_COLOR,
             extendedProps: {
               isTask: true,
               taskId: task.id,

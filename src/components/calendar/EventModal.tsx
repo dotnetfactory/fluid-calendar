@@ -159,6 +159,7 @@ export function EventModal({
   const [recurrenceFreq, setRecurrenceFreq] = useState("");
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [recurrenceByDay, setRecurrenceByDay] = useState<string[]>([]);
+  const [isFree, setIsFree] = useState(event?.status === "free");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset form when modal opens
@@ -184,6 +185,7 @@ export function EventModal({
       setSelectedFeedId(event?.feedId || calendar.defaultCalendarId || "");
       setIsAllDay(event?.allDay || false);
       setIsRecurring(event?.isRecurring || false);
+      setIsFree(event?.status === "free");
       const { freq, interval, byDay } = parseRecurrenceRule(
         event?.recurrenceRule
       );
@@ -241,6 +243,7 @@ export function EventModal({
             )
           : undefined,
         isMaster: false,
+        status: isFree ? "free" : "busy",
       };
 
       if (event?.id) {
@@ -463,15 +466,35 @@ export function EventModal({
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="all-day"
-                checked={isAllDay}
-                onCheckedChange={(checked) => setIsAllDay(checked as boolean)}
-              />
-              <Label htmlFor="all-day" className="text-sm">
-                All day
-              </Label>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="all-day"
+                  checked={isAllDay}
+                  onCheckedChange={(checked) => setIsAllDay(checked as boolean)}
+                />
+                <Label htmlFor="all-day" className="text-sm">
+                  All day
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="status" className="text-sm">
+                  Status
+                </Label>
+                <Select
+                  value={isFree ? "free" : "busy"}
+                  onValueChange={(value) => setIsFree(value === "free")}
+                >
+                  <SelectTrigger id="status" className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="busy">Busy</SelectItem>
+                    <SelectItem value="free">Free</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -612,6 +635,7 @@ export function EventModal({
     setStartDate(newDate());
     setEndDate(newDate(Date.now() + 3600000));
     setIsAllDay(false);
+    setIsFree(false);
     setIsRecurring(false);
     setRecurrenceFreq("");
     setRecurrenceInterval(1);

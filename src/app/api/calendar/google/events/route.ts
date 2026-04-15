@@ -171,6 +171,7 @@ export async function POST(request: NextRequest) {
         allDay: eventData.allDay,
         isRecurring: eventData.isRecurring,
         recurrenceRule: eventData.recurrenceRule,
+        status: eventData.status,
       },
       timeZone
     );

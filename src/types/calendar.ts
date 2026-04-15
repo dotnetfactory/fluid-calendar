@@ -5,6 +5,8 @@ export interface CalendarFeed {
   type: "GOOGLE" | "OUTLOOK" | "CALDAV";
   color?: string;
   enabled: boolean;
+  autoSync?: boolean;
+  syncInterval?: number; // minutes
   lastSync?: Date;
   error?: string;
   caldavPath?: string;
@@ -41,7 +43,7 @@ export interface CalendarEvent {
   // Additional fields for iCal support
   uid?: string; // Unique identifier from iCal
   sequence?: number; // Modification sequence
-  status?: EventStatus; // Event status (confirmed, cancelled, etc.)
+  status?: EventStatus | "free" | "busy"; // Event status or free/busy transparency
   created?: Date; // Creation timestamp
   lastModified?: Date; // Last modification timestamp
   organizer?: {
