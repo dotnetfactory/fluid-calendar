@@ -1,4 +1,4 @@
-import { Task } from "@prisma/client";
+import { DayBlock, Task } from "@prisma/client";
 
 import { parseSelectedCalendars } from "@/lib/autoSchedule";
 import {
@@ -50,6 +50,7 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
   private timeZone: string;
   private bufferMinutes: number;
   private selectedCalendarsJson: string;
+  private dayBlocks: DayBlock[] | null = null;
 
   constructor(
     private schedule: ScheduleWithBlocks,
@@ -110,6 +111,16 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       effectiveStartDate = now;
     }
 
+    // Load day blocks once
+    if (!this.dayBlocks) {
+      this.dayBlocks = await prisma.dayBlock.findMany({
+        where: {
+          userId,
+          date: { gte: effectiveStartDate, lte: endDate },
+        },
+      });
+    }
+
     // 1. Generate potential slots
     const potentialSlots = this.generatePotentialSlots(
       task.duration || DEFAULT_TASK_DURATION,
@@ -117,8 +128,11 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       endDate
     );
 
+    // 1b. Filter out day-blocked slots
+    const unblockedSlots = this.filterByDayBlocks(potentialSlots);
+
     // 2. Filter by work hours
-    const workHourSlots = this.filterByWorkHours(potentialSlots);
+    const workHourSlots = this.filterByWorkHours(unblockedSlots);
 
     // 3. Check calendar conflicts
     const availableSlots = await this.removeConflicts(workHourSlots, task);
@@ -293,6 +307,30 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     }
 
     return slots;
+  }
+
+  private filterByDayBlocks(slots: TimeSlot[]): TimeSlot[] {
+    if (!this.dayBlocks || this.dayBlocks.length === 0) return slots;
+
+    return slots.filter((slot) => {
+      const slotDate = toZonedTime(slot.start, this.timeZone);
+      const slotDateStr = `${slotDate.getFullYear()}-${String(slotDate.getMonth() + 1).padStart(2, "0")}-${String(slotDate.getDate()).padStart(2, "0")}`;
+
+      for (const block of this.dayBlocks!) {
+        const blockDate = new Date(block.date);
+        const blockDateStr = `${blockDate.getUTCFullYear()}-${String(blockDate.getUTCMonth() + 1).padStart(2, "0")}-${String(blockDate.getUTCDate()).padStart(2, "0")}`;
+
+        if (slotDateStr !== blockDateStr) continue;
+
+        // Full day block (blockFrom is null)
+        if (!block.blockFrom) return false;
+
+        // Rest of day block - check if slot starts after blockFrom
+        if (slot.start >= block.blockFrom) return false;
+      }
+
+      return true;
+    });
   }
 
   private filterByWorkHours(slots: TimeSlot[]): TimeSlot[] {

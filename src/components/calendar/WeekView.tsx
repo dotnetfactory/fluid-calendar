@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
   DatesSetArg,
+  DayHeaderContentArg,
   EventClickArg,
   EventContentArg,
 } from "@fullcalendar/core";
 import type { DateSelectArg } from "@fullcalendar/core";
+import { toast } from "sonner";
 import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -42,6 +44,71 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
   const [selectedEndDate, setSelectedEndDate] = useState<Date>();
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [blockedDays, setBlockedDays] = useState<Set<string>>(new Set());
+
+  // Load blocked days for the visible range
+  const loadBlockedDays = useCallback(async (start: Date, end: Date) => {
+    try {
+      const res = await fetch(
+        `/api/day-blocks?start=${start.toISOString().split("T")[0]}&end=${end.toISOString().split("T")[0]}`
+      );
+      if (res.ok) {
+        const blocks = await res.json();
+        const dates = new Set<string>(
+          blocks.map((b: { date: string }) => new Date(b.date).toISOString().split("T")[0])
+        );
+        setBlockedDays(dates);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const { scheduleAllTasks, fetchTasks } = useTaskStore();
+
+  const triggerReschedule = useCallback(() => {
+    scheduleAllTasks().then(() => fetchTasks()).catch(() => {});
+  }, [scheduleAllTasks, fetchTasks]);
+
+  const handleBlockDay = async (date: Date) => {
+    const dateStr = date.toISOString().split("T")[0];
+    try {
+      await fetch("/api/day-blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: dateStr, type: "full_day" }),
+      });
+      setBlockedDays((prev) => new Set(prev).add(dateStr));
+      toast.success(`Blocked ${dateStr} - rescheduling...`);
+      triggerReschedule();
+    } catch { toast.error("Failed to block day"); }
+  };
+
+  const handleBlockRestOfDay = async (date: Date) => {
+    const dateStr = date.toISOString().split("T")[0];
+    try {
+      await fetch("/api/day-blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: dateStr, type: "rest_of_day" }),
+      });
+      setBlockedDays((prev) => new Set(prev).add(dateStr));
+      toast.success(`Blocked rest of day - rescheduling...`);
+      triggerReschedule();
+    } catch { toast.error("Failed to block day"); }
+  };
+
+  const handleUnblockDay = async (date: Date) => {
+    const dateStr = date.toISOString().split("T")[0];
+    try {
+      await fetch(`/api/day-blocks?date=${dateStr}`, { method: "DELETE" });
+      setBlockedDays((prev) => {
+        const next = new Set(prev);
+        next.delete(dateStr);
+        return next;
+      });
+      toast.success(`Unblocked ${dateStr} - rescheduling...`);
+      triggerReschedule();
+    } catch { toast.error("Failed to unblock day"); }
+  };
   const [events, setEvents] = useState<
     Array<{
       id: string;
@@ -66,6 +133,9 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
   // Update events when the calendar view changes
   const handleDatesSet = useCallback(
     async (arg: DatesSetArg) => {
+      // Load blocked days for visible range
+      loadBlockedDays(arg.start, arg.end);
+
       // Get all calendar items with current task data
       const items = getAllCalendarItems(arg.start, arg.end);
       const formattedItems = items
@@ -307,11 +377,60 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
           startTime: calendarSettings.workingHours.start,
           endTime: calendarSettings.workingHours.end,
         }}
-        dayHeaderFormat={{
-          weekday: "short",
-          month: "numeric",
-          day: "numeric",
-          omitCommas: true,
+        dayHeaderContent={(arg: DayHeaderContentArg) => {
+          const dateStr = arg.date.toISOString().split("T")[0];
+          const isBlocked = blockedDays.has(dateStr);
+          const isToday = dateStr === new Date().toISOString().split("T")[0];
+
+          return (
+            <div className="flex items-center gap-1">
+              <span>
+                {arg.date.toLocaleDateString(undefined, {
+                  weekday: "short",
+                  month: "numeric",
+                  day: "numeric",
+                })}
+              </span>
+              <div className="flex gap-0.5 ml-auto">
+                {isBlocked ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleUnblockDay(arg.date); }}
+                    className="text-[9px] px-1 rounded bg-red-500/20 text-red-600 hover:bg-red-500/30"
+                    title="Unblock day"
+                  >
+                    Blocked
+                  </button>
+                ) : (
+                  <>
+                    <span className="group/block relative">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleBlockDay(arg.date); }}
+                        className="text-[9px] px-1 rounded hover:bg-muted text-muted-foreground"
+                      >
+                        Block
+                      </button>
+                      <span className="pointer-events-none absolute left-full top-1/2 z-30 ml-1 hidden -translate-y-1/2 whitespace-nowrap rounded bg-foreground px-2 py-1 text-[10px] text-background shadow-lg group-hover/block:block">
+                        Block entire day from auto-scheduling
+                      </span>
+                    </span>
+                    {isToday && (
+                      <span className="group/done relative">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleBlockRestOfDay(arg.date); }}
+                          className="text-[9px] px-1 rounded hover:bg-muted text-muted-foreground"
+                        >
+                          Done
+                        </button>
+                        <span className="pointer-events-none absolute left-full top-1/2 z-30 ml-1 hidden -translate-y-1/2 whitespace-nowrap rounded bg-foreground px-2 py-1 text-[10px] text-background shadow-lg group-hover/done:block">
+                          Done for the day - block remaining hours
+                        </span>
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          );
         }}
         height="100%"
         dateClick={(arg) => onDateClick?.(arg.date)}

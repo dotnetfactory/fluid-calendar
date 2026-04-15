@@ -88,6 +88,7 @@ model User {
   apiKeys              ApiKey[]
   schedules            Schedule[]
   areas                Area[]
+  dayBlocks            DayBlock[]
 }
 
 model VerificationToken {
@@ -656,6 +657,18 @@ model Schedule {
 
   @@unique([userId, name])
   @@index([userId])
+}
+
+model DayBlock {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime // The day being blocked (date only, no time)
+  blockFrom DateTime? // null = full day, otherwise block from this time onward
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
+  @@index([userId, date])
 }
 
 model Area {
