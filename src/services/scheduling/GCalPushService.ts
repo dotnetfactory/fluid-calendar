@@ -105,6 +105,19 @@ async function pushTask(
       });
     }
   } catch (error) {
+    // Let rate limit errors bubble up so the batch loop can stop
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      Number((error as { code: number | string }).code) === 429
+    ) {
+      await prisma.task.update({
+        where: { id: task.id },
+        data: { gcalSyncStatus: "error" },
+      });
+      throw error;
+    }
     logger.error(
       "Failed to push task to GCal",
       {
@@ -173,6 +186,20 @@ async function updateTask(
         },
       });
       return;
+    }
+
+    // Let rate limit errors bubble up so the batch loop can stop
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      Number((error as { code: number | string }).code) === 429
+    ) {
+      await prisma.task.update({
+        where: { id: task.id },
+        data: { gcalSyncStatus: "error" },
+      });
+      throw error;
     }
 
     logger.error(
@@ -289,6 +316,12 @@ export async function syncScheduledTasksToGCal(
       continue;
     }
 
+    // Skip zero-duration tasks — they are all-day reminders, not timed GCal events
+    if (!task.duration || task.duration <= 0) {
+      if (task.gcalEventId) toDelete.push(task); // Clean up if previously pushed
+      continue;
+    }
+
     if (task.scheduledStart && task.scheduledEnd) {
       if (task.gcalEventId) {
         toUpdate.push(task);
@@ -311,10 +344,12 @@ export async function syncScheduledTasksToGCal(
     LOG_SOURCE
   );
 
-  // Process sequentially to respect rate limits.
-  // For large batches, we add a small delay between requests.
-  const BATCH_SIZE = 10;
-  const BATCH_DELAY_MS = 200;
+  // Process sequentially with throttling.
+  // If we hit a rate limit (429), stop immediately and let the next run pick up remaining tasks.
+  const BATCH_SIZE = 5;
+  const BATCH_DELAY_MS = 1100; // Just over 1 second to stay under per-second quota
+
+  let rateLimited = false;
 
   const allOps = [
     ...toDelete.map((t) => () => removeTaskGCalEvent(t, userId)),
@@ -328,12 +363,37 @@ export async function syncScheduledTasksToGCal(
   ];
 
   for (let i = 0; i < allOps.length; i++) {
-    await allOps[i]();
-    // Throttle after every batch to avoid hitting GCal API rate limits
+    if (rateLimited) break;
+
+    try {
+      await allOps[i]();
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        Number((error as { code: number | string }).code) === 429
+      ) {
+        logger.info(
+          "GCal rate limit hit, stopping batch. Remaining tasks will sync on next run.",
+          { processed: i, remaining: allOps.length - i },
+          LOG_SOURCE
+        );
+        rateLimited = true;
+        break;
+      }
+      // Other errors are already handled by individual functions
+    }
+
+    // Throttle after every batch
     if ((i + 1) % BATCH_SIZE === 0 && i + 1 < allOps.length) {
       await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
     }
   }
 
-  logger.info("GCal sync complete", { userId }, LOG_SOURCE);
+  logger.info(
+    rateLimited ? "GCal sync paused (rate limited)" : "GCal sync complete",
+    { userId },
+    LOG_SOURCE
+  );
 }

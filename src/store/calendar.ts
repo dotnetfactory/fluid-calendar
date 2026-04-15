@@ -817,6 +817,11 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
     const endDay = newDate(end);
     endDay.setHours(23, 59, 59, 999);
 
+    const isZeroDuration = (task: { duration?: number | null }) =>
+      !task.duration || task.duration <= 0;
+    const isUrgent = (task: { priority?: string | null }) =>
+      task.priority === "urgent";
+
     const events = tasks
       .filter((task) => {
         // Skip completed tasks
@@ -824,12 +829,40 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
           return false;
         }
 
-        if (task.isAutoScheduled && task.scheduledStart && task.scheduledEnd) {
-          // For auto-scheduled tasks, check if scheduled time is within range
+        // Tasks with duration > 0 that are auto-scheduled with times
+        if (
+          !isZeroDuration(task) &&
+          task.isAutoScheduled &&
+          task.scheduledStart &&
+          task.scheduledEnd
+        ) {
           const scheduledStart = newDate(task.scheduledStart);
           return scheduledStart >= startDay && scheduledStart <= endDay;
-        } else if (task.dueDate) {
-          // For non-auto-scheduled tasks, use due date logic
+        }
+
+        // Zero/null duration tasks: show as all-day if has due date OR is urgent
+        if (isZeroDuration(task)) {
+          if (task.dueDate) {
+            const taskDueDate = newDate(task.dueDate);
+            const localDate = newDate(taskDueDate);
+            localDate.setMinutes(
+              localDate.getMinutes() + localDate.getTimezoneOffset()
+            );
+            localDate.setHours(0, 0, 0, 0);
+            return localDate >= startDay && localDate <= endDay;
+          }
+          if (isUrgent(task)) {
+            // Urgent with no due date: show on today
+            const today = newDate();
+            today.setHours(0, 0, 0, 0);
+            return today >= startDay && today <= endDay;
+          }
+          // No due date + not urgent = not on calendar
+          return false;
+        }
+
+        // Non-auto-scheduled tasks with duration and a due date
+        if (task.dueDate) {
           const taskDueDate = newDate(task.dueDate);
           const localDate = newDate(taskDueDate);
           localDate.setMinutes(
@@ -841,8 +874,13 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         return false;
       })
       .map((task) => {
-        if (task.isAutoScheduled && task.scheduledStart && task.scheduledEnd) {
-          // For auto-scheduled tasks, use the scheduled times
+        // Auto-scheduled timed tasks (duration > 0)
+        if (
+          !isZeroDuration(task) &&
+          task.isAutoScheduled &&
+          task.scheduledStart &&
+          task.scheduledEnd
+        ) {
           return {
             id: `${task.id}`,
             feedId: "tasks",
@@ -853,7 +891,10 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
             isRecurring: task.isRecurring,
             isMaster: false,
             allDay: false,
-            color: task.project?.color || task.tags[0]?.color || DEFAULT_TASK_COLOR,
+            color:
+              task.project?.color ||
+              task.tags[0]?.color ||
+              DEFAULT_TASK_COLOR,
             extendedProps: {
               isTask: true,
               taskId: task.id,
@@ -873,48 +914,58 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
                 : null,
             },
           };
-        } else {
-          // For non-auto-scheduled tasks, use the existing due date logic
-          const taskDueDate = newDate(task.dueDate!);
-          const localDate = newDate(taskDueDate);
-          localDate.setMinutes(
-            localDate.getMinutes() + localDate.getTimezoneOffset()
-          );
-          const eventDate = newDate(localDate);
-          eventDate.setHours(9, 0, 0, 0);
-
-          return {
-            id: `${task.id}`,
-            feedId: "tasks",
-            title: task.title,
-            description: task.description || undefined,
-            start: eventDate,
-            end: task.duration
-              ? newDate(eventDate.getTime() + task.duration * 60000)
-              : newDate(eventDate.getTime() + 3600000),
-            isRecurring: false,
-            isMaster: false,
-            allDay: true,
-            color: task.project?.color || task.tags[0]?.color || DEFAULT_TASK_COLOR,
-            extendedProps: {
-              isTask: true,
-              taskId: task.id,
-              status: task.status,
-              priority: task.priority?.toString() || undefined,
-              energyLevel: task.energyLevel?.toString() || undefined,
-              preferredTime: task.preferredTime?.toString(),
-              tags: task.tags,
-              isAutoScheduled: false,
-              gcalEventId: task.gcalEventId || undefined,
-              dueDate: task.dueDate
-                ? newDate(task.dueDate).toISOString()
-                : null,
-              startDate: task.startDate
-                ? newDate(task.startDate).toISOString()
-                : null,
-            },
-          };
         }
+
+        // All-day reminders: zero duration tasks with due date or urgent,
+        // and non-auto-scheduled tasks with due dates
+        const reminderDate = task.dueDate
+          ? (() => {
+              const d = newDate(task.dueDate!);
+              const local = newDate(d);
+              local.setMinutes(
+                local.getMinutes() + local.getTimezoneOffset()
+              );
+              local.setHours(0, 0, 0, 0);
+              return local;
+            })()
+          : (() => {
+              const today = newDate();
+              today.setHours(0, 0, 0, 0);
+              return today;
+            })();
+
+        return {
+          id: `${task.id}`,
+          feedId: "tasks",
+          title: task.title,
+          description: task.description || undefined,
+          start: reminderDate,
+          end: reminderDate,
+          isRecurring: false,
+          isMaster: false,
+          allDay: true,
+          color:
+            task.project?.color ||
+            task.tags[0]?.color ||
+            DEFAULT_TASK_COLOR,
+          extendedProps: {
+            isTask: true,
+            taskId: task.id,
+            status: task.status,
+            priority: task.priority?.toString() || undefined,
+            energyLevel: task.energyLevel?.toString() || undefined,
+            preferredTime: task.preferredTime?.toString(),
+            tags: task.tags,
+            isAutoScheduled: false,
+            gcalEventId: task.gcalEventId || undefined,
+            dueDate: task.dueDate
+              ? newDate(task.dueDate).toISOString()
+              : null,
+            startDate: task.startDate
+              ? newDate(task.startDate).toISOString()
+              : null,
+          },
+        };
       });
 
     return events;

@@ -109,11 +109,13 @@ export async function scheduleAllTasksForUser(
     const groupByProject = autoSettings?.groupByProject ?? false;
 
     // Get all tasks marked for auto-scheduling that are not locked or blocked
+    // Skip tasks with no duration (0 or null) — those show as all-day reminders, not time-blocked
     const tasksToSchedule = await prisma.task.findMany({
       where: {
         isAutoScheduled: true,
         scheduleLocked: false,
         isBlocked: false,
+        duration: { gt: 0 },
         status: {
           not: { in: [TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS] },
         },
