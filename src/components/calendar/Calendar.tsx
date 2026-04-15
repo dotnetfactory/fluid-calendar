@@ -44,7 +44,7 @@ export function Calendar({
 }: CalendarProps) {
   const { date: currentDate, setDate, view, setView } = useViewStore();
   const { isSidebarOpen, setSidebarOpen, isHydrated } = useCalendarUIStore();
-  const { scheduleAllTasks } = useTaskStore();
+  const { triggerScheduleAllTasks } = useTaskStore();
   const { calendar: calendarSettings, updateCalendarSettings } = useSettingsStore();
   const { setFeeds, setEvents } = useCalendarStore();
 
@@ -83,9 +83,12 @@ export function Calendar({
         const intervalMs = (f.syncInterval || 5) * 60 * 1000;
         return now - lastSync >= intervalMs;
       });
+      if (feedsToSync.length === 0) return;
+
+      // Sync all due feeds with skipSchedule=true, then schedule once at the end
       for (let i = 0; i < feedsToSync.length; i++) {
         try {
-          await syncFeed(feedsToSync[i].id);
+          await syncFeed(feedsToSync[i].id, true);
           lastSyncTimes.current.set(feedsToSync[i].id, Date.now());
         } catch {
           // Quiet fail on auto-sync
@@ -95,6 +98,10 @@ export function Calendar({
           await new Promise((r) => setTimeout(r, 2000));
         }
       }
+
+      // Schedule once after all feeds are synced
+      const { triggerScheduleAllTasks } = useTaskStore.getState();
+      await triggerScheduleAllTasks();
     } finally {
       syncInProgress.current = false;
     }
@@ -135,7 +142,7 @@ export function Calendar({
   };
 
   const handleAutoSchedule = async () => {
-    await scheduleAllTasks();
+    await triggerScheduleAllTasks();
   };
 
   return (

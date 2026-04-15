@@ -105,7 +105,7 @@ interface CalendarStore extends CalendarState {
   removeEvent: (id: string, mode?: "single" | "series") => Promise<void>;
 
   // Feed synchronization
-  syncFeed: (id: string) => Promise<void>;
+  syncFeed: (id: string, skipSchedule?: boolean) => Promise<void>;
   syncAllFeeds: () => Promise<void>;
 
   // Data loading
@@ -635,7 +635,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
   },
 
   // Feed synchronization
-  syncFeed: async (id) => {
+  syncFeed: async (id, skipSchedule = false) => {
     const feed = get().feeds.find((f) => f.id === id);
     if (!feed) return;
 
@@ -677,9 +677,11 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
 
       // Reload events from database
       await get().loadFromDatabase();
-      // Trigger auto-scheduling after event is created
-      const { triggerScheduleAllTasks } = useTaskStore.getState();
-      await triggerScheduleAllTasks();
+      // Trigger auto-scheduling unless caller will do it (e.g., batch sync)
+      if (!skipSchedule) {
+        const { triggerScheduleAllTasks } = useTaskStore.getState();
+        await triggerScheduleAllTasks();
+      }
     } catch (error) {
       console.error("Failed to sync feed:", error);
       // Update feed with error
@@ -985,13 +987,33 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         .filter(Boolean)
     );
 
-    const dedupedEvents =
+    let dedupedEvents =
       pushedGcalIds.size > 0
         ? events.filter(
             (e) =>
               !e.externalEventId || !pushedGcalIds.has(e.externalEventId)
           )
         : events;
+
+    // Secondary dedup: catch duplicates when gcalEventId is stale (null)
+    // on the client. Match by title + time for events pushed by FluidCalendar.
+    if (taskEvents.length > 0) {
+      const taskEventKeys = new Set(
+        taskEvents.map(
+          (e) =>
+            `${e.title}|${newDate(e.start).getTime()}|${newDate(e.end).getTime()}`
+        )
+      );
+      dedupedEvents = dedupedEvents.filter((e) => {
+        if (
+          e.description?.includes("[Managed by FluidCalendar]")
+        ) {
+          const key = `${e.title}|${newDate(e.start).getTime()}|${newDate(e.end).getTime()}`;
+          return !taskEventKeys.has(key);
+        }
+        return true;
+      });
+    }
 
     return [...dedupedEvents, ...taskEvents];
   },
