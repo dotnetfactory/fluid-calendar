@@ -235,6 +235,11 @@ model Task {
   isBlocked     Boolean @default(false)
   blockedReason String?
 
+  // Google Calendar push fields
+  gcalEventId    String?   // GCal event ID for auto-pushed scheduled task
+  gcalFeedId     String?   // Which CalendarFeed the event was pushed to
+  gcalSyncStatus String?   // 'pending', 'synced', 'error'
+
   // External Integration
   externalTaskId String?
   source         String?
@@ -285,6 +290,7 @@ model Task {
   @@index([externalTaskId, source])
   @@index([syncStatus])
   @@index([externalListId])
+  @@index([gcalEventId])
 }
 
 model Tag {
@@ -354,6 +360,7 @@ model CalendarSettings {
   userId              String   @unique
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   defaultCalendarId   String?
+  taskCalendarId      String?  // CalendarFeed ID where scheduled tasks are pushed to GCal
   workingHoursEnabled Boolean  @default(true)
   workingHoursStart   String   @default("09:00") // HH:mm format
   workingHoursEnd     String   @default("17:00") // HH:mm format

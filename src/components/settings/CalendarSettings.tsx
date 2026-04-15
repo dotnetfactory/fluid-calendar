@@ -70,6 +70,34 @@ export function CalendarSettings() {
       </SettingRow>
 
       <SettingRow
+        label="Task Calendar"
+        description="Choose which calendar auto-scheduled tasks are pushed to as events"
+      >
+        <Select
+          value={calendar.taskCalendarId || "none"}
+          onValueChange={(value) =>
+            updateCalendarSettings({
+              taskCalendarId: value === "none" ? null : value,
+            })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="None (disabled)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">None (disabled)</SelectItem>
+            {feeds
+              .filter((feed) => feed.enabled && feed.type === "GOOGLE")
+              .map((feed) => (
+                <SelectItem key={feed.id} value={feed.id}>
+                  {feed.name}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+      </SettingRow>
+
+      <SettingRow
         label="Week Start Day"
         description="Set which day of the week your calendar should start on"
       >

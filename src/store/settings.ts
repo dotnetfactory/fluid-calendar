@@ -158,6 +158,7 @@ export const useSettingsStore = create<SettingsStore>()(
             },
             body: JSON.stringify({
               defaultCalendarId: newSettings.defaultCalendarId,
+              taskCalendarId: newSettings.taskCalendarId,
               workingHoursEnabled: newSettings.workingHours.enabled,
               workingHoursStart: newSettings.workingHours.start,
               workingHoursEnd: newSettings.workingHours.end,
@@ -396,6 +397,7 @@ export const useSettingsStore = create<SettingsStore>()(
           // More updates will be added here
           get().updateCalendarSettings({
             defaultCalendarId: calendarSettings.defaultCalendarId,
+            taskCalendarId: calendarSettings.taskCalendarId,
             workingHours: {
               enabled: calendarSettings.workingHoursEnabled,
               start: calendarSettings.workingHoursStart,

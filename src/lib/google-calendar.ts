@@ -1,7 +1,5 @@
 import { calendar_v3, google } from "googleapis";
 
-import { useSettingsStore } from "@/store/settings";
-
 import { newDate, newDateFromYMD } from "./date-utils";
 import { createGoogleOAuthClient } from "./google";
 import { TokenManager } from "./token-manager";
@@ -57,10 +55,10 @@ export async function createGoogleEvent(
     allDay?: boolean;
     isRecurring?: boolean;
     recurrenceRule?: string;
-  }
+  },
+  timeZone: string
 ) {
   const calendar = await getGoogleCalendarClient(accountId, userId);
-  const timeZone = useSettingsStore.getState().user.timeZone;
 
   // Format recurrence rule for Google Calendar
   const recurrence =
@@ -112,10 +110,10 @@ export async function updateGoogleEvent(
     isRecurring?: boolean;
     recurrenceRule?: string;
     mode?: "single" | "series";
-  }
+  },
+  timeZone: string
 ) {
   const calendar = await getGoogleCalendarClient(accountId, userId);
-  const timeZone = useSettingsStore.getState().user.timeZone;
 
   try {
     // Get the event to check if it's part of a series

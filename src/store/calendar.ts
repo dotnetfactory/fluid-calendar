@@ -864,6 +864,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
               tags: task.tags,
               isAutoScheduled: true,
               scheduleScore: task.scheduleScore,
+              gcalEventId: task.gcalEventId || undefined,
               dueDate: task.dueDate
                 ? newDate(task.dueDate).toISOString()
                 : null,
@@ -904,6 +905,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
               preferredTime: task.preferredTime?.toString(),
               tags: task.tags,
               isAutoScheduled: false,
+              gcalEventId: task.gcalEventId || undefined,
               dueDate: task.dueDate
                 ? newDate(task.dueDate).toISOString()
                 : null,
@@ -920,9 +922,26 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
 
   // Get both events and tasks for the calendar
   getAllCalendarItems: (start: Date, end: Date) => {
-    // console.log("Getting all calendar items:", { start, end });
     const events = get().getExpandedEvents(start, end);
     const taskEvents = get().getTasksAsEvents(start, end);
-    return [...events, ...taskEvents];
+
+    // Dedup: when tasks are pushed to GCal, the sync pulls them back as
+    // CalendarEvent records. Filter out those synced-back copies so tasks
+    // only render once (via the authoritative task-as-event path).
+    const pushedGcalIds = new Set(
+      taskEvents
+        .map((e) => e.extendedProps?.gcalEventId)
+        .filter(Boolean)
+    );
+
+    const dedupedEvents =
+      pushedGcalIds.size > 0
+        ? events.filter(
+            (e) =>
+              !e.externalEventId || !pushedGcalIds.has(e.externalEventId)
+          )
+        : events;
+
+    return [...dedupedEvents, ...taskEvents];
   },
 }));

@@ -13,6 +13,7 @@ export interface UserSettings {
 
 export interface CalendarSettings {
   defaultCalendarId?: string;
+  taskCalendarId?: string | null; // CalendarFeed ID where scheduled tasks are pushed to GCal
   workingHours: {
     enabled: boolean;
     start: string; // HH:mm format

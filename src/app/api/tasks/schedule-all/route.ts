@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { scheduleAllTasksForUser } from "@/services/scheduling/TaskSchedulingService";
+import { syncScheduledTasksToGCal } from "@/services/scheduling/GCalPushService";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
@@ -21,6 +22,17 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const fullRebalance = searchParams.get("full") === "true";
     const tasksWithRelations = await scheduleAllTasksForUser(userId, fullRebalance);
+
+    // Fire-and-forget: push scheduled tasks to GCal asynchronously.
+    // Never block the scheduling response on GCal API calls.
+    const taskIds = tasksWithRelations.map((t) => t.id);
+    syncScheduledTasksToGCal(userId, taskIds).catch((error) => {
+      logger.error(
+        "Background GCal sync failed",
+        { error: error instanceof Error ? error.message : String(error) },
+        LOG_SOURCE
+      );
+    });
 
     return NextResponse.json(tasksWithRelations);
   } catch (error) {

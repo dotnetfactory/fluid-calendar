@@ -75,6 +75,10 @@ export interface Task {
   }[];
   // Schedule
   scheduleId?: string | null;
+  // Google Calendar push fields
+  gcalEventId?: string | null;
+  gcalFeedId?: string | null;
+  gcalSyncStatus?: string | null;
   // External sync fields
   externalTaskId?: string | null;
   source?: string | null;

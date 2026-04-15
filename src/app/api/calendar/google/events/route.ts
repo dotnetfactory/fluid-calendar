@@ -150,6 +150,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user timezone from settings
+    const userSettings = await prisma.userSettings.findUnique({
+      where: { userId },
+      select: { timeZone: true },
+    });
+    const timeZone = userSettings?.timeZone || "America/New_York";
+
     // Create event in Google Calendar
     const googleEvent = await createGoogleEvent(
       feed.accountId,
@@ -164,7 +171,8 @@ export async function POST(request: NextRequest) {
         allDay: eventData.allDay,
         isRecurring: eventData.isRecurring,
         recurrenceRule: eventData.recurrenceRule,
-      }
+      },
+      timeZone
     );
 
     if (!googleEvent.id) {
@@ -232,6 +240,13 @@ export async function PUT(request: NextRequest) {
       return validatedEvent;
     }
 
+    // Get user timezone from settings
+    const userSettings = await prisma.userSettings.findUnique({
+      where: { userId },
+      select: { timeZone: true },
+    });
+    const timeZone = userSettings?.timeZone || "America/New_York";
+
     // Update in Google Calendar
     const googleEvent = await updateGoogleEvent(
       validatedEvent.feed.accountId,
@@ -243,7 +258,8 @@ export async function PUT(request: NextRequest) {
         mode,
         start: updates.start ? newDate(updates.start) : undefined,
         end: updates.end ? newDate(updates.end) : undefined,
-      }
+      },
+      timeZone
     );
 
     if (!googleEvent.id) {

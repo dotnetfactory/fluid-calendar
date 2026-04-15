@@ -12,6 +12,7 @@ import {
   TaskChangeTracker,
 } from "@/lib/task-sync/task-change-tracker";
 import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
+import { removeTaskGCalEvent } from "@/services/scheduling/GCalPushService";
 
 import { TaskStatus } from "@/types/task";
 
@@ -105,6 +106,7 @@ export async function PUT(
       "externalTaskId", "source", "lastSyncedAt", "externalListId",
       "externalCreatedAt", "externalUpdatedAt", "syncStatus", "syncError",
       "syncHash", "skipSync",
+      "gcalEventId", "gcalFeedId", "gcalSyncStatus",
     ]);
     const updates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(rawUpdates)) {
@@ -309,6 +311,28 @@ export async function PUT(
       );
     }
 
+    // Clean up GCal event if task was completed (fire-and-forget)
+    if (
+      updatedTask.status === TaskStatus.COMPLETED &&
+      oldTask.status !== TaskStatus.COMPLETED &&
+      updatedTask.gcalEventId
+    ) {
+      removeTaskGCalEvent(
+        {
+          id: updatedTask.id,
+          gcalEventId: updatedTask.gcalEventId,
+          gcalFeedId: updatedTask.gcalFeedId,
+        },
+        userId
+      ).catch((error) => {
+        logger.error(
+          "Failed to remove GCal event on task completion",
+          { taskId: updatedTask.id, error: error instanceof Error ? error.message : String(error) },
+          LOG_SOURCE
+        );
+      });
+    }
+
     return NextResponse.json(updatedTask);
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
@@ -391,6 +415,27 @@ export async function DELETE(
         },
         LOG_SOURCE
       );
+    }
+
+    // Clean up GCal event before deleting the task
+    if (task.gcalEventId) {
+      try {
+        await removeTaskGCalEvent(
+          {
+            id: task.id,
+            gcalEventId: task.gcalEventId,
+            gcalFeedId: task.gcalFeedId,
+          },
+          userId
+        );
+      } catch (error) {
+        logger.error(
+          "Failed to remove GCal event on task deletion",
+          { taskId: task.id, error: error instanceof Error ? error.message : String(error) },
+          LOG_SOURCE
+        );
+        // Continue with deletion even if GCal cleanup fails
+      }
     }
 
     // Now delete the task AFTER tracking the change

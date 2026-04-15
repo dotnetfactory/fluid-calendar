@@ -21,6 +21,7 @@ export interface ExtendedEventProps {
   energyLevel?: string;
   preferredTime?: string;
   tags?: Array<{ id: string; name: string; color?: string }>;
+  gcalEventId?: string;
 }
 
 export interface CalendarEvent {
