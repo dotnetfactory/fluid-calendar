@@ -53,7 +53,8 @@ export class TaskChangeTracker {
     userId: string,
     data?: Record<string, unknown>,
     providerId?: string,
-    mappingId?: string
+    mappingId?: string,
+    changeSource?: string
   ): Promise<void> {
     try {
       // Special handling for DELETE operations
@@ -63,8 +64,7 @@ export class TaskChangeTracker {
         if (
           !data ||
           !data.externalTaskId ||
-          !data.source ||
-          !data.externalListId
+          !data.source
         ) {
           logger.error(
             `Cannot track DELETE change: missing required external data`,
@@ -83,6 +83,7 @@ export class TaskChangeTracker {
         {
           taskId,
           changeType,
+          changeSource: changeSource || null,
           providerId: providerId || null,
           mappingId: mappingId || null,
         },
@@ -96,6 +97,7 @@ export class TaskChangeTracker {
           changeType,
           // For Prisma JSON fields, we need to handle it as JSON
           changeData: data ? JSON.parse(JSON.stringify(data)) : undefined,
+          changeSource,
           providerId,
           mappingId,
           userId,

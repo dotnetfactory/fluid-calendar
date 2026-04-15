@@ -283,8 +283,12 @@ export async function PUT(
       },
     });
 
-    // Track the update for sync purposes if the task is in a mapped project
-    if (mappingId) {
+    // Determine change source from request header (sync script sets this)
+    const changeSource = request.headers.get("X-Sync-Source") || "user";
+
+    // Track the update for sync purposes
+    const shouldTrack = mappingId || (task.source === "omnifocus" && task.externalTaskId);
+    if (shouldTrack) {
       const changeTracker = new TaskChangeTracker();
       const changes = changeTracker.compareTaskObjects(
         oldTask,
@@ -296,15 +300,17 @@ export async function PUT(
         "UPDATE" as ChangeType,
         userId,
         changes,
-        undefined, // providerId will be set during sync
-        mappingId
+        undefined,
+        mappingId || undefined,
+        changeSource
       );
 
       logger.info(
-        `Tracked UPDATE change for task ${task.id} in mapping ${mappingId}`,
+        `Tracked UPDATE change for task ${task.id} (source: ${changeSource})`,
         {
           taskId: task.id,
           mappingId,
+          changeSource,
           changes: Object.keys(changes),
         },
         LOG_SOURCE
@@ -386,9 +392,12 @@ export async function DELETE(
       }
     }
 
-    // Track the deletion for sync purposes if the task was in a mapped project
-    // and had an external ID BEFORE actually deleting the task
-    if (mappingId && task.externalTaskId && task.source) {
+    // Determine change source from request header
+    const changeSource = request.headers.get("X-Sync-Source") || "user";
+
+    // Track the deletion for sync purposes
+    const shouldTrack = mappingId || (task.source === "omnifocus" && task.externalTaskId);
+    if (shouldTrack && task.externalTaskId && task.source) {
       const changeTracker = new TaskChangeTracker();
       await changeTracker.trackChange(
         id,
@@ -401,15 +410,17 @@ export async function DELETE(
           projectId: task.projectId,
           title: task.title,
         },
-        undefined, // providerId will be set during sync
-        mappingId
+        undefined,
+        mappingId || undefined,
+        changeSource
       );
 
       logger.info(
-        `Tracked DELETE change for task ${id} in mapping ${mappingId}`,
+        `Tracked DELETE change for task ${id} (source: ${changeSource})`,
         {
           taskId: id,
           mappingId,
+          changeSource,
           externalTaskId: task.externalTaskId,
           title: task.title,
         },

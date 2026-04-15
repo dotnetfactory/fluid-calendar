@@ -613,9 +613,10 @@ model TaskChange {
   provider   TaskProvider?    @relation(fields: [providerId], references: [id], onDelete: SetNull)
   mappingId  String? // ID of the mapping if this is related to a list sync
   mapping    TaskListMapping? @relation(fields: [mappingId], references: [id], onDelete: SetNull)
-  changeType String // 'CREATE', 'UPDATE', 'DELETE'
-  changeData Json? // The actual changes, as a diff
-  synced     Boolean          @default(false) // Whether this change has been synced
+  changeType   String // 'CREATE', 'UPDATE', 'DELETE'
+  changeData   Json? // The actual changes, as a diff
+  changeSource String? // Origin of the change: 'user', 'omnifocus', etc.
+  synced       Boolean          @default(false) // Whether this change has been synced
   timestamp  DateTime         @default(now())
   userId     String // User who made the change
   user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
