@@ -112,13 +112,16 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       effectiveStartDate = now;
     }
 
-    // Load day blocks once
-    // Use start-of-day for the query since DayBlock.date is stored as midnight UTC
+    // Load day blocks once.
+    // Always query from today (the earliest any task can be scheduled), not from
+    // effectiveStartDate. The cache is shared across all tasks in the schedule group;
+    // if the first task has a future startDate, scoping to effectiveStartDate would
+    // miss blocks needed by later tasks with earlier start dates.
     if (!this.dayBlocks) {
       this.dayBlocks = await prisma.dayBlock.findMany({
         where: {
           userId,
-          date: { gte: startOfDay(effectiveStartDate), lte: endDate },
+          date: { gte: startOfDay(newDate()), lte: endDate },
         },
       });
     }
@@ -154,6 +157,16 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
   async isSlotAvailable(slot: TimeSlot, userId: string): Promise<boolean> {
     // Check if the slot is within work hours
     if (!this.isWithinWorkHours(slot)) {
+      return false;
+    }
+
+    // Check day blocks (load on demand if not already cached)
+    if (!this.dayBlocks) {
+      this.dayBlocks = await prisma.dayBlock.findMany({
+        where: { userId, date: { gte: startOfDay(newDate()) } },
+      });
+    }
+    if (this.filterByDayBlocks([slot]).length === 0) {
       return false;
     }
 

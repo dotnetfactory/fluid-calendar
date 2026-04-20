@@ -4,6 +4,7 @@ import {
   differenceInHours,
   differenceInMinutes,
   newDate,
+  toZonedTime,
 } from "@/lib/date-utils";
 
 import { EnergyLevel, SlotScore, TimeSlot } from "@/types/scheduling";
@@ -11,6 +12,7 @@ import { Priority } from "@/types/task";
 
 /** Minimal interface for schedule energy level fields */
 export interface ScheduleEnergyConfig {
+  timezone: string;
   highEnergyStart: number | null;
   highEnergyEnd: number | null;
   mediumEnergyStart: number | null;
@@ -107,8 +109,11 @@ export class SlotScorer {
   private scoreEnergyLevelMatch(slot: TimeSlot, task: Task): number {
     if (!task.energyLevel) return 0.5; // Neutral score if task has no energy level
 
+    // Use the schedule's timezone for hour extraction so energy windows apply
+    // at the user's local time regardless of server timezone.
+    const localStart = toZonedTime(slot.start, this.energyConfig.timezone);
     const slotEnergy = getEnergyLevelForHour(
-      slot.start.getHours(),
+      localStart.getHours(),
       this.energyConfig
     );
     if (!slotEnergy) return 0.5; // Neutral score if time has no energy level
@@ -132,7 +137,10 @@ export class SlotScorer {
   private scoreTimePreference(slot: TimeSlot, task: Task): number {
     // If task has a specific time preference, use that
     if (task.preferredTime) {
-      const hour = slot.start.getHours();
+      // Extract hour in the schedule's timezone so morning/afternoon/evening
+      // ranges reflect the user's local time.
+      const localStart = toZonedTime(slot.start, this.energyConfig.timezone);
+      const hour = localStart.getHours();
       const preference = task.preferredTime.toLowerCase();
       const ranges = {
         morning: { start: 5, end: 12 },
@@ -180,12 +188,35 @@ export class SlotScorer {
       return baseScore * (1 - timePenalty);
     }
 
-    // For future tasks (unchanged)
-    const minutesToDeadline = differenceInMinutes(task.dueDate, slot.start);
-    const daysToDeadline = minutesToDeadline / (24 * 60);
-    const score = Math.min(0.99, Math.exp(-daysToDeadline / 3));
+    // For future tasks: favor earlier slots within the available window, with
+    // overall magnitude driven by how urgent the deadline is.
+    // Previous implementation used exp(-daysToDeadline/3) which scored slots
+    // NEAR the deadline higher than earlier ones — causing the scheduler to
+    // push tasks to the last minute instead of placing them as early as possible.
+    const daysToDeadlineFromNow = -minutesOverdue / (24 * 60); // positive: days until deadline
+    const minutesToSlot = differenceInMinutes(slot.start, now);
+    const daysToSlot = minutesToSlot / (24 * 60);
 
-    return score;
+    // Slot is past the deadline — give it a low score so the scheduler prefers
+    // earlier placements, but not zero in case nothing earlier is available.
+    if (daysToSlot >= daysToDeadlineFromNow) {
+      return 0.3;
+    }
+
+    // Urgency: decays over a week. Tasks due soon score higher overall so
+    // they outrank non-urgent tasks when slot capacity is contested.
+    const urgency = Math.exp(-daysToDeadlineFromNow / 7);
+
+    // Earliness: 1.0 for a slot right now, 0.0 for a slot at the deadline.
+    // Normalized to the available window so tasks with close deadlines still
+    // differentiate among their limited slot options.
+    const availableWindow = Math.max(daysToDeadlineFromNow, 0.5);
+    const earliness = 1 - daysToSlot / availableWindow;
+
+    // Combine: base floor + urgency-weighted earliness.
+    // Urgent task + early slot → ~1.0. Far-future task → uniformly low so
+    // other factors (energy, preferences) drive placement.
+    return Math.min(0.99, 0.3 + 0.7 * urgency * earliness);
   }
 
   private scoreProjectProximity(slot: TimeSlot, task: Task): number {
