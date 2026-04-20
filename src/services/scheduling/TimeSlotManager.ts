@@ -113,15 +113,16 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     }
 
     // Load day blocks once.
-    // Always query from today (the earliest any task can be scheduled), not from
-    // effectiveStartDate. The cache is shared across all tasks in the schedule group;
-    // if the first task has a future startDate, scoping to effectiveStartDate would
-    // miss blocks needed by later tasks with earlier start dates.
+    // Use a 1-day buffer on the lower bound: DayBlock.date is stored as midnight
+    // UTC, but startOfDay(now) on the server returns local midnight which can be
+    // AFTER the UTC midnight (e.g. EDT local midnight = 04:00 UTC). Subtracting a
+    // day guarantees we include today's block regardless of server timezone. The
+    // precise date comparison in filterByDayBlocks handles exact matching.
     if (!this.dayBlocks) {
       this.dayBlocks = await prisma.dayBlock.findMany({
         where: {
           userId,
-          date: { gte: startOfDay(newDate()), lte: endDate },
+          date: { gte: addDays(startOfDay(newDate()), -1), lte: endDate },
         },
       });
     }
@@ -160,10 +161,15 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       return false;
     }
 
-    // Check day blocks (load on demand if not already cached)
+    // Check day blocks (load on demand if not already cached).
+    // 1-day buffer: DayBlock.date is midnight UTC; local start-of-day can be
+    // later than UTC midnight. See findAvailableSlots for the full rationale.
     if (!this.dayBlocks) {
       this.dayBlocks = await prisma.dayBlock.findMany({
-        where: { userId, date: { gte: startOfDay(newDate()) } },
+        where: {
+          userId,
+          date: { gte: addDays(startOfDay(newDate()), -1) },
+        },
       });
     }
     if (this.filterByDayBlocks([slot]).length === 0) {
