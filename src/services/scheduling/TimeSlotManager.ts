@@ -11,6 +11,7 @@ import {
   roundDateUp,
   setHours,
   setMinutes,
+  startOfDay,
   toZonedTime,
 } from "@/lib/date-utils";
 import { prisma } from "@/lib/prisma";
@@ -112,11 +113,12 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     }
 
     // Load day blocks once
+    // Use start-of-day for the query since DayBlock.date is stored as midnight UTC
     if (!this.dayBlocks) {
       this.dayBlocks = await prisma.dayBlock.findMany({
         where: {
           userId,
-          date: { gte: effectiveStartDate, lte: endDate },
+          date: { gte: startOfDay(effectiveStartDate), lte: endDate },
         },
       });
     }
