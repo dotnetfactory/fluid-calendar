@@ -12,11 +12,178 @@ import {
   TaskChangeTracker,
 } from "@/lib/task-sync/task-change-tracker";
 import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
+import {
+  inferCompletedReason,
+  inferRescheduleReason,
+} from "@/services/logging/InferenceEngine";
+import { SchedulerEventLogger } from "@/services/logging/SchedulerEventLogger";
 import { removeTaskGCalEvent } from "@/services/scheduling/GCalPushService";
 
 import { TaskStatus } from "@/types/task";
 
 const LOG_SOURCE = "task-route";
+
+async function emitSchedulerEvents(
+  oldTask: Task,
+  newTask: Task,
+  userId: string,
+  changeSource: string
+): Promise<void> {
+  const base = { userId, taskId: newTask.id };
+
+  // 1. Reschedule: scheduledStart/End changed, not by the scheduler itself
+  const scheduleChanged =
+    oldTask.scheduledStart?.getTime() !== newTask.scheduledStart?.getTime() ||
+    oldTask.scheduledEnd?.getTime() !== newTask.scheduledEnd?.getTime();
+
+  if (
+    scheduleChanged &&
+    changeSource !== "scheduler" &&
+    oldTask.scheduledStart &&
+    oldTask.scheduledEnd &&
+    newTask.scheduledStart &&
+    newTask.scheduledEnd
+  ) {
+    // Look up the most recent SCHEDULE_DECISION for this task to recover scheduler factors
+    const priorDecision = await prisma.schedulerEvent.findFirst({
+      where: { taskId: newTask.id, eventType: "SCHEDULE_DECISION" },
+      orderBy: { occurredAt: "desc" },
+    });
+
+    const decisionPayload = priorDecision?.payload as
+      | {
+          chosen?: { score: number; factors: Record<string, number> };
+          alternatives?: Array<{
+            start: string;
+            end: string;
+            score: number;
+            factors: Record<string, number>;
+          }>;
+        }
+      | undefined;
+
+    // Detect if the new slot matches an alternative from the scheduler's original decision
+    let matchedAlternativeRank: number | null = null;
+    if (decisionPayload?.alternatives) {
+      const idx = decisionPayload.alternatives.findIndex(
+        (alt) =>
+          new Date(alt.start).getTime() === newTask.scheduledStart?.getTime()
+      );
+      if (idx >= 0) matchedAlternativeRank = idx + 2; // alternatives are 2..6
+    }
+
+    const source =
+      changeSource === "omnifocus"
+        ? "omnifocus_sync"
+        : changeSource === "api"
+          ? "api"
+          : "ui_edit_modal";
+
+    const minutesSinceOriginalPlacement = oldTask.lastScheduled
+      ? Math.round(
+          (Date.now() - oldTask.lastScheduled.getTime()) / 60000
+        )
+      : null;
+
+    const inferredReason = inferRescheduleReason({
+      fromStart: oldTask.scheduledStart,
+      toStart: newTask.scheduledStart,
+      rescheduleNumber: 1, // Phase 0a does not yet track reschedule count; fix in post-MVP
+      source,
+      matchedAlternativeRank,
+    });
+
+    await SchedulerEventLogger.logUserReschedule(base, {
+      from: {
+        start: oldTask.scheduledStart.toISOString(),
+        end: oldTask.scheduledEnd.toISOString(),
+        wasSchedulerPlaced: oldTask.scheduleScore !== null,
+        schedulerScore: decisionPayload?.chosen?.score ?? null,
+        schedulerFactors:
+          (decisionPayload?.chosen?.factors as UserRescheduleFactors | undefined) ??
+          null,
+        minutesSinceOriginalPlacement,
+      },
+      to: {
+        start: newTask.scheduledStart.toISOString(),
+        end: newTask.scheduledEnd.toISOString(),
+        computedFactors: null,
+        computedScore: null,
+      },
+      rescheduleNumber: 1,
+      source,
+      inferredReason,
+      matchedAlternativeRank,
+    });
+  }
+
+  // 2. Completion: status transitioned to COMPLETED
+  if (
+    oldTask.status !== TaskStatus.COMPLETED &&
+    newTask.status === TaskStatus.COMPLETED
+  ) {
+    const completedAt = newTask.completedAt ?? newDate();
+    const scheduledStart = newTask.scheduledStart;
+    const scheduledEnd = newTask.scheduledEnd;
+    const wasScheduled = scheduledStart !== null && scheduledEnd !== null;
+
+    const completionLagMinutes =
+      wasScheduled && scheduledEnd
+        ? Math.round((completedAt.getTime() - scheduledEnd.getTime()) / 60000)
+        : null;
+
+    const completedInScheduledWindow =
+      wasScheduled &&
+      scheduledStart !== null &&
+      scheduledEnd !== null &&
+      completedAt.getTime() >= scheduledStart.getTime() - 15 * 60000 &&
+      completedAt.getTime() <= scheduledEnd.getTime() + 15 * 60000;
+
+    const inferredReason = inferCompletedReason({
+      wasScheduled,
+      completionLagMinutes,
+      completedInScheduledWindow,
+      rescheduleCountBeforeCompletion: 0, // Phase 0a does not yet track reschedule history
+      scheduleLockedAtCompletion: newTask.scheduleLocked,
+      isRepeatPatternMatch: false,
+    });
+
+    const source =
+      changeSource === "omnifocus" ? "omnifocus_sync"
+        : changeSource === "api" ? "api"
+        : "ui";
+
+    await SchedulerEventLogger.logTaskCompleted(base, {
+      completedAt: completedAt.toISOString(),
+      wasScheduled,
+      scheduledStart: scheduledStart?.toISOString() ?? null,
+      scheduledEnd: scheduledEnd?.toISOString() ?? null,
+      completedInScheduledWindow,
+      completionLagMinutes,
+      rescheduleCountBeforeCompletion: 0,
+      durationEstimatedMinutes: newTask.duration ?? 0,
+      durationActualMinutes: null,
+      source,
+      inferredReason,
+      promptedForFeedback: false,
+    });
+  }
+
+  // 3. Lock/unlock transition
+  if (oldTask.scheduleLocked !== newTask.scheduleLocked) {
+    await SchedulerEventLogger.logTaskLocked(base, {
+      scheduledStart: newTask.scheduledStart?.toISOString() ?? null,
+      scheduledEnd: newTask.scheduledEnd?.toISOString() ?? null,
+      locked: newTask.scheduleLocked,
+      factorsAtLockTime: null,
+    });
+  }
+}
+
+// Permissive: historical events written by SCHEDULER_VERSION <= 1.0.0 include
+// a priorityScore key that newer events omit. Accept any numeric factor bag.
+type UserRescheduleFactors = Record<string, number>;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -313,6 +480,17 @@ export async function PUT(
           changeSource,
           changes: Object.keys(changes),
         },
+        LOG_SOURCE
+      );
+    }
+
+    // Emit scheduler events (fire-and-forget; failures logged but never thrown)
+    try {
+      await emitSchedulerEvents(oldTask, updatedTask, userId, changeSource);
+    } catch (err) {
+      logger.error(
+        "Failed to emit scheduler events",
+        { taskId: id, error: err instanceof Error ? err.message : String(err) },
         LOG_SOURCE
       );
     }

@@ -8,7 +8,6 @@ import {
 } from "@/lib/date-utils";
 
 import { EnergyLevel, SlotScore, TimeSlot } from "@/types/scheduling";
-import { Priority } from "@/types/task";
 
 /** Minimal interface for schedule energy level fields */
 export interface ScheduleEnergyConfig {
@@ -73,18 +72,20 @@ export class SlotScorer {
       bufferAdequacy: this.scoreBufferAdequacy(slot),
       timePreference: this.scoreTimePreference(slot, task),
       deadlineProximity: this.scoreDeadlineProximity(slot, task),
-      priorityScore: this.scorePriority(task),
     };
 
-    // Calculate total score (weighted average)
-    const weights = {
+    // Weights are base values; deadlineProximity is dropped entirely for tasks
+    // without a due date so its 3.0 weight doesn't dilute the other factors.
+    // priorityScore is intentionally absent: it depends on task only, not slot,
+    // so it cannot affect slot ranking. Priority is applied at the task-ordering
+    // step (see SchedulingService.scheduleMultipleTasks).
+    const weights: Record<keyof typeof factors, number> = {
       workHourAlignment: 1.0,
       energyLevelMatch: 1.5,
       projectProximity: 0.5,
       bufferAdequacy: 0.8,
       timePreference: 1.2,
-      deadlineProximity: 3.0,
-      priorityScore: 1.8,
+      deadlineProximity: task.dueDate ? 3.0 : 0,
     };
 
     const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
@@ -94,7 +95,7 @@ export class SlotScorer {
       return sum + contribution;
     }, 0);
 
-    const total = weightedSum / totalWeight;
+    const total = totalWeight > 0 ? weightedSum / totalWeight : 0;
 
     return {
       total,
@@ -245,23 +246,6 @@ export class SlotScorer {
     // 0.5 if within 4 hours
     // Approaches 0 as distance increases
     return Math.exp(-closestDistance / 4);
-  }
-
-  private scorePriority(task: Task): number {
-    if (!task.priority || task.priority === Priority.NONE) return 0.25;
-
-    switch (task.priority) {
-      case Priority.URGENT:
-        return 1.0;
-      case Priority.HIGH:
-        return 0.9;
-      case Priority.MEDIUM:
-        return 0.7;
-      case Priority.LOW:
-        return 0.5;
-      default:
-        return 0.25;
-    }
   }
 
   // Getter for scheduledTasks to allow TimeSlotManager to update it

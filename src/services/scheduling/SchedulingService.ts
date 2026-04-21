@@ -4,14 +4,47 @@ import { addDays, newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
+import {
+  SchedulerEventLogger,
+  SlotSnapshot,
+} from "@/services/logging/SchedulerEventLogger";
+
+import { TimeSlot } from "@/types/scheduling";
+
 import { CalendarServiceImpl } from "./CalendarServiceImpl";
 import { ScheduleWithBlocks } from "./ScheduleResolver";
-import { TimeSlotManager, TimeSlotManagerImpl } from "./TimeSlotManager";
+import { TimeSlotManagerImpl } from "./TimeSlotManager";
 
 // Import the global Prisma instance
 
 const DEFAULT_TASK_DURATION = 30; // Default duration in minutes
 const LOG_SOURCE = "SchedulingService";
+
+function newRunId(): string {
+  return (
+    typeof globalThis.crypto?.randomUUID === "function"
+      ? globalThis.crypto.randomUUID()
+      : `run_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+  );
+}
+
+function snapshotSlot(slot: TimeSlot): SlotSnapshot | null {
+  if (!slot.scoreBreakdown) return null;
+  return {
+    start: slot.start.toISOString(),
+    end: slot.end.toISOString(),
+    score: slot.scoreBreakdown.total,
+    factors: slot.scoreBreakdown.factors,
+  };
+}
+
+interface TaskWithRelations extends Task {
+  tags?: Array<{ name: string }>;
+  project?: {
+    id: string;
+    area?: { id: string } | null;
+  } | null;
+}
 
 interface PerformanceMetrics {
   operation: string;
@@ -112,7 +145,8 @@ export class SchedulingService {
   async scheduleMultipleTasks(
     tasks: Task[],
     userId: string,
-    existingConflicts?: Map<string, { start: Date; end: Date }[]>
+    existingConflicts?: Map<string, { start: Date; end: Date }[]>,
+    runId: string = newRunId()
   ): Promise<Task[]> {
     const overallStart = this.startMetric("scheduleMultipleTasks", {
       totalTasks: tasks.length,
@@ -167,7 +201,8 @@ export class SchedulingService {
       const scheduledTask = await this.scheduleTask(
         taskWithDuration,
         timeSlotManager,
-        userId
+        userId,
+        runId
       );
       if (scheduledTask) {
         updatedTasks.push(scheduledTask);
@@ -198,8 +233,9 @@ export class SchedulingService {
 
   private async scheduleTask(
     task: Task,
-    timeSlotManager: TimeSlotManager,
-    userId: string
+    timeSlotManager: TimeSlotManagerImpl,
+    userId: string,
+    runId: string
   ): Promise<Task | null> {
     const taskStart = this.startMetric("scheduleTask", {
       taskId: task.id,
@@ -251,6 +287,17 @@ export class SchedulingService {
         // so it won't be available for other tasks
         await timeSlotManager.addScheduledTaskConflict(updatedTask);
 
+        // Emit SCHEDULE_DECISION event (fire-and-forget)
+        this.emitScheduleDecision(
+          task,
+          userId,
+          runId,
+          bestSlot,
+          availableSlots.slice(1, 6),
+          timeSlotManager.getLastPipelineMetrics(),
+          window.days
+        );
+
         this.endMetric("updateTask", updateStart);
         this.endMetric("tryWindow", windowStart);
         this.endMetric("scheduleTask", taskStart);
@@ -270,5 +317,69 @@ export class SchedulingService {
 
     this.endMetric("scheduleTask", taskStart);
     return null;
+  }
+
+  private emitScheduleDecision(
+    task: Task,
+    userId: string,
+    runId: string,
+    chosen: TimeSlot,
+    alternatives: TimeSlot[],
+    pipelineMetrics: {
+      candidateSlotsGenerated: number;
+      candidateSlotsAfterFiltering: number;
+      filterReasons: Record<string, number>;
+    },
+    searchWindowDays: number
+  ): void {
+    const chosenSnapshot = snapshotSlot(chosen);
+    if (!chosenSnapshot) return; // no score breakdown means we can't log meaningfully
+
+    const altSnapshots = alternatives
+      .map(snapshotSlot)
+      .filter((s): s is SlotSnapshot => s !== null);
+
+    const taskWithRelations = task as TaskWithRelations;
+    const tagNames = taskWithRelations.tags?.map((t) => t.name) ?? [];
+    const areaId = taskWithRelations.project?.area?.id ?? null;
+
+    const daysToDeadline = task.dueDate
+      ? (task.dueDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+      : null;
+
+    SchedulerEventLogger.logScheduleDecision(
+      { userId, taskId: task.id },
+      {
+        runId,
+        chosen: chosenSnapshot,
+        alternatives: altSnapshots,
+        taskContext: {
+          projectId: task.projectId,
+          areaId,
+          scheduleId: task.scheduleId,
+          tagNames,
+          duration: task.duration ?? DEFAULT_TASK_DURATION,
+          priority: task.priority ?? null,
+          hasDeadline: task.dueDate !== null,
+          daysToDeadline,
+          energyLevel: task.energyLevel ?? null,
+          preferredTime: task.preferredTime ?? null,
+          isChunked: false,
+        },
+        runContext: {
+          candidateSlotsGenerated: pipelineMetrics.candidateSlotsGenerated,
+          candidateSlotsAfterFiltering:
+            pipelineMetrics.candidateSlotsAfterFiltering,
+          searchWindowDays,
+          filterReasons: pipelineMetrics.filterReasons,
+        },
+      }
+    ).catch((err) => {
+      logger.error(
+        "Failed to emit SCHEDULE_DECISION",
+        { taskId: task.id, error: err instanceof Error ? err.message : String(err) },
+        LOG_SOURCE
+      );
+    });
   }
 }

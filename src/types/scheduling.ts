@@ -6,6 +6,7 @@ export interface TimeSlot {
   start: Date;
   end: Date;
   score: number;
+  scoreBreakdown?: SlotScore;
   conflicts: Conflict[];
   energyLevel: EnergyLevel | null;
   isWithinWorkHours: boolean;
@@ -39,6 +40,5 @@ export interface SlotScore {
     bufferAdequacy: number;
     timePreference: number;
     deadlineProximity: number;
-    priorityScore: number;
   };
 }

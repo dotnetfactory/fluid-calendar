@@ -46,12 +46,27 @@ export interface TimeSlotManager {
   addScheduledTaskConflict(task: Task): Promise<void>;
 }
 
+export interface PipelineMetrics {
+  candidateSlotsGenerated: number;
+  candidateSlotsAfterFiltering: number;
+  filterReasons: Record<string, number>;
+}
+
 export class TimeSlotManagerImpl implements TimeSlotManager {
   private slotScorer: SlotScorer;
   private timeZone: string;
   private bufferMinutes: number;
   private selectedCalendarsJson: string;
   private dayBlocks: DayBlock[] | null = null;
+  private lastPipelineMetrics: PipelineMetrics = {
+    candidateSlotsGenerated: 0,
+    candidateSlotsAfterFiltering: 0,
+    filterReasons: {},
+  };
+
+  getLastPipelineMetrics(): PipelineMetrics {
+    return this.lastPipelineMetrics;
+  }
 
   constructor(
     private schedule: ScheduleWithBlocks,
@@ -133,15 +148,19 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       effectiveStartDate,
       endDate
     );
+    const generatedCount = potentialSlots.length;
 
     // 1b. Filter out day-blocked slots
     const unblockedSlots = this.filterByDayBlocks(potentialSlots);
+    const afterDayBlocks = unblockedSlots.length;
 
     // 2. Filter by work hours
     const workHourSlots = this.filterByWorkHours(unblockedSlots);
+    const afterWorkHours = workHourSlots.length;
 
     // 3. Check calendar conflicts
     const availableSlots = await this.removeConflicts(workHourSlots, task);
+    const afterConflicts = availableSlots.length;
 
     // 4. Apply buffer times
     const slotsWithBuffer = this.applyBufferTimes(availableSlots);
@@ -151,6 +170,16 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
 
     // 6. Sort by score
     const sortedSlots = this.sortByScore(scoredSlots);
+
+    this.lastPipelineMetrics = {
+      candidateSlotsGenerated: generatedCount,
+      candidateSlotsAfterFiltering: sortedSlots.length,
+      filterReasons: {
+        day_blocked: generatedCount - afterDayBlocks,
+        outside_work_hours: afterDayBlocks - afterWorkHours,
+        conflict: afterWorkHours - afterConflicts,
+      },
+    };
 
     return sortedSlots;
   }
@@ -503,6 +532,7 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       return {
         ...slot,
         score: score.total,
+        scoreBreakdown: score,
       };
     });
   }

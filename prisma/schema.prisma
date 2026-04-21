@@ -89,6 +89,34 @@ model User {
   schedules            Schedule[]
   areas                Area[]
   dayBlocks            DayBlock[]
+  schedulerEvents      SchedulerEvent[]
+  feedbackState        UserFeedbackState?
+}
+
+model SchedulerEvent {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType        String
+  occurredAt       DateTime @default(now())
+  schedulerVersion String
+  taskId           String?
+  payload          Json
+
+  @@index([userId, eventType, occurredAt])
+  @@index([taskId, occurredAt])
+  @@index([occurredAt])
+}
+
+model UserFeedbackState {
+  userId           String    @id
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedbackEnabled  Boolean   @default(true)
+  dailyAskCount    Int       @default(0)
+  lastAskDate      DateTime?
+  consecutiveSkips Int       @default(0)
+  dampenedUntil    DateTime?
+  updatedAt        DateTime  @updatedAt
 }
 
 model VerificationToken {
