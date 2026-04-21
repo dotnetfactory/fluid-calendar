@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-import { BsArrowRepeat, BsGearFill, BsGoogle, BsMicrosoft, BsTrash } from "react-icons/bs";
+import { BsArrowRepeat, BsGearFill, BsGoogle, BsMicrosoft } from "react-icons/bs";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -22,28 +22,9 @@ import { MiniCalendar } from "./MiniCalendar";
 export function FeedManager() {
   const [syncingFeeds, setSyncingFeeds] = useState<Set<string>>(new Set());
   const [expandedFeed, setExpandedFeed] = useState<string | null>(null);
-  const { feeds, removeFeed, toggleFeed, syncFeed, updateFeed } = useCalendarStore();
+  const { feeds, toggleFeed, syncFeed, updateFeed } = useCalendarStore();
   const { date: currentDate, setDate } = useViewStore();
   const taskCalendarId = useSettingsStore((s) => s.calendar.taskCalendarId);
-
-  const handleRemoveFeed = useCallback(
-    async (feedId: string) => {
-      // Warn if deleting the Task Calendar feed
-      if (feedId === taskCalendarId) {
-        const confirmed = window.confirm(
-          "This calendar is used for auto-scheduling task events. " +
-          "Deleting it will break the auto-schedule to Google Calendar sync. Continue?"
-        );
-        if (!confirmed) return;
-      }
-      try {
-        await removeFeed(feedId);
-      } catch (error) {
-        console.error("Failed to remove feed:", error);
-      }
-    },
-    [removeFeed]
-  );
 
   const handleSyncFeed = useCallback(
     async (feedId: string) => {
@@ -125,12 +106,6 @@ export function FeedManager() {
                       </button>
                     </>
                   )}
-                  <button
-                    onClick={() => handleRemoveFeed(feed.id)}
-                    className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-destructive focus:outline-none"
-                  >
-                    <BsTrash className="h-3.5 w-3.5" />
-                  </button>
                 </div>
               </div>
               {expandedFeed === feed.id && (

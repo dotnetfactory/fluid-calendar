@@ -11,6 +11,7 @@ import { CalendarSettings } from "@/components/settings/CalendarSettings";
 import { ScheduleSettings } from "@/components/settings/ScheduleSettings";
 import { ImportExportSettings } from "@/components/settings/ImportExportSettings";
 import { LogViewer } from "@/components/settings/LogViewer";
+import { ManageCalendarFeeds } from "@/components/settings/ManageCalendarFeeds";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { SystemSettings } from "@/components/settings/SystemSettings";
 import { TaskSyncSettings } from "@/components/settings/TaskSyncSettings";
@@ -188,7 +189,12 @@ export default function SettingsPage() {
       case "user":
         return <UserSettings />;
       case "calendar":
-        return <CalendarSettings />;
+        return (
+          <div className="space-y-6">
+            <CalendarSettings />
+            <ManageCalendarFeeds />
+          </div>
+        );
       case "auto-schedule":
         return <ScheduleSettings />;
       case "task-sync":
