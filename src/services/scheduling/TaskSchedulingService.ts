@@ -110,6 +110,7 @@ export async function scheduleAllTasksForUser(
 
     // Get all tasks marked for auto-scheduling that are not locked or blocked
     // Skip tasks with no duration (0 or null) — those show as all-day reminders, not time-blocked
+    // Exclude tasks whose project is on_hold or archived; tasks with no project still schedule.
     const tasksToSchedule = await prisma.task.findMany({
       where: {
         isAutoScheduled: true,
@@ -120,6 +121,10 @@ export async function scheduleAllTasksForUser(
           not: { in: [TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS] },
         },
         userId,
+        OR: [
+          { projectId: null },
+          { project: { status: ProjectStatus.ACTIVE } },
+        ],
       },
       include: { project: { include: { area: true } }, tags: true },
     });
@@ -161,6 +166,22 @@ export async function scheduleAllTasksForUser(
         },
       });
     }
+
+    // Clear stale schedules for tasks excluded by the project-status filter
+    // (a project moved to on_hold/archived after its tasks were scheduled).
+    await prisma.task.updateMany({
+      where: {
+        userId,
+        scheduleLocked: false,
+        scheduledStart: { not: null },
+        project: { status: { not: ProjectStatus.ACTIVE } },
+      },
+      data: {
+        scheduledStart: null,
+        scheduledEnd: null,
+        scheduleScore: null,
+      },
+    });
 
     // Group tasks by resolved schedule (named first, 24/7 last)
     const scheduleGroups = groupTasksBySchedule(
