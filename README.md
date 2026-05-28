@@ -66,7 +66,7 @@ Trying to run FluidCalendar yourself and stuck on the database, OAuth callback U
 
 Use the [self-hosting setup checklist](docs/self-hosting-setup-checklist.md) first. If you want a second set of eyes, you can buy a focused setup review for **$12**:
 
-[Get a FluidCalendar setup review](https://buy.stripe.com/6oUbJ37ND0OH4ma87I8so06)
+[Get a FluidCalendar setup review](https://buy.stripe.com/3cI9AS2799EYgx577zaMU04)
 
 The checkout asks for your repo, deploy URL, or setup notes plus the main blocker. The review is a short, manual pass over your public setup details with the next concrete fixes to try. Do not send secrets or private OAuth credentials.
 
