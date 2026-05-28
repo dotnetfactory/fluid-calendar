@@ -38,6 +38,6 @@ Use this checklist before opening an issue or buying a setup review. It focuses 
 
 If you want a focused second pass, buy the $12 setup review:
 
-https://buy.stripe.com/6oUbJ37ND0OH4ma87I8so06
+https://buy.stripe.com/3cI9AS2799EYgx577zaMU04
 
 The checkout asks for your repo, deploy URL, or setup notes plus the main blocker. Share only public configuration, screenshots, logs, or redacted snippets. Do not send secrets, private OAuth credentials, database passwords, or production tokens.
