@@ -35,9 +35,9 @@ By becoming a sponsor, you:
 - Get early access to new features
 - Support open-source software development
 
-## Sponsored By                                                                                     
-                                                                                                  
-<a href="https://www.nitroclaw.com?ref=fluid-calendar">                                             
+## Sponsored By
+
+<a href="https://www.nitroclaw.com?ref=fluid-calendar">
 
    <img width="600" alt="NitroClaw - Your Own OpenClaw Assistant, Zero Server Hassle" src="https://github.com/user-attachments/assets/c258d98c-b06b-4580-82b0-e54281613e54" />
 
@@ -59,6 +59,16 @@ Don't want to self-host? We're currently beta testing our hosted version at [Flu
 - Automatic updates
 - Premium support
 - Advanced AI features
+
+## Paid Self-Hosting Review
+
+Trying to run FluidCalendar yourself and stuck on the database, OAuth callback URLs, Google/Outlook scopes, Docker, or production env values?
+
+Use the [self-hosting setup checklist](docs/self-hosting-setup-checklist.md) first. If you want a second set of eyes, you can buy a focused setup review for **$12**:
+
+[Get a FluidCalendar setup review](https://buy.stripe.com/6oUbJ37ND0OH4ma87I8so06)
+
+The checkout asks for your repo, deploy URL, or setup notes plus the main blocker. The review is a short, manual pass over your public setup details with the next concrete fixes to try. Do not send secrets or private OAuth credentials.
 
 ## Features
 
