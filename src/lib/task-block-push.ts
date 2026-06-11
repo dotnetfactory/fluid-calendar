@@ -544,21 +544,21 @@ export async function removeAllTaskBlocks(userId: string) {
       if (task.blockFeedId) {
         await deleteTaskBlockEvent(userId, task.blockEventId!, task.blockFeedId);
       } else {
-        // Feed ID missing; just clear local state
         logger.warn(
-          `Task has event but no feed ID; clearing local state`,
+          `Task has event but no feed ID; clearing local state only`,
           { taskId: task.id },
           LOG_SOURCE
         );
-        await prisma.task.update({
-          where: { id: task.id },
-          data: {
-            blockEventId: null,
-            blockFeedId: null,
-            blockDirty: false,
-          },
-        });
       }
+      // Always clear local block state so tasks never reference deleted events
+      await prisma.task.update({
+        where: { id: task.id },
+        data: {
+          blockEventId: null,
+          blockFeedId: null,
+          blockDirty: false,
+        },
+      });
     }
 
     logger.info(
