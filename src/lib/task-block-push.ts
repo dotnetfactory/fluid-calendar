@@ -28,14 +28,18 @@ function isGoogleEventNotFound(error: unknown): boolean {
 export async function pushTaskBlock(userId: string, taskId: string) {
   try {
     // Load task and user settings in parallel
-    const [task, settings] = await Promise.all([
+    const [task, settings, userSettings] = await Promise.all([
       prisma.task.findUnique({
         where: { id: taskId, userId },
       }),
       prisma.autoScheduleSettings.findUnique({
         where: { userId },
       }),
+      prisma.userSettings.findUnique({
+        where: { userId },
+      }),
     ]);
+    const timeZone = userSettings?.timeZone;
 
     if (!task) {
       logger.warn(`Task not found for push: ${taskId}`, { userId }, LOG_SOURCE);
@@ -140,7 +144,8 @@ export async function pushTaskBlock(userId: string, taskId: string) {
         task,
         targetAccountId!,
         targetCalendarId!,
-        targetFeed!.id
+        targetFeed!.id,
+        timeZone
       );
     } else if (shouldExist && task.blockEventId && task.blockFeedId) {
       // Check if feed changed
@@ -153,7 +158,8 @@ export async function pushTaskBlock(userId: string, taskId: string) {
           task,
           targetAccountId!,
           targetCalendarId!,
-          targetFeed!.id
+          targetFeed!.id,
+          timeZone
         );
       } else {
         // Same feed: update existing event
@@ -162,7 +168,8 @@ export async function pushTaskBlock(userId: string, taskId: string) {
           taskId,
           task,
           targetAccountId!,
-          targetCalendarId!
+          targetCalendarId!,
+          timeZone
         );
       }
     } else if (!shouldExist && task.blockEventId) {
@@ -208,7 +215,8 @@ async function createNewEvent(
   task: { title: string; scheduledStart: Date | null; scheduledEnd: Date | null },
   accountId: string,
   calendarId: string,
-  feedId: string
+  feedId: string,
+  timeZone?: string
 ) {
   try {
     logger.debug(
@@ -227,6 +235,7 @@ async function createNewEvent(
       description: "Scheduled by FluidCalendar",
       start: task.scheduledStart!,
       end: task.scheduledEnd!,
+      timeZone,
     });
 
     if (event.id) {
@@ -272,7 +281,8 @@ async function updateExistingEvent(
   taskId: string,
   task: { title: string; blockEventId: string | null; scheduledStart: Date | null; scheduledEnd: Date | null },
   accountId: string,
-  calendarId: string
+  calendarId: string,
+  timeZone?: string
 ) {
   try {
     logger.debug(
@@ -293,6 +303,7 @@ async function updateExistingEvent(
       start: task.scheduledStart || undefined,
       end: task.scheduledEnd || undefined,
       mode: "single",
+      timeZone,
     });
 
     await prisma.task.update({

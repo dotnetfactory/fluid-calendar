@@ -28,6 +28,9 @@ jest.mock("@/lib/prisma", () => ({
     autoScheduleSettings: {
       findUnique: jest.fn(),
     },
+    userSettings: {
+      findUnique: jest.fn(),
+    },
     calendarFeed: {
       findUnique: jest.fn(),
     },
@@ -50,6 +53,7 @@ const mockPrisma = prisma as unknown as {
     update: jest.Mock;
   };
   autoScheduleSettings: { findUnique: jest.Mock };
+  userSettings: { findUnique: jest.Mock };
   calendarFeed: { findUnique: jest.Mock };
 };
 const mockCreate = createGoogleEvent as jest.Mock;
@@ -104,6 +108,10 @@ function googleFeed(id = "feed-1", url = "gcal-id-1") {
 beforeEach(() => {
   jest.clearAllMocks();
   mockPrisma.task.update.mockResolvedValue({});
+  mockPrisma.userSettings.findUnique.mockResolvedValue({
+    userId: USER,
+    timeZone: "America/Chicago",
+  });
 });
 
 describe("pushTaskBlock state transitions", () => {
@@ -121,6 +129,7 @@ describe("pushTaskBlock state transitions", () => {
       "gcal-id-1",
       expect.objectContaining({
         title: "Write report",
+        timeZone: "America/Chicago",
       })
     );
     expect(mockPrisma.task.update).toHaveBeenCalledWith(
