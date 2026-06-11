@@ -210,6 +210,7 @@ model Task {
 
   // Calendar block push
   blockEventId String? // Google Calendar event ID of the pushed block
+  blockFeedId  String? // Calendar feed ID where event is stored
   blockDirty   Boolean @default(false) // Push failed, needs retry
 
   // Organization
@@ -265,6 +266,7 @@ model Task {
   @@index([syncStatus])
   @@index([externalListId])
   @@index([blockDirty, userId])
+  @@index([blockFeedId])
 }
 
 model Tag {

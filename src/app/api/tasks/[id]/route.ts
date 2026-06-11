@@ -375,14 +375,8 @@ export async function DELETE(
     }
 
     // Delete the calendar event if it exists BEFORE deleting the task
-    if (task.blockEventId) {
-      const settings = await prisma.autoScheduleSettings.findUnique({
-        where: { userId },
-      });
-
-      if (settings?.pushTasksFeedId) {
-        await deleteTaskBlockEvent(userId, task.blockEventId, settings.pushTasksFeedId);
-      }
+    if (task.blockEventId && task.blockFeedId) {
+      await deleteTaskBlockEvent(userId, task.blockEventId, task.blockFeedId);
     }
 
     // Now delete the task AFTER tracking the change and deleting calendar event

@@ -357,8 +357,7 @@ export function AutoScheduleSettings() {
             onCheckedChange={(checked) =>
               updateAutoScheduleSettings({
                 pushTasksToCalendar: checked,
-                // Clear the feed ID if disabling
-                pushTasksFeedId: checked ? autoSchedule.pushTasksFeedId : null,
+                // Preserve feed selection when toggling; user can re-enable without reconfiguring
               })
             }
           />
