@@ -4,6 +4,7 @@ import { scheduleAllTasksForUser } from "@/services/scheduling/TaskSchedulingSer
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
+import { repushDirtyBlocks } from "@/lib/task-block-push";
 
 const LOG_SOURCE = "task-schedule-route";
 
@@ -19,6 +20,9 @@ export async function POST(request: NextRequest) {
     // Use the common function to schedule all tasks
     // If settings are provided, use them, otherwise use the overloaded function
     const tasksWithRelations = await scheduleAllTasksForUser(userId);
+
+    // Repush dirty blocks and newly scheduled tasks to calendar
+    await repushDirtyBlocks(userId);
 
     return NextResponse.json(tasksWithRelations);
   } catch (error) {
