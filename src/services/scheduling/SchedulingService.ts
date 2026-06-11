@@ -85,6 +85,15 @@ export class SchedulingService {
     this.metrics = [];
   }
 
+  private userTimeZone?: string;
+
+  private async loadUserTimeZone(userId: string): Promise<void> {
+    const userSettings = await prisma.userSettings.findUnique({
+      where: { userId },
+    });
+    this.userTimeZone = userSettings?.timeZone;
+  }
+
   private getTimeSlotManager(): TimeSlotManagerImpl {
     const startTime = this.startMetric("getTimeSlotManager");
 
@@ -106,7 +115,11 @@ export class SchedulingService {
       };
     }
 
-    const manager = new TimeSlotManagerImpl(settings, this.calendarService);
+    const manager = new TimeSlotManagerImpl(
+      settings,
+      this.calendarService,
+      this.userTimeZone
+    );
 
     this.endMetric("getTimeSlotManager", startTime);
     return manager;
@@ -119,6 +132,9 @@ export class SchedulingService {
 
     // Clear existing schedules for non-locked tasks
     const tasksToSchedule = tasks.filter((t) => !t.scheduleLocked);
+
+    // Resolve the user's timezone so work hours apply in their local time
+    await this.loadUserTimeZone(userId);
 
     // Get initial scores for all tasks
     const timeSlotManager = this.getTimeSlotManager();
