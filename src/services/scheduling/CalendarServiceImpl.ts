@@ -243,6 +243,11 @@ export class CalendarServiceImpl implements CalendarService {
 
       // Check calendar conflicts
       for (const event of events) {
+        // All-day events (working locations, holidays, reminders) describe
+        // the day, not busy time - they should not block scheduling
+        if (event.allDay) {
+          continue;
+        }
         if (
           areIntervalsOverlapping(
             { start: slot.start, end: slot.end },
