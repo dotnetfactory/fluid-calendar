@@ -12,6 +12,7 @@ import {
   roundDateUp,
   setHours,
   setMinutes,
+  fromZonedTime,
   toZonedTime,
 } from "@/lib/date-utils";
 import { prisma } from "@/lib/prisma";
@@ -262,9 +263,11 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     // Generate slots advancing by task duration
     while (localCurrentStart < localEndDate) {
       const slotEnd = addMinutes(localCurrentStart, duration);
+      // localCurrentStart/slotEnd hold wall-clock values in the user's
+      // timezone; convert back to real UTC instants before storing
       const slot: TimeSlot = {
-        start: newDate(localCurrentStart),
-        end: newDate(slotEnd),
+        start: fromZonedTime(localCurrentStart, this.timeZone),
+        end: fromZonedTime(slotEnd, this.timeZone),
         score: 0,
         conflicts: [],
         energyLevel: null,
