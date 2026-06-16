@@ -8,6 +8,10 @@ import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import {
+  deleteTaskBlockEvent,
+  schedulePushTaskBlock,
+} from "@/lib/task-block-push";
+import {
   ChangeType,
   TaskChangeTracker,
 } from "@/lib/task-sync/task-change-tracker";
@@ -282,6 +286,9 @@ export async function PUT(
       );
     }
 
+    // Schedule calendar block push for any changes to scheduled times or status
+    schedulePushTaskBlock(userId, id);
+
     return NextResponse.json(updatedTask);
   } catch (error) {
     logger.error(
@@ -367,7 +374,12 @@ export async function DELETE(
       );
     }
 
-    // Now delete the task AFTER tracking the change
+    // Delete the calendar event if it exists BEFORE deleting the task
+    if (task.blockEventId && task.blockFeedId) {
+      await deleteTaskBlockEvent(userId, task.blockEventId, task.blockFeedId);
+    }
+
+    // Now delete the task AFTER tracking the change and deleting calendar event
     await prisma.task.delete({
       where: {
         id,

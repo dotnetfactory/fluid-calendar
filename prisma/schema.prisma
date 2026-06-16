@@ -208,6 +208,11 @@ model Task {
   lastScheduled   DateTime?
   postponedUntil  DateTime? // New field for postponing tasks
 
+  // Calendar block push
+  blockEventId String? // Google Calendar event ID of the pushed block
+  blockFeedId  String? // Calendar feed ID where event is stored
+  blockDirty   Boolean @default(false) // Push failed, needs retry
+
   // Organization
   tags Tag[]
 
@@ -260,6 +265,8 @@ model Task {
   @@index([externalTaskId, source])
   @@index([syncStatus])
   @@index([externalListId])
+  @@index([blockDirty, userId])
+  @@index([blockFeedId])
 }
 
 model Tag {
@@ -301,6 +308,10 @@ model AutoScheduleSettings {
 
   // Project Settings
   groupByProject Boolean @default(false)
+
+  // Calendar block push settings
+  pushTasksToCalendar Boolean  @default(false) // Enable pushing task blocks to calendar
+  pushTasksFeedId     String? // ID of target CalendarFeed (must be GOOGLE type)
 
   // Metadata
   createdAt DateTime @default(now())

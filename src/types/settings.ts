@@ -71,6 +71,8 @@ export interface AutoScheduleSettings {
   lowEnergyStart: number | null;
   lowEnergyEnd: number | null;
   groupByProject: boolean;
+  pushTasksToCalendar?: boolean; // Push scheduled task blocks to calendar
+  pushTasksFeedId?: string | null; // Calendar feed ID for pushing tasks
 }
 
 // Define a type for log retention periods

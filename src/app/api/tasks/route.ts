@@ -6,6 +6,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { schedulePushTaskBlock } from "@/lib/task-block-push";
 import {
   ChangeType,
   TaskChangeTracker,
@@ -178,6 +179,11 @@ export async function POST(request: NextRequest) {
         },
         LOG_SOURCE
       );
+    }
+
+    // Schedule calendar block push if task has scheduled times
+    if (task.scheduledStart && task.scheduledEnd) {
+      schedulePushTaskBlock(userId, task.id);
     }
 
     return NextResponse.json(task);

@@ -237,12 +237,34 @@ export class CalendarServiceImpl implements CalendarService {
       },
     });
 
+    // Events that are projections of our own pushed task blocks must not
+    // count as conflicts: the task side already owns that time via the
+    // scheduled-task check, and a feed sync of the push target would
+    // otherwise make every scheduled task block its own slot.
+    const pushedBlockIds = new Set(
+      (
+        await prisma.task.findMany({
+          where: { userId, blockEventId: { not: null } },
+          select: { blockEventId: true },
+        })
+      ).map((t) => t.blockEventId)
+    );
+
     // Check conflicts for each slot
     return slots.map(({ slot, taskId }) => {
       const conflicts: Conflict[] = [];
 
       // Check calendar conflicts
       for (const event of events) {
+        // All-day events (working locations, holidays, reminders) describe
+        // the day, not busy time - they should not block scheduling
+        if (event.allDay) {
+          continue;
+        }
+        // Skip echoes of our own pushed task blocks
+        if (event.externalEventId && pushedBlockIds.has(event.externalEventId)) {
+          continue;
+        }
         if (
           areIntervalsOverlapping(
             { start: slot.start, end: slot.end },

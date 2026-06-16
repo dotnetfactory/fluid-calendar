@@ -346,6 +346,61 @@ export function AutoScheduleSettings() {
           }
         />
       </SettingRow>
+
+      <SettingRow
+        label="Push Scheduled Tasks to Calendar"
+        description="Automatically create calendar events for scheduled task blocks"
+      >
+        <div className="space-y-4">
+          <Switch
+            checked={autoSchedule.pushTasksToCalendar || false}
+            onCheckedChange={(checked) =>
+              updateAutoScheduleSettings({
+                pushTasksToCalendar: checked,
+                // Preserve feed selection when toggling; user can re-enable without reconfiguring
+              })
+            }
+          />
+
+          {autoSchedule.pushTasksToCalendar && (
+            <div>
+              <Label>Target Calendar</Label>
+              <Select
+                value={autoSchedule.pushTasksFeedId || ""}
+                onValueChange={(value) =>
+                  updateAutoScheduleSettings({
+                    pushTasksFeedId: value || null,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a calendar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {feeds
+                    .filter((feed) => feed.type === "GOOGLE")
+                    .map((feed) => (
+                      <SelectItem key={feed.id} value={feed.id}>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: feed.color || "var(--muted)" }}
+                          />
+                          {feed.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {feeds.filter((feed) => feed.type === "GOOGLE").length === 0 && (
+                <div className="text-sm text-muted-foreground mt-2">
+                  No Google calendars found. Please connect a Google account in Calendar Settings.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </SettingRow>
     </SettingsSection>
   );
 }
