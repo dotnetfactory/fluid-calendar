@@ -25,13 +25,16 @@ export class SlotScorer {
   updateScheduledTasks(tasks: Task[]) {
     this.scheduledTasks.clear();
     tasks.forEach((task) => {
-      if (task.projectId && task.scheduledStart && task.scheduledEnd) {
-        const projectTasks = this.scheduledTasks.get(task.projectId) || [];
+      if (task.scheduledStart && task.scheduledEnd) {
+        // Tasks without a project share the "none" bucket that
+        // addScheduledTaskConflict uses, so hasInMemoryConflict sees them
+        const key = task.projectId || "none";
+        const projectTasks = this.scheduledTasks.get(key) || [];
         projectTasks.push({
           start: task.scheduledStart,
           end: task.scheduledEnd,
         });
-        this.scheduledTasks.set(task.projectId, projectTasks);
+        this.scheduledTasks.set(key, projectTasks);
       }
     });
   }

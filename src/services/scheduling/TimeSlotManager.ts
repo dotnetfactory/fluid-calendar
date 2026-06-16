@@ -66,7 +66,10 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
         isAutoScheduled: true,
         scheduledStart: { not: null },
         scheduledEnd: { not: null },
-        projectId: { not: null },
+        // Locked tasks keep their slots across runs, so they must count as
+        // busy no matter what project they belong to (or none at all);
+        // unlocked tasks are about to be rescheduled and must not block
+        scheduleLocked: true,
         userId,
       },
     });

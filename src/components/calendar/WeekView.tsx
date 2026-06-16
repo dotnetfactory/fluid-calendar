@@ -12,6 +12,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 
 import { TaskModal } from "@/components/tasks/TaskModal";
 
+import { getEventEditability } from "@/lib/calendar-drag";
 import { useEventModalStore } from "@/lib/commands/groups/calendar";
 import { newDate } from "@/lib/date-utils";
 
@@ -25,6 +26,7 @@ import { Task, TaskStatus } from "@/types/task";
 import { CalendarEventContent } from "./CalendarEventContent";
 import { EventModal } from "./EventModal";
 import { EventQuickView } from "./EventQuickView";
+import { useCalendarDragHandlers } from "./useCalendarDragHandlers";
 
 interface WeekViewProps {
   currentDate: Date;
@@ -53,6 +55,8 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
       borderColor: string;
       allDay: boolean;
       classNames: string[];
+      startEditable: boolean;
+      durationEditable: boolean;
       extendedProps?: ExtendedEventProps;
     }>
   >([]);
@@ -62,6 +66,7 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
   const [isTask, setIsTask] = useState(false);
   const eventModalStore = useEventModalStore();
   const [clickedElement, setClickedElement] = useState<HTMLElement | null>(null);
+  const { handleEventDrop, handleEventResize } = useCalendarDragHandlers();
 
   // Update events when the calendar view changes
   const handleDatesSet = useCallback(
@@ -92,6 +97,7 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
           classNames: [
             item.extendedProps?.isTask ? "calendar-task" : "calendar-event",
           ],
+          ...getEventEditability(item, feeds),
           // Store the original event data
           extendedProps: {
             ...item,
@@ -320,6 +326,11 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
         selectMirror={true}
         datesSet={handleDatesSet}
         eventContent={renderEventContent}
+        eventDrop={handleEventDrop}
+        eventResize={handleEventResize}
+        eventResizableFromStart={true}
+        snapDuration="00:15:00"
+        dragRevertDuration={250}
       />
       {quickViewItem && (
         <EventQuickView
