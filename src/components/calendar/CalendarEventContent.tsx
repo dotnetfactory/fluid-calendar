@@ -3,10 +3,15 @@ import { memo } from "react";
 import type { EventContentArg } from "@fullcalendar/core";
 import { IoCheckmarkCircle, IoRepeat, IoTimeOutline } from "react-icons/io5";
 
+import { getMonthEventDisplay } from "@/lib/calendar-event-display";
 import { isTaskOverdue } from "@/lib/task-utils";
 import { cn } from "@/lib/utils";
 
+import { useSettingsStore } from "@/store/settings";
+
 import { Priority, TaskStatus } from "@/types/task";
+
+const DEFAULT_EVENT_COLOR = "#3b82f6";
 
 interface CalendarEventContentProps {
   eventInfo: EventContentArg;
@@ -22,11 +27,13 @@ const priorityColors = {
 export const CalendarEventContent = memo(function CalendarEventContent({
   eventInfo,
 }: CalendarEventContentProps) {
+  const { user: userSettings } = useSettingsStore();
   const isTask = eventInfo.event.extendedProps.isTask;
   const isRecurring = eventInfo.event.extendedProps.isRecurring;
   const status = eventInfo.event.extendedProps.status;
   const priority = eventInfo.event.extendedProps.priority;
   const location = eventInfo.event.extendedProps.location;
+  const calendarName = eventInfo.event.extendedProps.calendarName;
   const dueDate = eventInfo.event.extendedProps?.extendedProps?.dueDate;
   const title = eventInfo.event.title;
   const endTime = eventInfo.event.end?.getTime() ?? 0;
@@ -34,6 +41,22 @@ export const CalendarEventContent = memo(function CalendarEventContent({
   const duration = endTime - startTime;
 
   const isOverdue = isTask && isTaskOverdue({ dueDate, status });
+
+  // Issue #95: surface the start time and calendar color for timed events in
+  // month/multi-month views so they read as clearly as the colored all-day
+  // events. Time-grid (day/week) views are unaffected.
+  const { isDayGridTimed, showTimeChip, timeText } = getMonthEventDisplay({
+    viewType: eventInfo.view.type,
+    allDay: eventInfo.event.allDay,
+    isTask: !!isTask,
+    start: eventInfo.event.start,
+    isStart: eventInfo.isStart,
+    timeFormat: userSettings.timeFormat,
+  });
+  const eventColor =
+    eventInfo.event.backgroundColor ||
+    eventInfo.event.borderColor ||
+    DEFAULT_EVENT_COLOR;
 
   return (
     <div
@@ -56,6 +79,19 @@ export const CalendarEventContent = memo(function CalendarEventContent({
       <div className="flex w-full items-center gap-1.5">
         {isTask ? (
           <IoCheckmarkCircle className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
+        ) : showTimeChip ? (
+          isRecurring ? (
+            <IoRepeat
+              className="h-3.5 w-3.5 flex-shrink-0"
+              style={{ color: eventColor }}
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="h-2 w-2 flex-shrink-0 rounded-full"
+              style={{ backgroundColor: eventColor }}
+            />
+          )
         ) : isRecurring ? (
           <IoRepeat className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
         ) : (
@@ -68,6 +104,14 @@ export const CalendarEventContent = memo(function CalendarEventContent({
               duration <= 1800000 ? "truncate" : "line-clamp-2 break-words"
             )}
           >
+            {isDayGridTimed && calendarName && (
+              <span className="sr-only">{calendarName}, </span>
+            )}
+            {showTimeChip && timeText && (
+              <span className="mr-1 font-normal tabular-nums opacity-75">
+                {timeText}
+              </span>
+            )}
             {title}
           </div>
         </div>
