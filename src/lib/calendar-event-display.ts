@@ -1,4 +1,13 @@
+import { toZonedTime } from "date-fns-tz";
+
 import { TimeFormat } from "@/types/settings";
+
+/**
+ * FullCalendar's sentinel for "render in the browser's local time zone". When
+ * the calendar is configured with this (its current setting), the browser zone
+ * already governs the displayed time, so no conversion is needed.
+ */
+const LOCAL_TIME_ZONE = "local";
 
 /**
  * Day-grid views (month, multi-month) render events as compact chips inside a
@@ -14,10 +23,22 @@ export function isDayGridView(viewType: string): boolean {
  * Format an event's start time for compact display in a month cell, honoring
  * the user's 12h/24h preference. Implemented locally (rather than via date-fns
  * locale formatting) so the output is deterministic regardless of locale.
+ *
+ * `timeZone` is the zone FullCalendar is configured to render with (its `local`
+ * sentinel by default). The chip is derived from the same `event.start` instant
+ * FullCalendar uses, so formatting in that same zone keeps the chip's time in
+ * lockstep with what the calendar actually renders, even if the browser's local
+ * zone differs from the configured one.
  */
-export function formatEventTime(date: Date, timeFormat: TimeFormat): string {
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
+export function formatEventTime(
+  date: Date,
+  timeFormat: TimeFormat,
+  timeZone: string = LOCAL_TIME_ZONE
+): string {
+  const zoned =
+    timeZone === LOCAL_TIME_ZONE ? date : toZonedTime(date, timeZone);
+  const hours = zoned.getHours();
+  const minutes = zoned.getMinutes();
   const mm = minutes.toString().padStart(2, "0");
 
   if (timeFormat === "24h") {
@@ -68,8 +89,21 @@ export function getMonthEventDisplay(params: {
   start: Date | null;
   isStart: boolean;
   timeFormat: TimeFormat;
+  /**
+   * The time zone FullCalendar is configured to render with. Defaults to its
+   * `local` sentinel so the chip tracks the calendar's own rendering.
+   */
+  timeZone?: string;
 }): MonthEventDisplay {
-  const { viewType, allDay, isTask, start, isStart, timeFormat } = params;
+  const {
+    viewType,
+    allDay,
+    isTask,
+    start,
+    isStart,
+    timeFormat,
+    timeZone = LOCAL_TIME_ZONE,
+  } = params;
 
   const isDayGridTimed =
     isDayGridView(viewType) && !allDay && !isTask && start !== null;
@@ -80,6 +114,9 @@ export function getMonthEventDisplay(params: {
   return {
     isDayGridTimed,
     showTimeChip,
-    timeText: showTimeChip && start ? formatEventTime(start, timeFormat) : "",
+    timeText:
+      showTimeChip && start
+        ? formatEventTime(start, timeFormat, timeZone)
+        : "",
   };
 }

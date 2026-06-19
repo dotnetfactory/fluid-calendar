@@ -45,6 +45,12 @@ export const CalendarEventContent = memo(function CalendarEventContent({
   // Issue #95: surface the start time and calendar color for timed events in
   // month/multi-month views so they read as clearly as the colored all-day
   // events. Time-grid (day/week) views are unaffected.
+  // Format the chip in the same time zone FullCalendar renders with (its
+  // `local` sentinel today) so the chip time always matches the calendar's own
+  // display, even if the browser's local zone differs from the configured one.
+  const calendarTimeZone =
+    (eventInfo.view.calendar.getOption("timeZone") as string | undefined) ??
+    "local";
   const { isDayGridTimed, showTimeChip, timeText } = getMonthEventDisplay({
     viewType: eventInfo.view.type,
     allDay: eventInfo.event.allDay,
@@ -52,6 +58,7 @@ export const CalendarEventContent = memo(function CalendarEventContent({
     start: eventInfo.event.start,
     isStart: eventInfo.isStart,
     timeFormat: userSettings.timeFormat,
+    timeZone: calendarTimeZone,
   });
   const eventColor =
     eventInfo.event.backgroundColor ||
