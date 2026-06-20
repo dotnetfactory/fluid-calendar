@@ -105,6 +105,9 @@ export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
             isRecurring: item.isRecurring,
             status: item.extendedProps?.status,
             priority: item.extendedProps?.priority,
+            // Used as the accessible label for the timed-event color dot so
+            // calendar identity is not conveyed by color alone (issue #95).
+            calendarName: feeds.find((f) => f.id === item.feedId)?.name,
           },
         }));
 
