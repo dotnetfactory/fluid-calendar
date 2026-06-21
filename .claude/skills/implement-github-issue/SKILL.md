@@ -48,6 +48,7 @@ Every body MUST include: the issue URL, the issue title, and a precise, actionab
 8. **Finalize the OpenSpec change**: complete `tasks.md` and **archive** the change
 9. Open the PR (ready for review), report the URL
 10. **Clean up the worktree** (always - on PR-opened and on any STOP after the worktree exists)
+11. **Hand the PR to `review-merge-port-pr`** as a separate subagent (review → merge → SAAS port)
 
 ---
 
@@ -157,10 +158,10 @@ You implement against the change's `tasks.md` (step 6) and then **complete and a
 
 **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`. Red → green → refactor, one acceptance criterion at a time. No implementation code before a failing test.
 
-- **Create an isolated worktree** off the up-to-date default branch, on a fresh feature branch, under `.claude/worktrees`, and do all work there. This keeps the main checkout untouched. Ensure `.claude/worktrees/` is git-ignored (add it to `.gitignore` if it is not) so the worktree never shows up as untracked changes. **Assert you're not on the default branch before any commit**:
+- **Create an isolated worktree** off the **latest** default branch, on a fresh feature branch, under `.claude/worktrees`, and do all work there. **Always `git fetch origin` first and branch from `origin/<default-branch>`** (not a possibly-stale local `<default-branch>`) so you start from current `main` and minimize merge conflicts at PR time. This keeps the main checkout untouched. Ensure `.claude/worktrees/` is git-ignored (add it to `.gitignore` if it is not) so the worktree never shows up as untracked changes. **Assert you're not on the default branch before any commit**:
 
 ```bash
-git fetch origin
+git fetch origin                            # always pull the latest main first
 git worktree add -b feat/issue-<N>-<short-slug> .claude/worktrees/issue-<N> origin/<default-branch>
 cd .claude/worktrees/issue-<N>
 test "$(git rev-parse --abbrev-ref HEAD)" != "<default-branch>" || { echo "ABORT: on default branch"; exit 1; }
@@ -236,6 +237,15 @@ git worktree prune
 
 Do this even on the email + STOP paths once a worktree exists. The only thing that should remain after a run is the remote branch/PR (on success) or nothing (on STOP) - never a leftover worktree.
 
+## 11. Hand off to `review-merge-port-pr` (separate subagent)
+
+Once the PR is open (step 9) **and your worktree is cleaned up (step 10)**, dispatch a **separate subagent** to take the PR the rest of the way - review it, get it green, merge it, and port to SAAS - via the `review-merge-port-pr` skill. This runs only on the success path (a PR exists); a STOP never reaches here.
+
+- Launch **one subagent** (the general-purpose agent) and instruct it to invoke the `review-merge-port-pr` skill on the PR you just opened. Example prompt: *"Use the `review-merge-port-pr` skill to take PR #<N> in `dotnetfactory/fluid-calendar` all the way to done: review it, get both reviewers green, merge it, and port to SAAS if needed."*
+- Run it as a **distinct subagent** so its review/merge work has its own context and its own worktree, independent of this implementation run.
+- **Ordering matters:** clean up *this* run's worktree (step 10) **before** the subagent merges - `gh pr merge --delete-branch` cannot delete a branch that is still checked out in your worktree.
+- The subagent owns the merge decision, the SAAS port, and the merge/blocker email notifications defined in that skill. This skill's job ends at a clean hand-off; report the PR URL and that you dispatched the review subagent.
+
 ## Rationalizations - STOP if you think any of these
 
 | Excuse | Reality |
@@ -273,3 +283,4 @@ Do this even on the email + STOP paths once a worktree exists. The only thing th
 | Implementation green (step 8) | Complete `tasks.md`, `openspec archive "issue-<N>-<slug>" --yes`, commit |
 | Local gate green AND fresh Codex `approve` | Push + open ready PR, report URL |
 | Run ends (PR opened OR any post-worktree STOP) | `git worktree remove .claude/worktrees/issue-<N>` |
+| PR opened + worktree cleaned (step 11) | Dispatch a subagent to run `review-merge-port-pr` on PR #<N> |

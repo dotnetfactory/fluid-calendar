@@ -74,10 +74,11 @@ gh pr view <PR#> --json number,title,headRefName,baseRefName,mergeable,state,url
 ```
 
 Do all review/fix work in a dedicated git worktree under `.claude/worktrees` so the main
-checkout stays clean. Create it from the PR branch:
+checkout stays clean. **Always `git fetch origin` first** so you operate against the latest
+`main` and PR branch. Create the worktree from the PR branch:
 
 ```bash
-git fetch origin
+git fetch origin                                           # pull the latest main + PR branch
 git worktree add .claude/worktrees/pr-<PR#> <headRefName>   # use the PR's headRefName
 cd .claude/worktrees/pr-<PR#>
 ```
@@ -86,6 +87,17 @@ cd .claude/worktrees/pr-<PR#>
   worktree never shows up as untracked changes in the PR.
 - The branch in the worktree tracks the PR; fixes pushed from here update the PR.
 - Remember the worktree path - you will remove it in step 10.
+- **Bring the PR branch up to date with the latest `main` to minimize conflicts.** From inside
+  the worktree, merge current `origin/main` into the PR branch before reviewing, so the review
+  runs against what will actually merge:
+
+```bash
+git merge origin/main      # resolve + commit if needed, then `git push` to update the PR
+```
+
+  If `main` moved and this update changes the branch, push it so the PR reflects it. If the merge
+  hits conflicts you cannot cleanly and safely resolve, treat it as a blocker (step 6) rather than
+  forcing it.
 
 ### 2. Claude code-review
 
