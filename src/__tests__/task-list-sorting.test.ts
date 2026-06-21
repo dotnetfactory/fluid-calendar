@@ -99,6 +99,31 @@ describe("compareTaskPriority", () => {
     ).map((t) => t.id);
     expect(result[result.length - 1]).toBe("missing");
   });
+
+  // The DB column is a plain String, so a stale/imported value outside the enum
+  // (e.g. "urgent") can reach the comparator. It must bucket deterministically
+  // (last, like missing) instead of producing NaN that leaves rows interleaved.
+  it("an unknown persisted priority string sorts last in both directions", () => {
+    const unknown = makeTask({
+      id: "unknown",
+      priority: "urgent" as unknown as Priority,
+    });
+    const asc = sortBy([unknown, high, low], compareTaskPriority, 1).map(
+      (t) => t.id
+    );
+    const desc = sortBy([unknown, high, low], compareTaskPriority, -1).map(
+      (t) => t.id
+    );
+    expect(asc[asc.length - 1]).toBe("unknown");
+    expect(desc[desc.length - 1]).toBe("unknown");
+  });
+
+  it("comparing two unknown priority strings is stable (returns 0)", () => {
+    const u1 = makeTask({ id: "u1", priority: "urgent" as unknown as Priority });
+    const u2 = makeTask({ id: "u2", priority: "later" as unknown as Priority });
+    expect(compareTaskPriority(u1, u2, 1)).toBe(0);
+    expect(compareTaskPriority(u1, u2, -1)).toBe(0);
+  });
 });
 
 describe("compareTaskEnergyLevel", () => {
@@ -141,5 +166,20 @@ describe("compareTaskEnergyLevel", () => {
       -1
     ).map((t) => t.id);
     expect(result[result.length - 1]).toBe("missing");
+  });
+
+  it("an unknown persisted energy string sorts last in both directions", () => {
+    const unknown = makeTask({
+      id: "unknown",
+      energyLevel: "extreme" as unknown as EnergyLevel,
+    });
+    const asc = sortBy([unknown, high, low], compareTaskEnergyLevel, 1).map(
+      (t) => t.id
+    );
+    const desc = sortBy([unknown, high, low], compareTaskEnergyLevel, -1).map(
+      (t) => t.id
+    );
+    expect(asc[asc.length - 1]).toBe("unknown");
+    expect(desc[desc.length - 1]).toBe("unknown");
   });
 });

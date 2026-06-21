@@ -12,6 +12,7 @@
 - [x] 3.2 Add a unit test for priority descending order.
 - [x] 3.3 Add a unit test that tasks without a priority sort last in both directions.
 - [x] 3.4 Add unit tests for energy ascending, descending, and null-last behavior.
+- [x] 3.5 Add unit tests that an unknown persisted priority/energy string (the DB column is a plain String) buckets last in both directions and compares equal to another unknown value (no NaN). Comparators route missing/unknown ranks last via a shared `rankOf`/`compareRanks` helper.
 
 ## 4. Gate
 - [x] 4.1 `npm run test:unit` for the new tests is green; `npm run type-check` and `npm run lint` are clean.
