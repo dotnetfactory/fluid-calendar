@@ -96,4 +96,11 @@ export interface CalendarEventInput {
   allDay?: boolean;
   isRecurring?: boolean;
   recurrenceRule?: string;
+  /**
+   * IANA timezone (e.g. "America/New_York") used to serialize timed
+   * `DTSTART`/`DTEND` with a `TZID` + `VTIMEZONE` so recurring events keep their
+   * wall-clock time across DST. When omitted, timed values fall back to UTC
+   * (`...Z`). See GitHub issue #135.
+   */
+  timeZone?: string;
 }
