@@ -1,20 +1,4 @@
-# caldav-event-serialization Specification
-
-## Purpose
-TBD - created by archiving change issue-100-caldav-allday-vparam. Update Purpose after archive.
-## Requirements
-### Requirement: All-day events serialize with a single VALUE=DATE parameter
-
-When FluidCalendar serializes a local calendar event into iCalendar for a CalDAV PUT, an all-day event's `DTSTART` and `DTEND` properties SHALL each carry exactly one `VALUE=DATE` parameter and a date-only value (`YYYYMMDD`), producing RFC 5545-valid output that CalDAV servers (including Baikal and Nextcloud) accept.
-
-The serializer SHALL NOT emit a duplicated `VALUE` parameter (e.g. `VALUE=date;VALUE=DATE`).
-
-#### Scenario: All-day event produces valid DTSTART/DTEND
-
-- **WHEN** an event with `allDay: true` is converted to iCalendar
-- **THEN** the output contains `DTSTART;VALUE=DATE:` followed by a `YYYYMMDD` date
-- **AND** the output contains `DTEND;VALUE=DATE:` followed by a `YYYYMMDD` date
-- **AND** neither `DTSTART` nor `DTEND` contains the `VALUE` parameter more than once
+## MODIFIED Requirements
 
 ### Requirement: Timed events serialize as DATE-TIME without a VALUE parameter
 
@@ -58,6 +42,8 @@ serialized value SHALL represent the event's stored absolute instant
   UTC and on a server running in a non-UTC zone (e.g. Asia/Shanghai)
 - **THEN** both produce the identical `DTSTART`/`DTEND` value
 
+## ADDED Requirements
+
 ### Requirement: RECURRENCE-ID and EXDATE match the master DTSTART value type
 
 A `RECURRENCE-ID` (single-instance edit) or `EXDATE` (single-instance delete) SHALL be serialized with the same value type as the master series' `DTSTART`, so it matches the master's instances and the server can pair the exception with the correct instance: a `VALUE=DATE` value for an all-day master, and an unambiguous date-time value for a timed master. It SHALL NOT emit a duplicate `VALUE` parameter.
@@ -74,4 +60,3 @@ A `RECURRENCE-ID` (single-instance edit) or `EXDATE` (single-instance delete) SH
 - **WHEN** a single instance of an all-day recurring event is deleted
 - **THEN** the emitted `EXDATE` value is a `VALUE=DATE` date (`YYYYMMDD`, no `Z`)
 - **AND** it contains exactly one `VALUE` parameter
-
