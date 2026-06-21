@@ -1,0 +1,10 @@
+version: '1'
+domains: []
+governance:
+  max_entries: 100
+  warn_entries: 150
+  hard_limit: 200
+classification_defaults:
+  shelf_life:
+    tactical: 14
+    observational: 30
