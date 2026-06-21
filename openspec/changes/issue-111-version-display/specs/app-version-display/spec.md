@@ -22,19 +22,14 @@ The application SHALL display its version number on every page of the authentica
 
 ### Requirement: Version links to the project's GitHub page
 
-The displayed version SHALL be a link that, when clicked, takes the user to the project's GitHub page. The link MUST open the external GitHub destination (in a new browser tab/window with safe `rel` attributes).
+The displayed version SHALL be a link that, when clicked, takes the user to the project's GitHub page. The link target MUST always resolve to a valid GitHub page (the repository root), regardless of the displayed version, so it never points at a nonexistent release. The link MUST open the external GitHub destination (in a new browser tab/window with safe `rel` attributes).
 
 #### Scenario: Clicking the version opens GitHub
 
 - **WHEN** a user clicks the displayed version
-- **THEN** the project's GitHub page opens in a new tab
+- **THEN** the project's GitHub repository page opens in a new tab
 
-#### Scenario: Link target for a known released version
+#### Scenario: Link target is valid for any version
 
-- **WHEN** the displayed version corresponds to a real released version
-- **THEN** the link points to that version's GitHub release tag page
-
-#### Scenario: Link target when the version is the fallback
-
-- **WHEN** the displayed version is the fallback/unknown value
-- **THEN** the link points to the project's GitHub repository root
+- **WHEN** the displayed version is any value (a released version, an unreleased version with no tag, or the fallback)
+- **THEN** the link points to the project's GitHub repository root, which always exists

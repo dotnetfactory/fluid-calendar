@@ -44,32 +44,17 @@ describe("version helpers", () => {
   });
 
   describe("getVersionGithubUrl", () => {
-    it("links to the release tag for a real version", () => {
-      expect(getVersionGithubUrl("1.2.3")).toBe(
-        `${GITHUB_REPO_URL}/releases/tag/v1.2.3`
-      );
-    });
-
-    it("does not double-prefix a version that already starts with v", () => {
-      expect(getVersionGithubUrl("v1.2.3")).toBe(
-        `${GITHUB_REPO_URL}/releases/tag/v1.2.3`
-      );
-    });
-
-    it("links to the repo root when the version is the fallback", () => {
-      expect(getVersionGithubUrl(FALLBACK_APP_VERSION)).toBe(GITHUB_REPO_URL);
-    });
-
-    it("links to the repo root when no version is provided", () => {
-      delete process.env.NEXT_PUBLIC_APP_VERSION;
+    // The link must always resolve to a real GitHub page. Not every package
+    // version has a published GitHub release tag (e.g. 0.1.0 has none), so the
+    // badge links to the repository root - always valid, and exactly "the
+    // github page" the feature requires.
+    it("links to the repository root", () => {
       expect(getVersionGithubUrl()).toBe(GITHUB_REPO_URL);
     });
 
-    it("uses the resolved app version when called with no argument", () => {
-      process.env.NEXT_PUBLIC_APP_VERSION = "9.9.9";
-      expect(getVersionGithubUrl()).toBe(
-        `${GITHUB_REPO_URL}/releases/tag/v9.9.9`
-      );
+    it("links to the repository root regardless of the current version", () => {
+      process.env.NEXT_PUBLIC_APP_VERSION = "0.1.0";
+      expect(getVersionGithubUrl()).toBe(GITHUB_REPO_URL);
     });
   });
 });

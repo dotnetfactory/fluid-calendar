@@ -26,19 +26,13 @@ export function getAppVersion(): string {
 }
 
 /**
- * Build the GitHub link target for a version.
+ * The GitHub link target for the displayed version.
  *
- * For a real released version this points at the matching release tag
- * (`.../releases/tag/v<version>`); for the fallback/unknown version it points
- * at the repository root. Both are "the GitHub page" for the project.
- *
- * @param version - the version to link to; defaults to {@link getAppVersion}.
+ * Always the repository root - "the GitHub page" the feature requires. A
+ * per-version `/releases/tag/v<version>` link was deliberately avoided: not
+ * every package version has a published GitHub release (e.g. `0.1.0` has no
+ * tag), so a tag-based link would 404 for the current build.
  */
-export function getVersionGithubUrl(version: string = getAppVersion()): string {
-  const normalized = version.trim();
-  if (!normalized || normalized === FALLBACK_APP_VERSION) {
-    return GITHUB_REPO_URL;
-  }
-  const tag = normalized.startsWith("v") ? normalized : `v${normalized}`;
-  return `${GITHUB_REPO_URL}/releases/tag/${tag}`;
+export function getVersionGithubUrl(): string {
+  return GITHUB_REPO_URL;
 }

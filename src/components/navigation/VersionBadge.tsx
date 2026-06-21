@@ -14,7 +14,7 @@ interface VersionBadgeProps {
  */
 export function VersionBadge({ className }: VersionBadgeProps) {
   const version = getAppVersion();
-  const href = getVersionGithubUrl(version);
+  const href = getVersionGithubUrl();
 
   return (
     <a
