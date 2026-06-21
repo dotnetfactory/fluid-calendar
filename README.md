@@ -185,9 +185,9 @@ To enable Outlook Calendar integration:
    - In your registered app, go to "Authentication"
    - Click "Add a platform"
    - Choose "Web"
-   - Add Redirect URIs:
-     - `http://localhost:3000/api/auth/callback/azure-ad` (for development)
-     - `https://your-domain.com/api/auth/callback/azure-ad` (for production)
+   - Add Redirect URIs (this is the exact callback path FluidCalendar uses for Outlook - it must match with no trailing slash):
+     - `http://localhost:3000/api/calendar/outlook` (for development)
+     - `https://your-domain.com/api/calendar/outlook` (for production)
    - Under "Implicit grant", check "Access tokens" and "ID tokens"
    - Click "Configure"
 

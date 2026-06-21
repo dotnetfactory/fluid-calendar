@@ -360,7 +360,7 @@ class OutlookServiceImpl implements CalendarService {
 3. **Authentication**
    ```
    Platform: Web
-   Redirect URI: https://[your-domain]/api/calendar/outlook/callback
+   Redirect URI: https://[your-domain]/api/calendar/outlook
    Access tokens: Yes
    ID tokens: Yes
    ```

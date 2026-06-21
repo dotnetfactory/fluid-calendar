@@ -20,8 +20,24 @@ export const MICROSOFT_GRAPH_AUTH_ENDPOINTS = {
 export interface MSGraphUser {
   id: string;
   displayName: string;
-  mail: string;
+  // Personal Microsoft accounts (outlook.com / hotmail.com / live.com,
+  // M365 Personal/Family) return `mail: null` from Graph /me; the address
+  // lives in `userPrincipalName` instead. Work/school accounts populate `mail`.
+  mail: string | null;
   userPrincipalName: string;
+}
+
+/**
+ * Resolve the email used to key a connected Outlook account from a Graph /me
+ * profile. Prefers `mail` (set for Exchange Online work/school mailboxes) and
+ * falls back to `userPrincipalName`, which is where personal Microsoft accounts
+ * carry their address (issue #97). Returns null when neither yields an email.
+ */
+export function resolveOutlookAccountEmail(
+  profile: Pick<MSGraphUser, "mail" | "userPrincipalName"> | null | undefined
+): string | null {
+  if (!profile) return null;
+  return profile.mail || profile.userPrincipalName || null;
 }
 
 export interface MSGraphCalendar {
