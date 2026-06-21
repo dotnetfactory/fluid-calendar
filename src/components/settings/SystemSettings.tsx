@@ -113,8 +113,12 @@ export function SystemSettings() {
                   <li>Go to Credentials</li>
                   <li>Create OAuth 2.0 Client ID credentials</li>
                   <li>
-                    Add authorized redirect URI: {window.location.origin}
-                    /api/calendar/google
+                    Add both authorized redirect URIs (one for sign-in, one for
+                    connecting a calendar):
+                    <ul className="ml-4 mt-1 list-disc">
+                      <li>{window.location.origin}/api/auth/callback/google</li>
+                      <li>{window.location.origin}/api/calendar/google</li>
+                    </ul>
                   </li>
                   <li>Copy the Client ID and Client Secret</li>
                 </ol>

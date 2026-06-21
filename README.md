@@ -134,11 +134,15 @@ To enable Google Calendar integration:
    - Set Authorized JavaScript origins:
      - `http://localhost:3000` (for development)
      - Your production URL (if deployed)
-   - Set Authorized redirect URIs:
+   - Set Authorized redirect URIs (add **both** paths - one is used for Google sign-in, the other for connecting a calendar):
+     - `http://localhost:3000/api/auth/callback/google` (for development)
      - `http://localhost:3000/api/calendar/google` (for development)
+     - `https://your-domain.com/api/auth/callback/google` (for production)
      - `https://your-domain.com/api/calendar/google` (for production)
    - Click "Create"
    - Save the generated Client ID and Client Secret
+
+   > These are the same two redirect URIs the in-app **Settings > System** panel shows for your deployment, so the app and these instructions match. Replace the host with the exact URL you open FluidCalendar at.
 
 5. Configure Credentials:
    - Go to FluidCalendar Settings > System
@@ -148,6 +152,14 @@ To enable Google Calendar integration:
      GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
      GOOGLE_CLIENT_SECRET="your-client-secret"
      ```
+
+### Troubleshooting the Google connection
+
+If Google returns `Error 400: redirect_uri_mismatch` or "Invalid Redirect" when you connect:
+
+- **`NEXTAUTH_URL` must match the public URL you open in the browser.** The OAuth redirect host is derived from `NEXTAUTH_URL` (not `NEXT_PUBLIC_APP_URL`). If `NEXTAUTH_URL` is still `http://localhost:3000` but you reach the app at a different URL, Google is sent back to `localhost` and the connection fails. Set `NEXTAUTH_URL` to the exact public URL and restart the app.
+- **Register both redirect URIs.** Google rejects the request if the exact callback URL is not in the authorized list. Make sure both `…/api/auth/callback/google` and `…/api/calendar/google` are listed for your host (see step 4 above).
+- **Google does not accept bare private IP addresses (e.g. `http://192.168.1.150:3000`) or `.local` hostnames** as redirect URIs ("must end with a public top-level domain"). For local development use `localhost`; otherwise expose the app on a public domain (a reverse proxy or tunnel) and use that domain in both `NEXTAUTH_URL` and the Google redirect URIs.
 
 Note: For production deployment, you'll need to:
 
