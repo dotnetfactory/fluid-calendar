@@ -641,9 +641,11 @@ export class CalDAVCalendarService {
         });
 
         if (masterEvent && masterEvent.recurrenceRule) {
-          // Create a RECURRENCE-ID for this instance
+          // Create a RECURRENCE-ID for this instance. Use UTC (`...Z`) so it
+          // references the same absolute instant as the master series'
+          // instances regardless of client timezone (see GitHub issue #135).
           const recurrenceId = new ICAL.Property("recurrence-id");
-          recurrenceId.setValue(ICAL.Time.fromJSDate(event.start, false));
+          recurrenceId.setValue(ICAL.Time.fromJSDate(event.start, true));
           recurrenceId.setParameter("value", "date-time");
 
           // Get the master event's iCalendar data
@@ -837,9 +839,11 @@ export class CalDAVCalendarService {
         });
 
         if (masterEvent && masterEvent.recurrenceRule) {
-          // Create an EXDATE for this instance
+          // Create an EXDATE for this instance. Use UTC (`...Z`) so it matches
+          // the master series' instances regardless of client timezone (see
+          // GitHub issue #135).
           const exdate = new ICAL.Property("exdate");
-          exdate.setValue(ICAL.Time.fromJSDate(event.start, false));
+          exdate.setValue(ICAL.Time.fromJSDate(event.start, true));
           exdate.setParameter("value", "date-time");
 
           // Get the master event's iCalendar data
@@ -949,9 +953,13 @@ export class CalDAVCalendarService {
       const endDate = new Date(event.end);
       dtend.setValue(formatDate(endDate));
     } else {
-      // Set as date-time with timezone
-      const startTime = ICAL.Time.fromJSDate(event.start, false);
-      const endTime = ICAL.Time.fromJSDate(event.end, false);
+      // Serialize timed events as UTC date-time values (`...Z`). Passing
+      // `useUTC = true` to fromJSDate emits an unambiguous absolute instant;
+      // `false` would emit a *floating* local time (no `Z`, no `TZID`) that
+      // other CalDAV clients re-interpret in their own timezone, shifting the
+      // event by the server/client UTC offset (see GitHub issue #135).
+      const startTime = ICAL.Time.fromJSDate(event.start, true);
+      const endTime = ICAL.Time.fromJSDate(event.end, true);
 
       dtstart.setValue(startTime);
       dtend.setValue(endTime);
