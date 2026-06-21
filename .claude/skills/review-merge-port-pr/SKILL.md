@@ -8,7 +8,7 @@ description: Use when asked to take an open pull request all the way to done - r
 ## Overview
 
 A pull request is not done when the code looks right. It is done when **both** reviewers
-(Claude ultracode and Codex) report no blocking issues, CI is green, the PR is merged, the
+(Claude `/code-review` and Codex) report no blocking issues, CI is green, the PR is merged, the
 user is notified, and - if the same change belongs in the SAAS repo - it has been ported there
 and a PR opened.
 
@@ -18,7 +18,8 @@ This skill drives a PR end-to-end against the open-source `fluid-calendar` repo
 
 **Core principle:** Never merge over an unresolved blocker, and never lose the SAAS port.
 When you cannot make it green yourself, escalate by email - do not merge anyway, and do not
-silently give up.
+silently give up. Do the review in a dedicated git worktree under `.claude/worktrees` so the
+main checkout is untouched, and always clean the worktree up when done.
 
 ## Inputs
 
@@ -35,8 +36,8 @@ silently give up.
 ```dot
 digraph review_merge_port {
     rankdir=TB;
-    "Identify PR" [shape=box];
-    "Ultracode review" [shape=box];
+    "Identify PR + worktree" [shape=box];
+    "Claude /code-review" [shape=box];
     "Codex review loop" [shape=box];
     "Green?" [shape=diamond];
     "Fixable?" [shape=diamond];
@@ -47,9 +48,10 @@ digraph review_merge_port {
     "Email: merged" [shape=box];
     "Needed in SAAS?" [shape=diamond];
     "Port + codex loop + open SAAS PR" [shape=box];
+    "Clean up worktree" [shape=box];
     "Report" [shape=doublecircle];
 
-    "Identify PR" -> "Ultracode review" -> "Codex review loop" -> "Green?";
+    "Identify PR + worktree" -> "Claude /code-review" -> "Codex review loop" -> "Green?";
     "Green?" -> "CI green?" [label="yes"];
     "Green?" -> "Fixable?" [label="no"];
     "Fixable?" -> "Fix on branch" [label="yes"];
@@ -59,36 +61,43 @@ digraph review_merge_port {
     "CI green?" -> "Fixable?" [label="no"];
     "Merge PR" -> "Email: merged" -> "Needed in SAAS?";
     "Needed in SAAS?" -> "Port + codex loop + open SAAS PR" [label="yes"];
-    "Needed in SAAS?" -> "Report" [label="no"];
-    "Port + codex loop + open SAAS PR" -> "Report";
+    "Needed in SAAS?" -> "Clean up worktree" [label="no"];
+    "Port + codex loop + open SAAS PR" -> "Clean up worktree";
+    "Clean up worktree" -> "Report";
 }
 ```
 
-### 1. Identify the PR and check out its branch
+### 1. Identify the PR and set up a worktree
 
 ```bash
 gh pr view <PR#> --json number,title,headRefName,baseRefName,mergeable,state,url
 ```
 
-Work in a worktree or checkout of the PR branch so you can push fixes:
-`gh pr checkout <PR#>`.
-
-### 2. Claude ultracode review
-
-Run the cloud multi-agent review on the PR:
-
-- Preferred: invoke the `code-review` skill with args `ultra <PR#>` (this is `/code-review ultra <PR#>`).
-- If you are in a session that cannot launch the ultra review itself, ask the user to run
-  `/code-review ultra <PR#>` and tell you when it has posted.
-
-The ultra review posts inline findings to the PR. Collect them:
+Do all review/fix work in a dedicated git worktree under `.claude/worktrees` so the main
+checkout stays clean. Create it from the PR branch:
 
 ```bash
-gh pr view <PR#> --json reviews,comments
-gh api repos/dotnetfactory/fluid-calendar/pulls/<PR#>/comments
+git fetch origin
+git worktree add .claude/worktrees/pr-<PR#> <headRefName>   # use the PR's headRefName
+cd .claude/worktrees/pr-<PR#>
 ```
 
-Treat each finding as a candidate issue to address in step 3/4.
+- Ensure `.claude/worktrees/` is git-ignored (add it to `.gitignore` if it is not) so the
+  worktree never shows up as untracked changes in the PR.
+- The branch in the worktree tracks the PR; fixes pushed from here update the PR.
+- Remember the worktree path - you will remove it in step 10.
+
+### 2. Claude code-review
+
+Run the regular Claude `/code-review` over the PR diff (from inside the worktree, where the
+checked-out branch diffs against `main`):
+
+- Invoke the `code-review` skill at a normal effort (e.g. `/code-review high`). Do **not** use
+  the `ultra` cloud variant.
+- `/code-review` reviews the current diff and reports findings inline in the session.
+
+Treat each finding as a candidate issue to address in step 3/4 (classify blocking vs
+non-blocking the same way as the Codex findings).
 
 ### 3. Codex review loop until green
 
@@ -100,15 +109,15 @@ Run Codex's built-in reviewer against the branch with `/codex:review`. Then loop
 3. If there are blocking findings, go to step 4 (fix), then come back and re-run `/codex:review`.
 4. Repeat until a review reports **no blocking findings** = green.
 
-**Green** = the latest Codex review and the collected ultracode findings have zero unresolved
-blocking issues.
+**Green** = the latest Codex review and the collected Claude `/code-review` findings have zero
+unresolved blocking issues.
 
 **Loop guard:** cap at 5 fix-and-review rounds. If still not green after 5 rounds, treat the
 remaining findings as an unfixable blocker (step 6).
 
 ### 4. Address issues and re-review
 
-For every blocking finding (from ultracode or Codex):
+For every blocking finding (from Claude `/code-review` or Codex):
 
 - Fix it on the PR branch with the smallest correct change. Follow the repo conventions in
   `CLAUDE.md` (singleton `prisma`, `@/lib/date-utils`, `logger` with `LOG_SOURCE`,
@@ -127,6 +136,10 @@ gh pr checks <PR#>            # confirm required checks are green
 gh pr merge <PR#> --squash --delete-branch
 ```
 
+`gh pr merge --delete-branch` cannot delete a local branch that is still checked out in the
+worktree. Run the merge from the **main checkout** (not from inside the worktree), or remove the
+worktree first (step 10), so the branch deletion succeeds cleanly.
+
 If `mergeable` is `false` (conflicts), rebase/merge `main`, re-run the codex loop, then merge.
 
 ### 6. Blocked path - email and STOP
@@ -135,7 +148,10 @@ If a blocking issue cannot be fixed by you - a design decision is required, requ
 conflict, infra/CI is broken outside the diff, or the loop guard (step 3) tripped - **do not
 merge**. Send an email and stop.
 
-- Send via Gmail (use the `gws-gmail` skill or the Gmail tools) **to `emad@elitecoders.co`**.
+- Send via `mgc` (Outlook / Microsoft Graph CLI) **to `emad@elitecoders.co`**. Follow the
+  `mgc` instructions in `~/.claude/CLAUDE.md`, including the **mandatory pre-send identity
+  check** (`~/bin/mgc users get --user-id me --select userPrincipalName` must return
+  `emad@elitecoders.co` before any send - if not, ABORT and tell the user).
 - Subject: `[PR #<N>] blocked - needs your input`
 - Body (plain text, no markdown blockquotes): the PR title + URL, the exact blocking issue(s),
   what you tried, and the specific decision/help you need.
@@ -144,7 +160,9 @@ Then report the blocker to the user and stop. Do not proceed to merge or SAAS po
 
 ### 7. Notify on merge
 
-Immediately after a successful merge, send a Gmail **to `emad@elitecoders.co`**:
+Immediately after a successful merge, send an email via `mgc` (Outlook / Microsoft Graph CLI)
+**to `emad@elitecoders.co`** (run the mandatory pre-send identity check from `~/.claude/CLAUDE.md`
+first):
 
 - Subject: `[PR #<N>] merged`
 - Body: PR title + URL, one-line summary of what shipped, and whether a SAAS port is coming
@@ -189,24 +207,37 @@ git fetch origin main && git checkout -b port/<short-name> origin/main
   `gh pr create --repo dotnetfactory/fluid-calendar-saas --fill`.
 - Include the SAAS PR link in the merge notification email (step 7) or send a short follow-up.
 
-### 10. Report
+### 10. Clean up the worktree and report
 
-Report back to the user: ultracode + codex outcomes, that the PR merged (with link), the SAAS
-decision (port or not, with reasoning), and the SAAS PR link if one was opened.
+Remove the worktree created in step 1 once the work is done (merged, or stopped at a blocker):
+
+```bash
+cd <main checkout>                         # leave the worktree dir first
+git worktree remove .claude/worktrees/pr-<PR#>
+# if it refuses due to leftover state and you are sure: add --force
+git worktree prune
+```
+
+Always clean up - even on the blocked/email path (step 6), the worktree should not be left
+behind. (The SAAS port in step 9 happens in the separate `~/src/fluid-calendar-saas` repo and
+is unaffected by this cleanup.)
+
+Then report back to the user: Claude `/code-review` + Codex outcomes, that the PR merged (with
+link), the SAAS decision (port or not, with reasoning), and the SAAS PR link if one was opened.
 
 ## Quick reference
 
 | Step | Command / action |
 |------|------------------|
 | PR info | `gh pr view <N> --json title,headRefName,mergeable,state,url` |
-| Checkout | `gh pr checkout <N>` |
-| Ultracode review | `code-review` skill, args `ultra <N>` (= `/code-review ultra <N>`) |
-| Read review findings | `gh api repos/dotnetfactory/fluid-calendar/pulls/<N>/comments` |
+| Worktree | `git worktree add .claude/worktrees/pr-<N> <headRefName>` |
+| Claude review | `code-review` skill at normal effort (e.g. `/code-review high`) - NOT `ultra` |
 | Codex review | `/codex:review` (loop until no blocking findings) |
 | Gate checks | `npm run type-check`, `npm run lint` |
 | CI status | `gh pr checks <N>` |
-| Merge | `gh pr merge <N> --squash --delete-branch` |
-| Email | Gmail (`gws-gmail` skill) to `emad@elitecoders.co` |
+| Merge | `gh pr merge <N> --squash --delete-branch` (run from main checkout) |
+| Worktree cleanup | `git worktree remove .claude/worktrees/pr-<N>` |
+| Email | `mgc` (Outlook) to `emad@elitecoders.co` - run the pre-send identity check first |
 | SAAS diff | `gh pr diff <N> --name-only` |
 | SAAS PR | `gh pr create --repo dotnetfactory/fluid-calendar-saas --fill` (do not merge) |
 
@@ -222,6 +253,11 @@ decision (port or not, with reasoning), and the SAAS PR link if one was opened.
 - **Forgetting the SAAS decision.** Always state port / no-port with reasoning, even when the
   answer is no.
 - **Not emailing.** Email on a true blocker (step 6) and on a successful merge (step 7) -
-  both to `emad@elitecoders.co` via Gmail.
+  both to `emad@elitecoders.co` via `mgc` (Outlook), after the pre-send identity check.
 - **Treating open-only code as needing a port.** `*.open.*` and `(open)` route-group changes do
   not go to SAAS.
+- **Leaving the worktree behind.** Always `git worktree remove .claude/worktrees/pr-<N>` when
+  done (step 10), including on the blocked/email path. A stale worktree blocks the
+  `--delete-branch` on merge and clutters the repo.
+- **Running `/code-review ultra`.** This skill uses the regular `/code-review`, not the billed
+  cloud `ultra` variant.
