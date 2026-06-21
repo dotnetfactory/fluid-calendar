@@ -1,4 +1,4 @@
-import { AutoScheduleSettings } from "@/types/settings";
+import { AutoScheduleSettings, TimeFormat } from "@/types/settings";
 
 export function parseWorkDays(workDays: string): number[] {
   try {
@@ -24,7 +24,21 @@ export function stringifySelectedCalendars(calendars: string[]): string {
   return JSON.stringify(calendars);
 }
 
-export function formatTime(hour: number): string {
+/**
+ * Format a whole-hour value (0-23) for the Auto-Schedule time dropdowns,
+ * honoring the user's 12h/24h preference from General settings (issue #129).
+ * Defaults to 24-hour so callers without a preference keep the prior output.
+ */
+export function formatTime(
+  hour: number,
+  timeFormat: TimeFormat = "24h"
+): string {
+  if (timeFormat === "12h") {
+    const period = hour >= 12 ? "PM" : "AM";
+    const h12 = hour % 12 === 0 ? 12 : hour % 12;
+    return `${h12}:00 ${period}`;
+  }
+
   return `${hour.toString().padStart(2, "0")}:00`;
 }
 

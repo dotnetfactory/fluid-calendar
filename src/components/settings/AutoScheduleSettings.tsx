@@ -25,7 +25,7 @@ import { useSettingsStore } from "@/store/settings";
 import { SettingRow, SettingsSection } from "./SettingsSection";
 
 export function AutoScheduleSettings() {
-  const { autoSchedule, updateAutoScheduleSettings } = useSettingsStore();
+  const { autoSchedule, updateAutoScheduleSettings, user } = useSettingsStore();
   const { feeds, loadFromDatabase } = useCalendarStore();
 
   // Load calendar feeds when component mounts
@@ -45,7 +45,7 @@ export function AutoScheduleSettings() {
 
   const timeOptions = Array.from({ length: 24 }, (_, i) => ({
     value: i,
-    label: formatTime(i),
+    label: formatTime(i, user.timeFormat),
   }));
 
   const selectedCalendars = parseSelectedCalendars(
