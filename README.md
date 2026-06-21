@@ -118,12 +118,13 @@ To enable Google Calendar integration:
      - App name: "FluidCalendar" (or your preferred name)
      - User support email
      - Developer contact information
-   - Add scopes:
-     - `./auth/calendar.events`
-     - `./auth/calendar`
-     - `./auth/userinfo.email`
+   - Add scopes (these match what FluidCalendar actually requests):
      - `openid`
-     - `/auth/tasks` _(Required if you plan to sync Google Tasks)_
+     - `email`
+     - `https://www.googleapis.com/auth/calendar`
+     - `https://www.googleapis.com/auth/calendar.events`
+     - `https://www.googleapis.com/auth/userinfo.email`
+     - `https://www.googleapis.com/auth/tasks` _(used for Google Tasks sync)_
    - Add test users if in testing mode
 
 4. Create OAuth 2.0 Credentials:

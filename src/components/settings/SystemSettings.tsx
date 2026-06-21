@@ -119,6 +119,13 @@ export function SystemSettings() {
                       <li>{window.location.origin}/api/auth/callback/google</li>
                       <li>{window.location.origin}/api/calendar/google</li>
                     </ul>
+                    <span className="mt-1 block text-xs">
+                      These use the URL shown in your browser. The server sends
+                      Google back to the host in{" "}
+                      <code>NEXTAUTH_URL</code>, so make sure{" "}
+                      <code>NEXTAUTH_URL</code> matches this address (otherwise
+                      Google returns <code>redirect_uri_mismatch</code>).
+                    </span>
                   </li>
                   <li>Copy the Client ID and Client Secret</li>
                 </ol>

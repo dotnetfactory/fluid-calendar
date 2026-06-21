@@ -39,6 +39,21 @@ describe("Google OAuth setup docs (issue #76)", () => {
       expect(googleSection.toLowerCase()).toMatch(/private ip|\.local/);
       expect(googleSection).toContain("localhost");
     });
+
+    it("lists the OAuth consent scopes the app actually requests (canonical URLs)", () => {
+      // These are the scopes the runtime requests (auth route + NextAuth config),
+      // so the consent-screen instructions match what Google will be asked for.
+      for (const scope of [
+        "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/calendar.events",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/tasks",
+      ]) {
+        expect(googleSection).toContain(scope);
+      }
+      // The malformed shorthand with a leading "./" should no longer be present.
+      expect(googleSection).not.toContain("./auth/calendar");
+    });
   });
 
   describe("In-app System Settings", () => {
@@ -62,6 +77,13 @@ describe("Google OAuth setup docs (issue #76)", () => {
     it("builds the redirect URIs from window.location.origin (no hardcoded host)", () => {
       expect(googleBlock).toContain("window.location.origin");
       expect(googleBlock).not.toContain("http://localhost:3000");
+    });
+
+    it("notes the URIs assume NEXTAUTH_URL matches this origin", () => {
+      // window.location.origin is what the browser sees; the server derives the
+      // real redirect from NEXTAUTH_URL. Behind a proxy/tunnel they can differ,
+      // so the panel must tell admins to keep NEXTAUTH_URL aligned with this URL.
+      expect(googleBlock).toContain("NEXTAUTH_URL");
     });
   });
 
