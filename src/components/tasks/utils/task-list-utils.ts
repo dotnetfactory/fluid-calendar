@@ -132,6 +132,51 @@ export const priorityColors = {
   [Priority.NONE]: "bg-muted text-muted-foreground",
 };
 
+// Semantic rank for the Priority column so the Tasks list sorts by meaning
+// (none < low < medium < high) instead of alphabetically by the enum label.
+export const PRIORITY_SORT_RANK: Record<Priority, number> = {
+  [Priority.NONE]: 0,
+  [Priority.LOW]: 1,
+  [Priority.MEDIUM]: 2,
+  [Priority.HIGH]: 3,
+};
+
+// Semantic rank for the Energy column (low < medium < high).
+export const ENERGY_LEVEL_SORT_RANK: Record<EnergyLevel, number> = {
+  [EnergyLevel.LOW]: 1,
+  [EnergyLevel.MEDIUM]: 2,
+  [EnergyLevel.HIGH]: 3,
+};
+
+// Comparator for sorting tasks by priority rank. `direction` is 1 (asc) or -1
+// (desc), matching how the Tasks list applies its sort direction. Tasks with no
+// priority always sort last, regardless of direction, like the other nullable
+// columns.
+export const compareTaskPriority = (
+  a: Pick<Task, "priority">,
+  b: Pick<Task, "priority">,
+  direction: number
+): number => {
+  if (!a.priority) return 1;
+  if (!b.priority) return -1;
+  return direction * (PRIORITY_SORT_RANK[a.priority] - PRIORITY_SORT_RANK[b.priority]);
+};
+
+// Comparator for sorting tasks by energy-level rank. Same direction and
+// null-last semantics as compareTaskPriority.
+export const compareTaskEnergyLevel = (
+  a: Pick<Task, "energyLevel">,
+  b: Pick<Task, "energyLevel">,
+  direction: number
+): number => {
+  if (!a.energyLevel) return 1;
+  if (!b.energyLevel) return -1;
+  return (
+    direction *
+    (ENERGY_LEVEL_SORT_RANK[a.energyLevel] - ENERGY_LEVEL_SORT_RANK[b.energyLevel])
+  );
+};
+
 // Format date in a contextual way (Today, Tomorrow, etc.)
 export const formatContextualDate = (date: Date) => {
   const now = newDate();

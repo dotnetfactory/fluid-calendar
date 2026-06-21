@@ -1,0 +1,39 @@
+## Context
+
+The task list (`src/components/tasks/TaskList.tsx`) builds `sortedTasks` with a `switch (sortBy)` comparator. The `priority` and `energyLevel` cases compare with `String.localeCompare`, which orders the enum string values alphabetically (`high`, `low`, `medium`) rather than by their real-world rank. The issue (#131) asks for rank-based ordering and suggests mapping categories to numbers.
+
+The enums (`src/types/task.ts`):
+- `Priority`: `high | medium | low | none`
+- `EnergyLevel`: `high | medium | low`
+
+## Goals / Non-Goals
+
+**Goals:**
+- Priority and Energy columns sort by semantic rank, ascending = least-intense first (`none/low` ... `high`).
+- Direction toggling keeps working.
+- Empty values (`null`/`undefined` priority or energyLevel) keep sorting to the bottom regardless of direction, matching the current behavior of the other nullable columns.
+
+**Non-Goals:**
+- Changing the `preferredTime` (TimePreference) column ordering. It is also alphabetical today but the issue does not mention it; out of scope to keep the diff minimal. (Noted as a possible follow-up.)
+- Persisting any new setting; this is display-only.
+- Changing BoardView grouping/ordering.
+
+## Decisions
+
+- **Rank map per enum, ascending from least to greatest.** Define `PRIORITY_SORT_RANK` (`none=0, low=1, medium=2, high=3`) and `ENERGY_LEVEL_SORT_RANK` (`low=1, medium=2, high=3`) and compare `rank(a) - rank(b)` times `direction`. This is exactly the "map categories to numbers" approach the issue requests and mirrors the existing numeric comparison used for `duration`.
+  - *Alternative considered:* inline object literals in the comparator. Rejected: a named, exported map is reusable and testable in isolation.
+- **Keep the existing null-handling pattern.** Retain the `if (!a.priority) return 1; if (!b.priority) return -1;` guards so empty values stay last, identical to the other nullable columns. This means `Priority.NONE` (a real value `"none"`) is ranked `0` and sorts among real values, while a missing priority sorts last - consistent with how the column renders.
+- **Ascending = low priority first.** Matches the column's sibling behavior (e.g. `title` A->Z ascending) and the issue's example mapping (`low=1, medium=2, ...`). Users can toggle to descending for high-first.
+
+## Risks / Trade-offs
+
+- [Users may expect descending = high-first by default] -> Direction defaults are unchanged; this only fixes the *ordering within a direction*. No default flip, so no surprise for existing users; toggling still available.
+- [Adding a rank map could drift from the enum if a new level is added] -> Map is colocated with the enums' usage and covered by a unit test that asserts ordering, which would catch a missing entry.
+
+## Migration Plan
+
+Pure front-end display change; no migration, no rollback steps beyond reverting the commit.
+
+## Open Questions
+
+None.

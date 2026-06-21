@@ -97,6 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed the Tasks list so sorting by the Priority or Energy column orders rows by meaning (priority none < low < medium < high; energy low < medium < high) instead of alphabetically by label (#131)
 - Fixed the "Hide upcoming tasks" filter on the Tasks list so it hides exactly the tasks marked "Upcoming"; it now uses the same day-granularity rule as the "Upcoming" badge instead of an instant comparison that also hid tasks starting later today (#109)
 - Auto-Schedule settings time dropdowns (Working Hours and energy-level ranges) now honor the 12h/24h preference from General settings instead of always showing 24-hour times (#129)
 - Improved all-day event UI by removing time selection when "All day" is checked, showing only date picker instead
