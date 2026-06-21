@@ -17,13 +17,17 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 
-import { format, isFutureDate, newDate } from "@/lib/date-utils";
+import { format, newDate } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 import { Task, TaskStatus } from "@/types/task";
 
 import { useDraggableTask } from "../../dnd/useDragAndDrop";
-import { formatEnumValue, statusColors } from "../utils/task-list-utils";
+import {
+  formatEnumValue,
+  isUpcomingTask,
+  statusColors,
+} from "../utils/task-list-utils";
 import { EditableCell } from "./EditableCell";
 
 interface TaskRowProps {
@@ -42,7 +46,7 @@ export function TaskRow({
   onInlineEdit,
 }: TaskRowProps) {
   const { draggableProps, isDragging } = useDraggableTask(task);
-  const isFutureTask = task.startDate && isFutureDate(task.startDate);
+  const isFutureTask = isUpcomingTask(task);
 
   return (
     <tr

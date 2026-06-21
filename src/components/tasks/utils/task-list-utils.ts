@@ -1,5 +1,6 @@
 import {
   format,
+  isFutureDate,
   isThisWeek,
   isThisYear,
   isToday,
@@ -7,7 +8,93 @@ import {
   newDate,
 } from "@/lib/date-utils";
 
-import { Priority, TaskStatus, TimePreference } from "@/types/task";
+import {
+  EnergyLevel,
+  Priority,
+  Task,
+  TaskStatus,
+  TimePreference,
+} from "@/types/task";
+
+/**
+ * A task is "upcoming" when it has a start date that falls on a later calendar
+ * day than today. This is the single source of truth shared by the Tasks list
+ * "Hide upcoming tasks" filter and the "Upcoming" badge, so the two can never
+ * disagree about which tasks are upcoming. Uses day-granularity (`isFutureDate`)
+ * rather than an instant comparison, so a task starting later today is not
+ * treated as upcoming.
+ */
+export const isUpcomingTask = (task: Pick<Task, "startDate">): boolean => {
+  return Boolean(task.startDate) && isFutureDate(task.startDate ?? null);
+};
+
+// Filter settings consumed by the Tasks list view (subset of
+// useTaskListViewSettings relevant to per-task filtering).
+export interface TaskListFilterSettings {
+  status?: TaskStatus[];
+  energyLevel?: EnergyLevel[];
+  timePreference?: TimePreference[];
+  tagIds?: string[];
+  search?: string;
+  hideUpcomingTasks?: boolean;
+}
+
+/**
+ * Decide whether a single task passes the current Tasks list filters. Pure and
+ * unit-testable; the list component maps this over the (project-filtered) tasks.
+ */
+export const taskMatchesListFilters = (
+  task: Task,
+  filters: TaskListFilterSettings
+): boolean => {
+  const { status, energyLevel, timePreference, tagIds, search } = filters;
+
+  // Status filter
+  if (status?.length && !status.includes(task.status)) {
+    return false;
+  }
+
+  // Hide upcoming (future-day) tasks
+  if (filters.hideUpcomingTasks && isUpcomingTask(task)) {
+    return false;
+  }
+
+  // Energy level filter
+  if (
+    energyLevel?.length &&
+    (!task.energyLevel || !energyLevel.includes(task.energyLevel))
+  ) {
+    return false;
+  }
+
+  // Time preference filter
+  if (
+    timePreference?.length &&
+    (!task.preferredTime || !timePreference.includes(task.preferredTime))
+  ) {
+    return false;
+  }
+
+  // Tags filter
+  if (tagIds?.length) {
+    const taskTagIds = task.tags.map((t) => t.id);
+    if (!tagIds.some((id) => taskTagIds.includes(id))) {
+      return false;
+    }
+  }
+
+  // Search
+  if (search) {
+    const searchLower = search.toLowerCase();
+    return (
+      task.title.toLowerCase().includes(searchLower) ||
+      (task.description?.toLowerCase().includes(searchLower) ?? false) ||
+      task.tags.some((tag) => tag.name.toLowerCase().includes(searchLower))
+    );
+  }
+
+  return true;
+};
 
 // Helper function to format enum values for display
 export const formatEnumValue = (value: string) => {

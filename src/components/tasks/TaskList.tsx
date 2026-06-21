@@ -21,7 +21,10 @@ import { useTaskListViewSettings } from "@/store/taskListViewSettings";
 import { EnergyLevel, Task, TaskStatus, TimePreference } from "@/types/task";
 
 import { SortableHeader, StatusFilter, TaskRow } from "./components";
-import { formatEnumValue } from "./utils/task-list-utils";
+import {
+  formatEnumValue,
+  taskMatchesListFilters,
+} from "./utils/task-list-utils";
 
 interface TaskListProps {
   tasks: Task[];
@@ -70,61 +73,19 @@ export function TaskList({
       : tasks.filter((task) => task.projectId === activeProject.id)
     : tasks;
 
-  // Then apply other filters
+  // Then apply other filters (single source of truth in task-list-utils so the
+  // "Hide upcoming tasks" filter stays consistent with the "Upcoming" badge).
   const filteredTasks = useMemo(() => {
-    const now = newDate();
-
-    return projectFilteredTasks.filter((task) => {
-      // Status filter
-      if (status?.length && !status.includes(task.status)) {
-        return false;
-      }
-
-      // Hide future tasks
-      if (
-        hideUpcomingTasks &&
-        task.startDate &&
-        newDate(task.startDate) > now
-      ) {
-        return false;
-      }
-
-      // Energy level filter
-      if (
-        energyLevel?.length &&
-        (!task.energyLevel || !energyLevel.includes(task.energyLevel))
-      ) {
-        return false;
-      }
-
-      // Time preference filter
-      if (
-        timePreference?.length &&
-        (!task.preferredTime || !timePreference.includes(task.preferredTime))
-      ) {
-        return false;
-      }
-
-      // Tags filter
-      if (tagIds?.length) {
-        const taskTagIds = task.tags.map((t) => t.id);
-        if (!tagIds.some((id) => taskTagIds.includes(id))) {
-          return false;
-        }
-      }
-
-      // Search
-      if (search) {
-        const searchLower = search.toLowerCase();
-        return (
-          task.title.toLowerCase().includes(searchLower) ||
-          task.description?.toLowerCase().includes(searchLower) ||
-          task.tags.some((tag) => tag.name.toLowerCase().includes(searchLower))
-        );
-      }
-
-      return true;
-    });
+    return projectFilteredTasks.filter((task) =>
+      taskMatchesListFilters(task, {
+        status,
+        energyLevel,
+        timePreference,
+        tagIds,
+        search,
+        hideUpcomingTasks,
+      })
+    );
   }, [
     projectFilteredTasks,
     status,
