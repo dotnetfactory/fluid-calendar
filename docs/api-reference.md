@@ -49,6 +49,12 @@ Keys look like `fcal_<prefix>_<secret>`. Only a SHA-256 hash is stored server
 side. Revoke a key any time from the same settings page; disabling **Enable API
 access** rejects all of your keys at once without deleting them.
 
+> **Send keys over HTTPS only.** An API key is a bearer credential — anyone with
+> it can act as you. Always call the API over `https://`. FluidCalendar is meant
+> to run behind a TLS-terminating reverse proxy (the hosted instance uses one
+> that redirects HTTP→HTTPS); if you self-host, put it behind HTTPS and never
+> send a key over plaintext HTTP.
+
 > Key-management endpoints (creating/revoking keys, the enable toggle) are
 > intentionally **not** reachable with an API key — they require a logged-in
 > session, so a leaked key cannot mint more keys.
