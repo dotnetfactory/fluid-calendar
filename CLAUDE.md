@@ -30,7 +30,7 @@ npm run start:worker      # Run the compiled background job worker
 ```
 
 - **Install with `npm install --legacy-peer-deps`** (React 19 peer-dep conflicts otherwise).
-- Node version is pinned in `.nvmrc` (20.x).
+- Node version is pinned in `.nvmrc` (22.x).
 - Husky pre-commit runs `lint-staged`: eslint (zero warnings) + prettier + `type-check` on staged files.
 
 ## Tech Stack

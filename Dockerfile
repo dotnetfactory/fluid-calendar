@@ -1,5 +1,5 @@
 # Base stage for both development and production
-FROM node:20-alpine AS base
+FROM node:22-alpine3.19 AS base
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
