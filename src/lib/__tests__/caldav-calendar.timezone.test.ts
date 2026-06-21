@@ -421,4 +421,26 @@ describe("CalDAV single-instance EXDATE value-type matching (issues #135/#100)",
     // exactly one VALUE parameter (no invalid VALUE=date;VALUE=DATE, issue #100)
     expect(line.match(/VALUE=/g)?.length).toBe(1);
   });
+
+  it("writes a TZID EXDATE matching a TZID master's DTSTART value form", async () => {
+    // Master uses DTSTART;TZID=...; the EXDATE must carry the same TZID and the
+    // instance's wall-clock in that zone, not a UTC value, so servers that key
+    // exceptions by DTSTART value semantics pair it with the right instance.
+    const getBody = setup("DTSTART;TZID=America/New_York:20250619T053000");
+    const service = makeService();
+
+    await service.deleteEvent(
+      makeInstance(), // instanceStart = 2025-06-19T09:30:00Z = 05:30 EDT
+      "/calendars/user/cal",
+      "instance-ext",
+      "single",
+      "user-1"
+    );
+
+    const line = exdateLine(getBody());
+    expect(line).toBe("EXDATE;TZID=America/New_York:20250619T053000");
+    // Not UTC (no trailing Z designator) and not a DATE value.
+    expect(line.endsWith("Z")).toBe(false);
+    expect(line).not.toMatch(/VALUE=DATE/);
+  });
 });

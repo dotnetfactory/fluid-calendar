@@ -47,6 +47,7 @@ function buildInstanceReference(
     | ICAL.Time
     | undefined;
   const masterIsAllDay = masterStartValue?.isDate === true;
+  const masterTzid = masterDtstart?.getParameter("tzid") as string | undefined;
 
   const property = new ICAL.Property(name);
 
@@ -59,8 +60,15 @@ function buildInstanceReference(
     // Match the master's floating DATE value (no time, no Z).
     const dateString = instanceStart.toISOString().split("T")[0];
     property.setValue(ICAL.Time.fromDateString(dateString));
+  } else if (masterTzid) {
+    // Master DTSTART is TZID-qualified: emit the exception with the SAME TZID
+    // and the instance's wall-clock in that zone, so servers that key
+    // exceptions by the DTSTART value form pair it with the right instance
+    // (GitHub issue #135).
+    property.setValue(zonedTime(instanceStart, masterTzid));
+    property.setParameter("tzid", masterTzid);
   } else {
-    // Match the master's (now UTC) DATE-TIME value.
+    // Timed master without a TZID (UTC `Z` form): match with a UTC date-time.
     property.setValue(ICAL.Time.fromJSDate(instanceStart, true));
   }
 

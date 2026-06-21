@@ -61,6 +61,33 @@ describe("buildVTimezoneComponent", () => {
     expect(ics).toContain("TZOFFSETTO:+0800");
   });
 
+  it("encodes last-weekday DST rules with a negative BYDAY (Europe/London)", () => {
+    // EU rule is the *last* Sunday of March/October. A positive nth (e.g. 5SU)
+    // is wrong in years with only 4 Sundays, so the rule must use -1SU.
+    const vtz = buildVTimezoneComponent("Europe/London");
+    expect(vtz).toBeTruthy();
+    const ics = vtz!.toString();
+    expect(ics).toMatch(/BYDAY=-1SU/);
+    expect(ics).not.toMatch(/BYDAY=5SU/);
+  });
+
+  it("resolves correctly across a year where the transition is not the 5th Sunday (London 2027)", () => {
+    // 2027 DST starts on the *4th* Sunday of March (Mar 28). A positive 5SU rule
+    // would have no 2027 occurrence and leave the date on the wrong offset.
+    // Just before the switch (Mar 28 00:30 GMT) is +0000 -> 00:30Z.
+    expect(instantFromZoned("Europe/London", "20270328T003000")).toEqual(
+      new Date("2027-03-28T00:30:00.000Z")
+    );
+    // A summer date is BST (+0100): 12:00 local is 11:00Z.
+    expect(instantFromZoned("Europe/London", "20270715T120000")).toEqual(
+      new Date("2027-07-15T11:00:00.000Z")
+    );
+    // A winter date is GMT (+0000): 12:00 local is 12:00Z.
+    expect(instantFromZoned("Europe/London", "20271215T120000")).toEqual(
+      new Date("2027-12-15T12:00:00.000Z")
+    );
+  });
+
   it("resolves wall-clock to the correct instant across a DST boundary (NY)", () => {
     // EST (winter): 09:00 local is 14:00Z.
     expect(instantFromZoned("America/New_York", "20250115T090000")).toEqual(

@@ -109,10 +109,25 @@ function findTransitions(timeZone: string, year: number): Transition[] {
   return transitions;
 }
 
-/** nth weekday-of-month (e.g. {nth:2, dow:"SU"}) for a UTC wall-clock date. */
+/**
+ * The `BYDAY` ordinal + weekday for a UTC wall-clock date (e.g. {nth:2,
+ * dow:"SU"} for the 2nd Sunday). When the date is the *last* occurrence of that
+ * weekday in its month, returns a negative ordinal (`-1`) so the rule means
+ * "last Sunday" - required for zones like Europe/London whose DST switch is the
+ * last Sunday (which is the 5th Sunday some years and the 4th in others, so a
+ * fixed positive ordinal would be wrong; issue #135 / Codex review).
+ */
 function nthWeekdayOfMonth(date: Date): { nth: number; dow: string } {
-  const nth = Math.floor((date.getUTCDate() - 1) / 7) + 1;
-  return { nth, dow: WEEKDAYS[date.getUTCDay()] };
+  const day = date.getUTCDate();
+  const dow = WEEKDAYS[date.getUTCDay()];
+  // Is there another same-weekday date later in the same month? If not, it's
+  // the last occurrence -> use -1.
+  const daysInMonth = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)
+  ).getUTCDate();
+  const isLast = day + 7 > daysInMonth;
+  const nth = isLast ? -1 : Math.floor((day - 1) / 7) + 1;
+  return { nth, dow };
 }
 
 function offsetProperty(name: string, minutes: number): ICAL.Property {
