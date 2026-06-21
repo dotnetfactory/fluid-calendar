@@ -14,6 +14,11 @@ The application SHALL display its version number on every page, including the au
 - **WHEN** a user views the public open-source homepage (`/`)
 - **THEN** the application version is visible in the page footer
 
+#### Scenario: Version is shown on the failure pages
+
+- **WHEN** a user reaches the root 404 (not-found) page or the root error page
+- **THEN** the application version is visible on that page
+
 #### Scenario: Displayed version tracks package.json
 
 - **WHEN** the `package.json` version is `X.Y.Z`

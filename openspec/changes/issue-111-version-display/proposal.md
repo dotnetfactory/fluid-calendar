@@ -25,5 +25,6 @@ No data model, API, or scheduling behavior changes. The feature is additive and 
 - New `src/components/navigation/VersionBadge.tsx` - thin client component rendering the version as a GitHub link.
 - `src/app/(common)/layout.tsx` - render a small footer containing `<VersionBadge />` so the version shows on every authenticated page.
 - `src/app/(open)/page.open.tsx` - add the version (via the same helpers) into the public homepage's existing footer so the splash page is also covered.
+- `src/app/not-found.tsx` and `src/app/error.tsx` - add the version link directly (these render outside all layouts) so 404/error screens also show it.
 - New unit test under `src/__tests__/` covering the version-resolution and URL helpers.
 - `CHANGELOG.md` - note the user-facing addition under `[unreleased]`.

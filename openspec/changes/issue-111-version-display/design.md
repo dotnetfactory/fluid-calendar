@@ -45,6 +45,8 @@ The badge is an `<a target="_blank" rel="noopener noreferrer">` (a plain anchor,
 
 The one user-visible route outside `(common)` is the public open-source homepage `/` (`src/app/(open)/page.open.tsx`), whose `(open)` layout just returns `children`. That page already has its own marketing footer (gray palette, with a "Contribute on GitHub" link). Rather than force the muted-token `VersionBadge` into that differently-styled footer, the version is added inline into the existing homepage footer using the same `getAppVersion()` / `getVersionGithubUrl()` helpers, styled to match the page's existing footer link. This covers "every page" including the splash page while keeping each footer visually consistent with its surroundings.
 
+The root failure pages `src/app/not-found.tsx` (404) and `src/app/error.tsx` (error boundary) render their own `<html>/<body>` and bypass every layout, so they need the version added directly. Each gets a small muted version link (same helpers) below its action buttons. These are special Next.js files, but they are user-visible screens, so covering them makes the "every page" guarantee literal rather than aspirational.
+
 ## Risks / Trade-offs
 
 - Risk: `next.config.js` is also evaluated for the worker/standalone build. `require("./package.json").version` is a plain synchronous read with no side effects, so it is safe in every config evaluation.
