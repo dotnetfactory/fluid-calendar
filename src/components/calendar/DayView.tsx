@@ -13,6 +13,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import { TaskModal } from "@/components/tasks/TaskModal";
 
 import { getEventEditability } from "@/lib/calendar-drag";
+import { getSelectionRange } from "@/lib/calendar-selection";
 import { useEventModalStore } from "@/lib/commands/groups/calendar";
 import { newDate } from "@/lib/date-utils";
 
@@ -178,13 +179,12 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
   };
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
-    const start = selectInfo.start;
-    const end = selectInfo.allDay ? start : selectInfo.end;
+    const { start, end, allDay } = getSelectionRange(selectInfo);
 
     setSelectedDate(start);
     setSelectedEndDate(end);
     setSelectedEvent({
-      allDay: selectInfo.allDay,
+      allDay,
     });
     setIsEventModalOpen(true);
   };
