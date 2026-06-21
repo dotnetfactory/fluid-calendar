@@ -34,7 +34,11 @@ export async function POST(
       // No / empty body is fine - we will default the name.
     }
 
-    // Load the source project (scoped to the owner) with its tasks and tags.
+    // Load the source project (scoped to the owner) with its incomplete tasks
+    // and their tags. The task relation is filtered by `userId` as well as the
+    // project owner: the schema does not guarantee that a task's owner matches
+    // its project's owner, so this prevents another user's task that is somehow
+    // attached to this project from being copied into the requester's account.
     const source = await prisma.project.findUnique({
       where: {
         id,
@@ -42,6 +46,10 @@ export async function POST(
       },
       include: {
         tasks: {
+          where: {
+            userId,
+            status: { not: TaskStatus.COMPLETED },
+          },
           include: {
             tags: { select: { id: true } },
           },
@@ -58,10 +66,8 @@ export async function POST(
         ? requestedName
         : `Copy of ${source.name}`;
 
-    // Only incomplete tasks are copied.
-    const tasksToCopy = source.tasks.filter(
-      (task) => task.status !== TaskStatus.COMPLETED
-    );
+    // The query already restricts to the owner's incomplete tasks.
+    const tasksToCopy = source.tasks;
 
     // Create the new project and all duplicated tasks atomically.
     const newProject = await prisma.$transaction(async (tx) => {

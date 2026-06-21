@@ -8,6 +8,8 @@ import {
   UpdateProject,
 } from "@/types/project";
 
+import { useTaskStore } from "./task";
+
 interface ProjectState {
   projects: Project[];
   activeProject: Project | null;
@@ -78,6 +80,11 @@ export const useProjectStore = create<ProjectState>()(
           if (!response.ok) throw new Error("Failed to duplicate project");
           const newProject = await response.json();
           set((state) => ({ projects: [newProject, ...state.projects] }));
+          // The endpoint returns the project + task count, not the cloned tasks
+          // themselves. Refresh the task store so the duplicated incomplete
+          // tasks (and the sidebar/task-view counts derived from them) appear
+          // immediately without requiring a manual reload.
+          await useTaskStore.getState().fetchTasks();
           return newProject;
         } catch (error) {
           set({ error: error as Error });

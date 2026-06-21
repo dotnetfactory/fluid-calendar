@@ -28,4 +28,5 @@
 ## 6. Review and finalize
 
 - [ ] 6.1 Codex `adversarial-review` returns `approve`
+  - Round 1 (`needs-attention`): (HIGH) filter the copied task relation by `userId` (not just the project owner) so a cross-owner task attached to the project cannot be cloned into the requester's account; (MEDIUM) refresh `useTaskStore` after duplication so the cloned tasks and derived counts appear immediately without a reload. Both fixed + covered by `src/store/__tests__/project-duplicate.test.ts`.
 - [ ] 6.2 Archive the OpenSpec change
