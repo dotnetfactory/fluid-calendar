@@ -1,6 +1,6 @@
 ## MODIFIED Requirements
 
-### Requirement: Timed events serialize with an explicit, unambiguous timezone
+### Requirement: Timed events serialize as DATE-TIME without a VALUE parameter
 
 A timed (non-all-day) event's `DTSTART` and `DTEND` SHALL serialize with an
 explicit timezone and SHALL NOT emit a floating local time (no `Z` and no
