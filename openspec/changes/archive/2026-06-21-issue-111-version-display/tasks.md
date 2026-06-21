@@ -4,8 +4,8 @@
 
 ## 2. Pure, unit-testable version helpers (TDD)
 
-- [x] 2.1 Add `src/lib/version.ts` with `getAppVersion()` (reads `NEXT_PUBLIC_APP_VERSION`, falls back when empty) and `getVersionGithubUrl(version?)` (release-tag URL for a real version, repo root otherwise)
-- [x] 2.2 Add `src/__tests__/version.test.ts` covering: env set -> returns it; env empty/unset -> fallback; URL for a real version -> `.../releases/tag/v<version>`; URL for fallback/unknown -> repo root
+- [x] 2.1 Add `src/lib/version.ts` with `getAppVersion()` (reads `NEXT_PUBLIC_APP_VERSION`, falls back when empty) and `getVersionGithubUrl()` (always the repo root, so the link never 404s - a release-tag link was tried first but rejected per Codex review because `0.1.0` has no published tag)
+- [x] 2.2 Add `src/__tests__/version.test.ts` covering: env set -> returns it; env empty/unset/whitespace -> fallback; trimming; URL always the repo root regardless of version
 - [x] 2.3 Run `npm run test:unit` and confirm the new tests fail before the helper exists / behaves correctly (red) - confirmed module-not-found red, then green
 
 ## 3. VersionBadge component + footer (green)
@@ -24,5 +24,5 @@
 
 ## 5. Review and finalize
 
-- [ ] 5.1 Codex `adversarial-review` returns `approve`
-- [ ] 5.2 Archive the OpenSpec change
+- [x] 5.1 Codex `adversarial-review` returns `approve` (verdict: approve, 0 findings; the only note was the known jest read-only sandbox cache-write phantom, confirmed green in the writable env)
+- [x] 5.2 Archive the OpenSpec change
