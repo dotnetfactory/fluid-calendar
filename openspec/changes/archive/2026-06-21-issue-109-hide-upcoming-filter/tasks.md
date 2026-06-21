@@ -23,5 +23,5 @@
 
 ## 5. Review and finalize
 
-- [ ] 5.1 Codex `adversarial-review` returns `approve`
-- [ ] 5.2 Archive the OpenSpec change
+- [x] 5.1 Codex `adversarial-review` returns `approve` (verdict: approve, 0 findings)
+- [x] 5.2 Archive the OpenSpec change
