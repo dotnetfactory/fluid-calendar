@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 
+import { getAppVersion, getVersionGithubUrl } from "@/lib/version";
+
 export default function OpenSourceHomePage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -238,6 +240,16 @@ export default function OpenSourceHomePage() {
                 rel="noopener noreferrer"
               >
                 GitHub
+              </a>
+              {" · "}
+              <a
+                href={getVersionGithubUrl()}
+                className="text-blue-600 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View this version on GitHub"
+              >
+                v{getAppVersion()}
               </a>
             </div>
           </div>

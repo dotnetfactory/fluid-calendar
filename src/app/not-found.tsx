@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { inter } from "@/lib/fonts";
+import { getAppVersion, getVersionGithubUrl } from "@/lib/version";
 
 import "../app/globals.css";
 
@@ -44,6 +45,15 @@ export default function NotFound() {
           >
             Return Home
           </Link>
+          <a
+            href={getVersionGithubUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View this version on GitHub"
+            className="mt-8 text-xs text-gray-500 transition-colors hover:text-gray-700 hover:underline"
+          >
+            v{getAppVersion()}
+          </a>
         </div>
       </body>
     </html>
