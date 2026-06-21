@@ -85,6 +85,9 @@ async function updateEvent(
   }
 
   const updates = await request.json();
+  if (!updates || typeof updates !== "object" || Array.isArray(updates)) {
+    throw new ApiHttpError("INVALID_ARGUMENT", "Body must be a JSON object");
+  }
 
   // Validate if start/end are being updated
   if (updates.start || updates.end) {
@@ -129,10 +132,17 @@ async function updateEvent(
     );
   }
 
-  // Transform date strings to Date objects
-  const data: Prisma.CalendarEventUpdateInput = { ...updates };
-  if (data.start) data.start = new Date(String(data.start));
-  if (data.end) data.end = new Date(String(data.end));
+  // Explicit allow-list — never let the caller move the event to another feed
+  // (feedId) or touch sync/recurrence-internal columns (masterEventId, etc.).
+  const data: Prisma.CalendarEventUpdateInput = {};
+  if ("title" in updates) data.title = updates.title;
+  if ("description" in updates) data.description = updates.description;
+  if ("location" in updates) data.location = updates.location;
+  if ("allDay" in updates) data.allDay = updates.allDay;
+  if ("isRecurring" in updates) data.isRecurring = updates.isRecurring;
+  if ("recurrenceRule" in updates) data.recurrenceRule = updates.recurrenceRule;
+  if ("start" in updates) data.start = new Date(String(updates.start));
+  if ("end" in updates) data.end = new Date(String(updates.end));
 
   const updated = await prisma.calendarEvent.update({
     where: { id: eventId },

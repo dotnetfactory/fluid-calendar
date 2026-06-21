@@ -164,6 +164,29 @@ describe("POST /api/v1/tasks", () => {
     expect(Array.isArray(body)).toBe(true);
     expect(body).toHaveLength(2);
   });
+
+  it("ignores injected protected fields (no mass-assignment)", async () => {
+    const { POST } = await import("../route");
+    const create = jest.fn().mockResolvedValueOnce({ id: "t1" });
+    (prisma.task.create as jest.Mock) = create;
+
+    // Attacker tries to write another user's id + server-controlled columns.
+    const taskData = {
+      title: "Evil",
+      userId: "victim-user-id",
+      scheduledStart: "2030-01-01T00:00:00Z",
+      blockEventId: "x",
+      status: "completed",
+    };
+    const res = await POST(createRequest("POST", undefined, taskData));
+
+    expect(res.status).toBe(201);
+    const data = create.mock.calls[0][0].data;
+    expect(data.userId).toBe("test-user-id"); // authenticated user, not injected
+    expect(data.scheduledStart).toBeUndefined();
+    expect(data.blockEventId).toBeUndefined();
+    expect(data.status).toBe("completed"); // status IS allow-listed
+  });
 });
 
 describe("GET /api/v1/tasks", () => {

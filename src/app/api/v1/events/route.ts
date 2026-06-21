@@ -218,6 +218,23 @@ async function listEvents({ userId, request }: V1Context) {
     }
   }
 
+  // Bound every query to a fixed window so no request can scan full history:
+  // up to 2 years ahead and 1 week back (a generous, timezone-offset-safe
+  // buffer). Applied even when from/to are omitted; a wider request is clamped.
+  const nowMs = Date.now();
+  const minStart = new Date(nowMs - 7 * 24 * 60 * 60 * 1000);
+  const maxStart = new Date(nowMs + 2 * 365 * 24 * 60 * 60 * 1000);
+
+  const rangeStart = fromDate && fromDate > minStart ? fromDate : minStart;
+  let rangeEnd: Date;
+  if (toDate) {
+    rangeEnd = new Date(toDate);
+    rangeEnd.setUTCHours(23, 59, 59, 999); // inclusive end-of-day
+    if (rangeEnd > maxStart) rangeEnd = maxStart;
+  } else {
+    rangeEnd = maxStart;
+  }
+
   // Decode cursor: format is "{start.toISOString()}|{id}"
   let cursorStart: Date | null = null;
   let cursorId: string | null = null;
@@ -240,16 +257,7 @@ async function listEvents({ userId, request }: V1Context) {
     },
   };
 
-  if (fromDate || toDate) {
-    where.start = {};
-    if (fromDate) where.start.gte = fromDate;
-    if (toDate) {
-      // Inclusive end: set to end of day
-      const eod = new Date(toDate);
-      eod.setUTCHours(23, 59, 59, 999);
-      where.start.lte = eod;
-    }
-  }
+  where.start = { gte: rangeStart, lte: rangeEnd };
 
   // For cursor-based pagination: fetch limit+1 to determine has_more
   // Apply cursor filtering in the WHERE clause

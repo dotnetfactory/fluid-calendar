@@ -359,13 +359,11 @@ describe("GET /api/v1/events — list events", () => {
 
     await getHandler(request);
 
-    expect(mockEvent.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          feed: { userId: "u1" },
-        },
-      })
-    );
+    // Scoped to the user's feeds, and always bounded to the query window.
+    const where = mockEvent.findMany.mock.calls[0][0].where;
+    expect(where.feed).toEqual({ userId: "u1" });
+    expect(where.start.gte).toBeInstanceOf(Date);
+    expect(where.start.lte).toBeInstanceOf(Date);
   });
 
   it("rejects invalid date formats", async () => {
@@ -469,6 +467,27 @@ describe("PATCH /api/v1/events/[id]", () => {
       data: { title: "New Title" },
       include: { feed: true },
     });
+  });
+
+  it("ignores injected feedId (cannot move an event to another feed)", async () => {
+    mockEvent.findUnique.mockResolvedValue({
+      id: "evt1",
+      feedId: "feed1",
+      start: new Date("2026-06-22T10:00:00Z"),
+      end: new Date("2026-06-22T11:00:00Z"),
+      feed: { userId: "u1" },
+    });
+    mockEvent.update.mockResolvedValue({ id: "evt1", title: "x" });
+
+    await PATCH(
+      req({ title: "x", feedId: "victim-feed", isMaster: true }),
+      { params: Promise.resolve({ id: "evt1" }) }
+    );
+
+    const data = mockEvent.update.mock.calls[0][0].data;
+    expect(data.feedId).toBeUndefined();
+    expect(data.isMaster).toBeUndefined();
+    expect(data.title).toBe("x");
   });
 
   it("returns 404 for an event not owned by the user", async () => {

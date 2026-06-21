@@ -79,19 +79,23 @@ export async function POST(request: NextRequest) {
     // Create all tasks
     const createdTasks = await Promise.all(
       tasksInput.map(async (taskInput) => {
+        // Explicit allow-list of caller-settable fields. Anything else in the
+        // body (userId, scheduledStart, blockEventId, syncStatus, …) is ignored
+        // to prevent mass-assignment / cross-tenant writes via the public API.
         const {
           title,
           description,
+          status,
           duration,
           priority,
           energyLevel,
           preferredTime,
           dueDate: dueDateInput,
+          startDate,
           projectId,
           tagIds,
           recurrenceRule,
           autoScheduled,
-          ...rest
         } = taskInput;
 
         // Map Motion-style autoScheduled to internal fields
@@ -129,11 +133,13 @@ export async function POST(request: NextRequest) {
           data: {
             title,
             description: description || null,
+            status: status || "todo",
             duration: duration || 30,
             priority: priority || null,
             energyLevel: energyLevel || null,
             preferredTime: preferredTime || null,
             dueDate: mappedDueDate ? new Date(mappedDueDate) : null,
+            startDate: startDate ? new Date(startDate) : null,
             projectId: projectId || null,
             isAutoScheduled,
             isRecurring: !!recurrenceRule,
@@ -144,7 +150,6 @@ export async function POST(request: NextRequest) {
                 connect: tagIds.map((id: string) => ({ id })),
               },
             }),
-            ...rest,
           },
           include: {
             tags: true,

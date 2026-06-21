@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
 
 import { v1Read, v1Write, ApiHttpError } from "@/lib/api/v1";
@@ -65,18 +66,29 @@ export async function PATCH(
     }
 
     const json = await request.json();
-    const {
-      tagIds,
-      projectId,
-      recurrenceRule,
-      ...updates
-    } = json;
+    if (!json || typeof json !== "object" || Array.isArray(json)) {
+      throw new ApiHttpError("INVALID_ARGUMENT", "Body must be a JSON object");
+    }
 
-    // Never allow these to be set via PATCH
-    delete updates.userId;
-    delete updates.id;
-    delete updates.createdAt;
-    delete updates.updatedAt;
+    // Explicit allow-list of caller-updatable fields. Server-controlled columns
+    // (userId, id, scheduledStart, blockEventId, syncStatus, …) are never
+    // accepted, preventing mass-assignment via the public API.
+    const updates: Prisma.TaskUncheckedUpdateInput = {};
+    if ("title" in json) updates.title = json.title;
+    if ("description" in json) updates.description = json.description;
+    if ("status" in json) updates.status = json.status;
+    if ("duration" in json) updates.duration = json.duration;
+    if ("priority" in json) updates.priority = json.priority;
+    if ("energyLevel" in json) updates.energyLevel = json.energyLevel;
+    if ("preferredTime" in json) updates.preferredTime = json.preferredTime;
+    if ("dueDate" in json) {
+      updates.dueDate = json.dueDate ? new Date(json.dueDate) : null;
+    }
+    if ("startDate" in json) {
+      updates.startDate = json.startDate ? new Date(json.startDate) : null;
+    }
+
+    const { tagIds, projectId, recurrenceRule } = json;
 
     // Normalize recurrence rule if provided
     if (recurrenceRule !== undefined) {

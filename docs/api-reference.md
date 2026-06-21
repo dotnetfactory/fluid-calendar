@@ -131,7 +131,9 @@ curl -X POST https://<your-instance>/api/v1/events \
 
 ### `GET /api/v1/events`
 
-List your events. Query: `from`, `to` (ISO range), `cursor`, `limit`.
+List your events. Query: `from`, `to` (ISO range), `cursor`, `limit`. Queries are
+bounded to a window of **1 week in the past to 2 years ahead** (a wider `from`/`to`
+is clamped to that window); the 1-week look-back is a timezone-offset-safe buffer.
 
 ### `GET|PATCH|DELETE /api/v1/events/{id}`
 

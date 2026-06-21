@@ -10,6 +10,17 @@ type Window = { count: number; resetAt: number };
 
 const buckets = new Map<string, Window>();
 
+// Opportunistic eviction so the map can't grow unbounded with one entry per
+// (user, bucket). Swept every N calls rather than on a timer (serverless-safe).
+let opsSinceSweep = 0;
+function maybeSweep(now: number): void {
+  if (++opsSinceSweep < 500) return;
+  opsSinceSweep = 0;
+  for (const [key, win] of buckets) {
+    if (win.resetAt <= now) buckets.delete(key);
+  }
+}
+
 export type RateLimitState = {
   allowed: boolean;
   limit: number;
@@ -29,6 +40,7 @@ export function rateLimit(
   const limit = opts?.limit ?? 120;
   const windowMs = opts?.windowMs ?? 60_000;
   const now = Date.now();
+  maybeSweep(now);
 
   let win = buckets.get(bucketKey);
   if (!win || win.resetAt <= now) {
