@@ -21,8 +21,8 @@ Use this checklist before opening an issue or buying a setup review. It focuses 
 
 ## 3. Outlook Calendar
 
-- Azure app registration supports the account type you expect to use.
-- Redirect URI matches `/api/auth/callback/azure-ad` on the deployed domain.
+- Azure app registration supports the account type you expect to use (include personal Microsoft accounts if you connect outlook.com / hotmail.com / Microsoft 365 Personal/Family).
+- Redirect URI matches `/api/calendar/outlook` on the deployed domain (this is the exact callback path FluidCalendar uses; no trailing slash, and not a NextAuth `azure-ad` callback path).
 - Microsoft Graph delegated permissions include calendar, task, profile, and offline access permissions.
 - The client secret value, not the secret ID, is copied into the app config.
 - Tenant ID is set only when you want to restrict login to one tenant.

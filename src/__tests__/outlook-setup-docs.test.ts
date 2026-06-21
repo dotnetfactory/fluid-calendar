@@ -39,4 +39,35 @@ describe("Outlook setup docs (issue #97)", () => {
       expect(doc).not.toContain("/api/calendar/outlook/callback");
     });
   });
+
+  describe("Self-hosting checklist (docs/self-hosting-setup-checklist.md)", () => {
+    const checklist = read("docs/self-hosting-setup-checklist.md");
+    const outlookSection = (() => {
+      const idx = checklist.indexOf("## 3. Outlook Calendar");
+      if (idx === -1) return checklist;
+      const next = checklist.indexOf("\n## ", idx + 1);
+      return next === -1 ? checklist.slice(idx) : checklist.slice(idx, next);
+    })();
+
+    it("lists the correct Outlook redirect URI", () => {
+      expect(outlookSection).toContain("/api/calendar/outlook");
+    });
+
+    it("does not instruct the azure-ad NextAuth callback for Outlook connect", () => {
+      expect(outlookSection).not.toContain("/api/auth/callback/azure-ad");
+    });
+  });
+
+  // Guard every setup doc at once so a stale Outlook callback variant cannot
+  // creep back into any one of them.
+  describe("No stale Outlook callback variant in any setup doc", () => {
+    const docs = [
+      "README.md",
+      "docs/_old/outlook.md",
+      "docs/self-hosting-setup-checklist.md",
+    ];
+    it.each(docs)("%s has no /api/calendar/outlook/callback variant", (rel) => {
+      expect(read(rel)).not.toContain("/api/calendar/outlook/callback");
+    });
+  });
 });
