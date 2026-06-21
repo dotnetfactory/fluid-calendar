@@ -85,6 +85,12 @@ describe("Google OAuth setup docs (issue #76)", () => {
       // so the panel must tell admins to keep NEXTAUTH_URL aligned with this URL.
       expect(googleBlock).toContain("NEXTAUTH_URL");
     });
+
+    it("warns that private IP / .local origins are rejected by Google", () => {
+      // A self-hoster opening Settings at a LAN IP or .local host would otherwise
+      // copy invalid redirect URIs; the panel must carry the same caveat as the README.
+      expect(googleBlock.toLowerCase()).toMatch(/private ip|\.local/);
+    });
   });
 
   describe("Self-hosting checklist", () => {
