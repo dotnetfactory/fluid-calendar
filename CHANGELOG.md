@@ -97,6 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Auto-Schedule settings time dropdowns (Working Hours and energy-level ranges) now honor the 12h/24h preference from General settings instead of always showing 24-hour times (#129)
 - Improved all-day event UI by removing time selection when "All day" is checked, showing only date picker instead
 - Fixed Google Calendar event deletion by adding missing userId parameter for authentication
 - Fixed Outlook task sync issues with recurring tasks
