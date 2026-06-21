@@ -124,6 +124,24 @@ describe("compareTaskPriority", () => {
     expect(compareTaskPriority(u1, u2, 1)).toBe(0);
     expect(compareTaskPriority(u1, u2, -1)).toBe(0);
   });
+
+  // Object-prototype keys ("toString", "__proto__", "constructor") must NOT
+  // resolve to an inherited property in the rank lookup; they are unknown
+  // values and must bucket last like any other unknown string.
+  it.each(["toString", "__proto__", "constructor", "hasOwnProperty"])(
+    "treats prototype-key priority %p as unknown (sorts last)",
+    (key) => {
+      const proto = makeTask({ id: "proto", priority: key as unknown as Priority });
+      const asc = sortBy([proto, high, low], compareTaskPriority, 1).map(
+        (t) => t.id
+      );
+      const desc = sortBy([proto, high, low], compareTaskPriority, -1).map(
+        (t) => t.id
+      );
+      expect(asc[asc.length - 1]).toBe("proto");
+      expect(desc[desc.length - 1]).toBe("proto");
+    }
+  );
 });
 
 describe("compareTaskEnergyLevel", () => {
@@ -182,4 +200,22 @@ describe("compareTaskEnergyLevel", () => {
     expect(asc[asc.length - 1]).toBe("unknown");
     expect(desc[desc.length - 1]).toBe("unknown");
   });
+
+  it.each(["toString", "__proto__", "constructor", "hasOwnProperty"])(
+    "treats prototype-key energy %p as unknown (sorts last)",
+    (key) => {
+      const proto = makeTask({
+        id: "proto",
+        energyLevel: key as unknown as EnergyLevel,
+      });
+      const asc = sortBy([proto, high, low], compareTaskEnergyLevel, 1).map(
+        (t) => t.id
+      );
+      const desc = sortBy([proto, high, low], compareTaskEnergyLevel, -1).map(
+        (t) => t.id
+      );
+      expect(asc[asc.length - 1]).toBe("proto");
+      expect(desc[desc.length - 1]).toBe("proto");
+    }
+  );
 });
