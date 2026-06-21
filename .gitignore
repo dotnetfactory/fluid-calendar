@@ -61,3 +61,6 @@ scripts/test-outlook-task-api.sh
 
 # local-only files (infra, scripts, etc. - never commit)
 /local/
+
+# git worktrees created by skills (e.g. implement-github-issue)
+/.claude/worktrees/
