@@ -10,8 +10,8 @@
 
 ## 3. Tenant-optional connect
 
-- [x] 3.0a Add a Jest test asserting integration-status reports Outlook configured with client id + secret and no tenant id (and not configured when id/secret missing)
-- [x] 3.0b Drop the `outlookTenantId` requirement in `src/app/api/integration-status/route.ts` so the Connect Outlook button is enabled for the documented personal-account setup
+- [x] 3.0a Add Jest tests asserting integration-status reports Outlook configured with client id + secret and no tenant id, configured via the `AZURE_AD_*` env fallback, and not configured when id/secret missing
+- [x] 3.0b Compute Outlook (and Google) configured status from `getOutlookCredentials`/`getGoogleCredentials` in `src/app/api/integration-status/route.ts` - no tenant ID required, and the documented env-var fallback is honored - so the Connect Outlook button is enabled for the documented personal-account setup
 
 ## 3b. Docs
 

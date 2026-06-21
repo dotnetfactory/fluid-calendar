@@ -26,15 +26,22 @@ When connecting a Microsoft (Outlook) account, FluidCalendar SHALL determine the
 
 FluidCalendar SHALL treat Outlook integration as configured when an Outlook client ID and client secret are present, regardless of whether a tenant ID is set. The tenant ID is optional (the OAuth flow defaults to the `common` tenant), so requiring it would disable the in-app "Connect Outlook" action for the documented personal-account setup.
 
+The configured status SHALL be computed from the same merged credential source the OAuth routes use (system settings OR the documented `AZURE_AD_*` environment-variable fallback), so the status reflects whether the connect flow can actually run.
+
 #### Scenario: Configured with client id and secret but no tenant id
 
 - **WHEN** the integration status is computed and the Outlook client ID and client secret are set but no tenant ID is configured
 - **THEN** Outlook is reported as configured
 - **AND** the in-app "Connect Outlook" action is enabled
 
+#### Scenario: Configured via the environment-variable fallback
+
+- **WHEN** Outlook credentials are provided only through the `AZURE_AD_*` environment variables (no system-settings row)
+- **THEN** Outlook is reported as configured
+
 #### Scenario: Not configured when client id or secret is missing
 
-- **WHEN** the Outlook client ID or client secret is missing
+- **WHEN** the Outlook client ID or client secret is missing from both settings and the environment
 - **THEN** Outlook is reported as not configured
 
 ### Requirement: Outlook setup docs list the correct redirect URI

@@ -1,5 +1,5 @@
 import * as apiAuth from "@/lib/auth/api-auth";
-import { prisma } from "@/lib/prisma";
+import * as auth from "@/lib/auth";
 import * as route from "@/app/api/integration-status/route";
 
 // Issue #97: Tenant ID is optional for Outlook - the backend defaults the tenant
@@ -7,14 +7,14 @@ import * as route from "@/app/api/integration-status/route";
 // Microsoft account setup uses only client ID + secret. The integration-status
 // check must therefore report Outlook as configured without a tenant ID;
 // otherwise the AccountManager "Connect Outlook" button stays disabled and the
-// documented personal-account flow can never start.
+// documented personal-account flow can never start. It must also honor the
+// documented AZURE_AD_* env-var fallback, since the OAuth routes resolve
+// credentials from settings OR env via getOutlook/getGoogleCredentials.
 
-jest.mock("@/lib/auth/api-auth");
-jest.mock("@/lib/prisma", () => ({
-  prisma: { systemSettings: { findFirst: jest.fn() } },
-}));
+jest.mock("@/lib/auth");
 
-const mockedFindFirst = prisma.systemSettings.findFirst as jest.Mock;
+const mockedGetOutlook = auth.getOutlookCredentials as jest.Mock;
+const mockedGetGoogle = auth.getGoogleCredentials as jest.Mock;
 
 describe("integration-status Outlook configured (issue #97)", () => {
   beforeEach(() => {
@@ -24,6 +24,8 @@ describe("integration-status Outlook configured (issue #97)", () => {
       .mockResolvedValue({ userId: "user-1" } as Awaited<
         ReturnType<typeof apiAuth.authenticateRequest>
       >);
+    // Google not configured by default; individual tests override as needed.
+    mockedGetGoogle.mockResolvedValue({ clientId: "", clientSecret: "" });
   });
 
   const getJson = async () => {
@@ -32,10 +34,23 @@ describe("integration-status Outlook configured (issue #97)", () => {
   };
 
   it("reports Outlook configured with client id + secret and no tenant id", async () => {
-    mockedFindFirst.mockResolvedValue({
-      outlookClientId: "client-id",
-      outlookClientSecret: "client-secret",
-      outlookTenantId: null,
+    mockedGetOutlook.mockResolvedValue({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      tenantId: "common",
+    });
+
+    const body = await getJson();
+    expect(body.outlook.configured).toBe(true);
+  });
+
+  it("reports Outlook configured from the env-var fallback (no settings row)", async () => {
+    // getOutlookCredentials merges settings OR AZURE_AD_* env vars; the status
+    // check must reflect that merged result, not just the settings row.
+    mockedGetOutlook.mockResolvedValue({
+      clientId: "env-client-id",
+      clientSecret: "env-client-secret",
+      tenantId: "",
     });
 
     const body = await getJson();
@@ -43,10 +58,10 @@ describe("integration-status Outlook configured (issue #97)", () => {
   });
 
   it("reports Outlook not configured when client id or secret is missing", async () => {
-    mockedFindFirst.mockResolvedValue({
-      outlookClientId: "client-id",
-      outlookClientSecret: null,
-      outlookTenantId: null,
+    mockedGetOutlook.mockResolvedValue({
+      clientId: "client-id",
+      clientSecret: "",
+      tenantId: "common",
     });
 
     const body = await getJson();

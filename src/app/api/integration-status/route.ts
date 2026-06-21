@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getGoogleCredentials, getOutlookCredentials } from "@/lib/auth";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
-import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "IntegrationStatusAPI";
 
@@ -14,25 +14,23 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    // Get system settings
-    const settings = await prisma.systemSettings.findFirst();
+    // Resolve credentials the same way the OAuth routes do: from system
+    // settings OR the documented env-var fallback (GOOGLE_*/AZURE_AD_*). This
+    // keeps the "configured" status in sync with whether the connect flow can
+    // actually run (issue #97). Tenant ID is intentionally not required for
+    // Outlook - it is optional and defaults to the "common" tenant.
+    const [google, outlook] = await Promise.all([
+      getGoogleCredentials(),
+      getOutlookCredentials(),
+    ]);
 
     // Only return boolean status of whether integrations are configured
     return NextResponse.json({
       google: {
-        configured: !!(
-          settings?.googleClientId && settings?.googleClientSecret
-        ),
+        configured: !!(google.clientId && google.clientSecret),
       },
       outlook: {
-        // Tenant ID is optional: getOutlookCredentials defaults the tenant to
-        // "common" and the OAuth endpoints are hardcoded to /common/, so a
-        // personal Microsoft account setup uses only client ID + secret. Don't
-        // require a tenant ID here or the Connect Outlook button stays disabled
-        // for the documented personal-account flow (issue #97).
-        configured: !!(
-          settings?.outlookClientId && settings?.outlookClientSecret
-        ),
+        configured: !!(outlook.clientId && outlook.clientSecret),
       },
     });
   } catch (error) {
