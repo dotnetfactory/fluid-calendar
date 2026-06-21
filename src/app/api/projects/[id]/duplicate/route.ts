@@ -23,15 +23,26 @@ export async function POST(
     const userId = auth.userId;
     const { id } = await params;
 
-    // Optional new name from the request body; fall back below.
+    // Optional new name from the request body. An empty body is valid (the
+    // name defaults below), but a non-empty body that is malformed JSON is a
+    // bad request and must be rejected rather than silently performing the
+    // duplicate under the default name.
     let requestedName: string | undefined;
-    try {
-      const json = await request.json();
-      if (typeof json?.name === "string") {
-        requestedName = json.name.trim();
+    const rawBody = (await request.text()).trim();
+    if (rawBody.length > 0) {
+      let json: unknown;
+      try {
+        json = JSON.parse(rawBody);
+      } catch {
+        return new NextResponse("Invalid JSON body", { status: 400 });
       }
-    } catch {
-      // No / empty body is fine - we will default the name.
+      const name = (json as { name?: unknown })?.name;
+      if (name !== undefined) {
+        if (typeof name !== "string") {
+          return new NextResponse("Invalid project name", { status: 400 });
+        }
+        requestedName = name.trim();
+      }
     }
 
     // Load the source project (scoped to the owner) with its incomplete tasks
