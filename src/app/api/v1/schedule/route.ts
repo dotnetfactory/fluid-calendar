@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { v1Write, ApiHttpError } from "@/lib/api/v1";
 import { autoScheduleReadiness } from "@/lib/api/schedule-guard";
 import { logger } from "@/lib/logger";
+import { repushDirtyBlocks } from "@/lib/task-block-push";
 import { scheduleAllTasksForUser } from "@/services/scheduling/TaskSchedulingService";
 
 const LOG_SOURCE = "api-v1-schedule-route";
@@ -27,6 +28,9 @@ export async function POST(request: NextRequest) {
 
       // Schedule all tasks for the user
       const tasks = await scheduleAllTasksForUser(userId);
+
+      // Push newly-scheduled blocks to the calendar (if push is enabled).
+      await repushDirtyBlocks(userId);
 
       logger.info(
         "Scheduled all tasks for user via API",

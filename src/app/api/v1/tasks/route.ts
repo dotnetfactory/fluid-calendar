@@ -9,7 +9,7 @@ import { paginated } from "@/lib/api/respond";
 import { autoScheduleReadiness } from "@/lib/api/schedule-guard";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { schedulePushTaskBlock } from "@/lib/task-block-push";
+import { repushDirtyBlocks, schedulePushTaskBlock } from "@/lib/task-block-push";
 import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
 import { scheduleAllTasksForUser } from "@/services/scheduling/TaskSchedulingService";
 
@@ -171,6 +171,9 @@ export async function POST(request: NextRequest) {
     // If any task was auto-scheduled, reschedule all tasks for the user ONCE
     if (hasAutoScheduled) {
       await scheduleAllTasksForUser(userId);
+      // Push the newly-scheduled blocks to the calendar (if the user has
+      // task→calendar push enabled) — mirrors the internal schedule-all route.
+      await repushDirtyBlocks(userId);
       // Re-fetch the created tasks to get their scheduled positions
       const refreshedTasks = await prisma.task.findMany({
         where: { userId, id: { in: createdTasks.map((t) => t.id) } },

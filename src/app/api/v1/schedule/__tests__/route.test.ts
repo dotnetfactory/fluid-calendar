@@ -4,6 +4,7 @@ import { v1Write } from "@/lib/api/v1";
 import { autoScheduleReadiness } from "@/lib/api/schedule-guard";
 import { _resetRateLimitBuckets } from "@/lib/api/rate-limit";
 import { scheduleAllTasksForUser } from "@/services/scheduling/TaskSchedulingService";
+import { repushDirtyBlocks } from "@/lib/task-block-push";
 
 // Mock dependencies
 jest.mock("@/lib/api/v1");
@@ -12,6 +13,7 @@ jest.mock("@/lib/auth/api-key");
 jest.mock("@/lib/api/idempotency");
 jest.mock("@/lib/logger");
 jest.mock("@/services/scheduling/TaskSchedulingService");
+jest.mock("@/lib/task-block-push");
 
 // Import the route handler after mocking
 import { POST } from "../route";
@@ -19,6 +21,7 @@ import { POST } from "../route";
 const mockV1Write = v1Write as unknown as jest.Mock;
 const mockAutoScheduleReadiness = autoScheduleReadiness as unknown as jest.Mock;
 const mockScheduleAllTasksForUser = scheduleAllTasksForUser as unknown as jest.Mock;
+const mockRepushDirtyBlocks = repushDirtyBlocks as unknown as jest.Mock;
 
 describe("POST /api/v1/schedule", () => {
   beforeEach(() => {
@@ -74,6 +77,9 @@ describe("POST /api/v1/schedule", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(200);
+    // After scheduling, the newly-positioned blocks must be pushed to the
+    // calendar (same as the in-app schedule-all route).
+    expect(mockRepushDirtyBlocks).toHaveBeenCalledWith("u1");
   });
 
   it("uses the tighter rate limit bucket for this heavy path", async () => {
