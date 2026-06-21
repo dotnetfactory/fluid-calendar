@@ -158,9 +158,13 @@ const rankOf = (
   ranks: Record<string, number>
 ): number | undefined => {
   if (value == null) return undefined;
-  // Use hasOwn so prototype keys ("toString", "__proto__", ...) don't resolve
-  // to an inherited property; an unknown string is treated like a missing one.
-  return Object.hasOwn(ranks, value) ? ranks[value] : undefined;
+  // Use an own-property check so prototype keys ("toString", "__proto__", ...)
+  // don't resolve to an inherited property; an unknown string is treated like a
+  // missing one. hasOwnProperty.call avoids depending on Object.hasOwn at
+  // runtime and on the value owning its own hasOwnProperty.
+  return Object.prototype.hasOwnProperty.call(ranks, value)
+    ? ranks[value]
+    : undefined;
 };
 
 // Compare two rank lookups so missing/unknown values always sort last,
