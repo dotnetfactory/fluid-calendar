@@ -29,4 +29,5 @@
 
 - [ ] 6.1 Codex `adversarial-review` returns `approve`
   - Round 1 (`needs-attention`): (HIGH) filter the copied task relation by `userId` (not just the project owner) so a cross-owner task attached to the project cannot be cloned into the requester's account; (MEDIUM) refresh `useTaskStore` after duplication so the cloned tasks and derived counts appear immediately without a reload. Both fixed + covered by `src/store/__tests__/project-duplicate.test.ts`.
+  - Round 2 (`needs-attention`): (HIGH) the nested tag include still selected all tags on each task regardless of tag owner; tags are tenant-scoped, so a foreign-user tag could be reconnected to the duplicated task. Fixed by filtering the tag include with `where: { userId }`.
 - [ ] 6.2 Archive the OpenSpec change

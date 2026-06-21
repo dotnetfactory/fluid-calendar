@@ -51,7 +51,11 @@ export async function POST(
             status: { not: TaskStatus.COMPLETED },
           },
           include: {
-            tags: { select: { id: true } },
+            // Only the requester's own tags are carried over. Tags are
+            // tenant-scoped and the schema does not enforce that a task's tags
+            // share its owner, so filtering here prevents a foreign user's tag
+            // from being reconnected to the duplicated task.
+            tags: { where: { userId }, select: { id: true } },
           },
         },
       },
