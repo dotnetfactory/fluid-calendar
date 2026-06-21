@@ -24,8 +24,10 @@ export async function POST(
     const { id } = await params;
 
     // Optional new name from the request body. An empty body is valid (the
-    // name defaults below), but a non-empty body that is malformed JSON is a
-    // bad request and must be rejected rather than silently performing the
+    // name defaults below). A non-empty body, however, MUST be a JSON object
+    // with an optional string `name`; anything else (malformed JSON, a JSON
+    // primitive/array/null, or a non-string `name`) is a bad request and is
+    // rejected with 400 rather than silently performing this state-changing
     // duplicate under the default name.
     let requestedName: string | undefined;
     const rawBody = (await request.text()).trim();
@@ -36,7 +38,10 @@ export async function POST(
       } catch {
         return new NextResponse("Invalid JSON body", { status: 400 });
       }
-      const name = (json as { name?: unknown })?.name;
+      if (typeof json !== "object" || json === null || Array.isArray(json)) {
+        return new NextResponse("Invalid request body", { status: 400 });
+      }
+      const name = (json as { name?: unknown }).name;
       if (name !== undefined) {
         if (typeof name !== "string") {
           return new NextResponse("Invalid project name", { status: 400 });

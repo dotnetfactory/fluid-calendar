@@ -86,6 +86,16 @@ describe("POST /api/projects/[id]/duplicate", () => {
     expect(mockPrisma.project.create).not.toHaveBeenCalled();
   });
 
+  it.each(["null", "[]", "false", '"name"', "42"])(
+    "rejects a non-object JSON body (%s) with 400 and does not write",
+    async (body) => {
+      const res = await POST(makeRequest(body), { params: params() });
+      expect(res?.status).toBe(400);
+      expect(mockPrisma.project.findUnique).not.toHaveBeenCalled();
+      expect(mockPrisma.project.create).not.toHaveBeenCalled();
+    }
+  );
+
   it("returns 404 when the project is not owned/found", async () => {
     mockPrisma.project.findUnique.mockResolvedValue(null);
     const res = await POST(makeRequest(), { params: params() });
