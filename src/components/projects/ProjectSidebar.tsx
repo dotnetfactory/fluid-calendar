@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { BsArrowRepeat } from "react-icons/bs";
-import { HiFolderOpen, HiPencil, HiPlus } from "react-icons/hi";
+import { HiDuplicate, HiFolderOpen, HiPencil, HiPlus } from "react-icons/hi";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { Project, ProjectStatus } from "@/types/project";
 import { TaskStatus } from "@/types/task";
 
 import { useDroppableProject } from "../dnd/useDragAndDrop";
+import { DuplicateProjectDialog } from "./DuplicateProjectDialog";
 import { ProjectModal } from "./ProjectModal";
 
 // Special project object to represent "no project" state
@@ -48,6 +49,9 @@ export function ProjectSidebar() {
   const { tasks } = useTaskStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
+  const [duplicatingProject, setDuplicatingProject] = useState<
+    Project | undefined
+  >();
   const [projectMappings, setProjectMappings] = useState<
     Record<string, TaskListMapping[]>
   >({});
@@ -152,6 +156,10 @@ export function ProjectSidebar() {
     setIsModalOpen(true);
   };
 
+  const handleDuplicateProject = (project: Project) => {
+    setDuplicatingProject(project);
+  };
+
   return (
     <>
       <div className="flex h-full w-64 flex-col border-r bg-background">
@@ -211,6 +219,7 @@ export function ProjectSidebar() {
                       project={project}
                       isActive={activeProject?.id === project.id}
                       onEdit={handleEditProject}
+                      onDuplicate={handleDuplicateProject}
                       mappings={projectMappings[project.id] || []}
                       isSyncing={syncingProjects.has(project.id)}
                       onSync={handleSyncProject}
@@ -230,6 +239,7 @@ export function ProjectSidebar() {
                       project={project}
                       isActive={activeProject?.id === project.id}
                       onEdit={handleEditProject}
+                      onDuplicate={handleDuplicateProject}
                       mappings={projectMappings[project.id] || []}
                       isSyncing={syncingProjects.has(project.id)}
                       onSync={handleSyncProject}
@@ -271,6 +281,14 @@ export function ProjectSidebar() {
         }}
         project={selectedProject}
       />
+
+      {duplicatingProject && (
+        <DuplicateProjectDialog
+          isOpen={!!duplicatingProject}
+          onClose={() => setDuplicatingProject(undefined)}
+          project={duplicatingProject}
+        />
+      )}
     </>
   );
 }
@@ -279,6 +297,7 @@ interface ProjectItemProps {
   project: Project;
   isActive: boolean;
   onEdit: (project: Project) => void;
+  onDuplicate: (project: Project) => void;
   mappings: TaskListMapping[];
   isSyncing: boolean;
   onSync: (projectId: string, mappingId: string) => void;
@@ -288,6 +307,7 @@ function ProjectItem({
   project,
   isActive,
   onEdit,
+  onDuplicate,
   mappings,
   isSyncing,
   onSync,
@@ -345,6 +365,22 @@ function ProjectItem({
         variant="ghost"
         size="icon"
         className="h-6 w-6 p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+        title="Duplicate project"
+        aria-label="Duplicate project"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDuplicate(project);
+        }}
+      >
+        <HiDuplicate className="h-3 w-3" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+        title="Edit project"
+        aria-label="Edit project"
         onClick={(e) => {
           e.stopPropagation();
           onEdit(project);

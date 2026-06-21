@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Duplicate a project from the project sidebar: a modal with an editable name (defaulting to `Copy of <name>`) creates a new project copying its incomplete tasks for use as a template (#60)
 - Added `.github/copilot-instructions.md` with repository-wide guidance for GitHub Copilot's coding agent (setup, commands, architecture, SAAS/open-source separation, code-style conventions)
 - Show the application version in a footer on every page, linking to the project's GitHub page (#111)
 - Added a button to mark tasks as completed directly from the task quick view popup

@@ -17,6 +17,7 @@ interface ProjectState {
   // Actions
   fetchProjects: () => Promise<void>;
   createProject: (project: NewProject) => Promise<Project>;
+  duplicateProject: (id: string, name?: string) => Promise<Project>;
   updateProject: (id: string, updates: UpdateProject) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
   setActiveProject: (project: Project | null) => void;
@@ -57,6 +58,26 @@ export const useProjectStore = create<ProjectState>()(
           if (!response.ok) throw new Error("Failed to create project");
           const newProject = await response.json();
           set((state) => ({ projects: [...state.projects, newProject] }));
+          return newProject;
+        } catch (error) {
+          set({ error: error as Error });
+          throw error;
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      duplicateProject: async (id: string, name?: string) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await fetch(`/api/projects/${id}/duplicate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(name ? { name } : {}),
+          });
+          if (!response.ok) throw new Error("Failed to duplicate project");
+          const newProject = await response.json();
+          set((state) => ({ projects: [newProject, ...state.projects] }));
           return newProject;
         } catch (error) {
           set({ error: error as Error });
