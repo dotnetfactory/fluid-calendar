@@ -37,11 +37,13 @@ The Node-only Jest env cannot render `.tsx`, so to get test coverage the testabl
 
 The `VersionBadge.tsx` component is a thin consumer of these helpers; the test imports the helpers directly.
 
-### Decision: Render a minimal footer in the `(common)` layout
+### Decision: Render a minimal footer in the `(common)` layout, plus the public homepage footer
 
-The issue says "at the footer or somewhere" and "on all the pages". The single chokepoint for all authenticated pages is `(common)/layout.tsx`. Add a small `<footer>` after `<main>` (inside the `flex min-h-screen flex-col` column so it sits at the bottom) containing `<VersionBadge />`, right-aligned, muted, small text. This guarantees the version is present on every page without touching each page or restructuring the navbar.
+The issue says "at the footer or somewhere" and "on all the pages". The single chokepoint for all authenticated pages (Calendar, Tasks, Focus, Settings, Setup, auth) is `(common)/layout.tsx`. Add a small `<footer>` after `<main>` (inside the `flex min-h-screen flex-col` column so it sits at the bottom) containing `<VersionBadge />`, right-aligned, muted, small text. This guarantees the version is present on every authenticated page without touching each page or restructuring the navbar.
 
 The badge is an `<a target="_blank" rel="noopener noreferrer">` (a plain anchor, not Next `<Link>`, since it points to an external site), styled with muted text and a hover state consistent with the navbar's other muted controls.
+
+The one user-visible route outside `(common)` is the public open-source homepage `/` (`src/app/(open)/page.open.tsx`), whose `(open)` layout just returns `children`. That page already has its own marketing footer (gray palette, with a "Contribute on GitHub" link). Rather than force the muted-token `VersionBadge` into that differently-styled footer, the version is added inline into the existing homepage footer using the same `getAppVersion()` / `getVersionGithubUrl()` helpers, styled to match the page's existing footer link. This covers "every page" including the splash page while keeping each footer visually consistent with its surroundings.
 
 ## Risks / Trade-offs
 

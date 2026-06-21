@@ -2,12 +2,17 @@
 
 ### Requirement: Display the application version on every page
 
-The application SHALL display its version number on every page of the authenticated app. The displayed version MUST reflect the version declared in `package.json` without requiring a separate manual update. When the version is unavailable at runtime, the UI MUST display a sane fallback value rather than an empty or `undefined` version.
+The application SHALL display its version number on every page, including the authenticated app pages and the public open-source homepage. The displayed version MUST reflect the version declared in `package.json` without requiring a separate manual update. When the version is unavailable at runtime, the UI MUST display a sane fallback value rather than an empty or `undefined` version.
 
 #### Scenario: Version is shown on an authenticated page
 
 - **WHEN** a user views any authenticated page (e.g. Calendar, Tasks, Focus, Settings)
 - **THEN** the application version is visible (e.g. in a footer)
+
+#### Scenario: Version is shown on the public homepage
+
+- **WHEN** a user views the public open-source homepage (`/`)
+- **THEN** the application version is visible in the page footer
 
 #### Scenario: Displayed version tracks package.json
 

@@ -11,7 +11,8 @@
 ## 3. VersionBadge component + footer (green)
 
 - [x] 3.1 Add `src/components/navigation/VersionBadge.tsx` rendering the version as an external GitHub anchor (`target="_blank" rel="noopener noreferrer"`), using the helpers
-- [x] 3.2 Render a minimal `<footer>` containing `<VersionBadge />` in `src/app/(common)/layout.tsx` so the version appears on every page
+- [x] 3.2 Render a minimal `<footer>` containing `<VersionBadge />` in `src/app/(common)/layout.tsx` so the version appears on every authenticated page
+- [x] 3.2a Also add the version to the public homepage footer (`src/app/(open)/page.open.tsx`), the one user-visible route outside `(common)`, so "every page" is fully covered (per Codex review)
 - [x] 3.3 Run `npm run test:unit` and confirm the new suite passes (green) - version suite 10/10 green; the only failing suites are the pre-existing, unrelated `google-*` tests that are byte-identical to `origin/main` and fail there too
 
 ## 4. Local gate
