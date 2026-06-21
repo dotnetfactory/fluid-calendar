@@ -18,6 +18,16 @@ const LOG_SOURCE = "CalDAVVTimezone";
  * the current year and emit `STANDARD`/`DAYLIGHT` subcomponents with yearly
  * recurrence rules. `Intl.DateTimeFormat` is used for the offset lookups because
  * it is exact at transition instants (unlike some offset helpers).
+ *
+ * Known limitation: the transitions are inferred from the current year and
+ * expressed as fixed yearly rules (last/nth weekday of a month). This is correct
+ * for fixed-rule zones (the US/EU zones the issue is about) and matches how most
+ * clients (Google, Apple, Thunderbird) emit `VTIMEZONE`, but it is approximate
+ * for zones whose DST dates move year to year on a non-weekday rule (e.g.
+ * Africa/Casablanca's Ramadan-based shifts). It is still strictly better than the
+ * floating-time bug it replaces.
+ * //todo model multi-year / RDATE transitions for irregular-DST zones, ideally
+ * via a real tzdb generator, if those zones prove important.
  */
 
 const MINUTE_MS = 60_000;
@@ -62,6 +72,21 @@ function offsetMinutes(timeZone: string, date: Date): number {
     Number(parts.second)
   );
   return Math.round((asUTC - date.getTime()) / MINUTE_MS);
+}
+
+/**
+ * True if `timeZone` is a valid IANA zone usable with `Intl` (and therefore with
+ * {@link zonedTime} / {@link buildVTimezoneComponent}). Server-supplied custom
+ * TZIDs (backed by an embedded VTIMEZONE) are not recognized by `Intl` and
+ * return false so callers can fall back to UTC instead of throwing.
+ */
+export function isValidTimeZone(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Short timezone name (e.g. "EST") at the given instant, advisory only. */
@@ -167,10 +192,7 @@ function anchoredTime(wall: Date): ICAL.Time {
  * timezone is invalid/unknown.
  */
 export function buildVTimezoneComponent(timeZone: string): ICAL.Component | null {
-  try {
-    // Validate the zone: an invalid timeZone throws here.
-    new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date());
-  } catch {
+  if (!isValidTimeZone(timeZone)) {
     logger.warn(
       "Unknown timezone; cannot build VTIMEZONE",
       { timeZone },

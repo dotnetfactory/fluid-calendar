@@ -443,4 +443,24 @@ describe("CalDAV single-instance EXDATE value-type matching (issues #135/#100)",
     expect(line.endsWith("Z")).toBe(false);
     expect(line).not.toMatch(/VALUE=DATE/);
   });
+
+  it("falls back to a UTC EXDATE when the master TZID is a non-IANA custom zone", async () => {
+    // Some CalDAV servers use custom TZIDs backed by an embedded VTIMEZONE that
+    // Intl does not recognize. The exception builder must not throw (which in the
+    // delete path would leave the master un-updated after the remote DELETE); it
+    // falls back to an unambiguous UTC date-time.
+    const getBody = setup("DTSTART;TZID=Custom/MyZone:20250619T053000");
+    const service = makeService();
+
+    await service.deleteEvent(
+      makeInstance(),
+      "/calendars/user/cal",
+      "instance-ext",
+      "single",
+      "user-1"
+    );
+
+    const line = exdateLine(getBody());
+    expect(line).toBe("EXDATE:20250619T093000Z");
+  });
 });

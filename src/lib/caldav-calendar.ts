@@ -16,7 +16,11 @@ import {
   ExtendedDAVClient,
   SyncResult,
 } from "./caldav-interfaces";
-import { buildVTimezoneComponent, zonedTime } from "./caldav-vtimezone";
+import {
+  buildVTimezoneComponent,
+  isValidTimeZone,
+  zonedTime,
+} from "./caldav-vtimezone";
 
 const LOG_SOURCE = "CalDAVCalendar";
 
@@ -60,11 +64,14 @@ function buildInstanceReference(
     // Match the master's floating DATE value (no time, no Z).
     const dateString = instanceStart.toISOString().split("T")[0];
     property.setValue(ICAL.Time.fromDateString(dateString));
-  } else if (masterTzid) {
-    // Master DTSTART is TZID-qualified: emit the exception with the SAME TZID
-    // and the instance's wall-clock in that zone, so servers that key
-    // exceptions by the DTSTART value form pair it with the right instance
-    // (GitHub issue #135).
+  } else if (masterTzid && isValidTimeZone(masterTzid)) {
+    // Master DTSTART is TZID-qualified with a resolvable IANA zone: emit the
+    // exception with the SAME TZID and the instance's wall-clock in that zone,
+    // so servers that key exceptions by the DTSTART value form pair it with the
+    // right instance (GitHub issue #135). A server-supplied custom/non-IANA
+    // TZID is not usable here, so we fall through to an unambiguous UTC value
+    // rather than throwing (which, in the delete path, would leave the master
+    // un-updated after the remote DELETE already fired).
     property.setValue(zonedTime(instanceStart, masterTzid));
     property.setParameter("tzid", masterTzid);
   } else {
