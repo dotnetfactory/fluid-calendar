@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Upgraded the runtime from Node.js 20 to Node.js 22 (LTS): updated `.nvmrc`, both Docker base images, bumped `@types/node` to v22, and added an `engines.node >=22.11.0` constraint to `package.json`
 - Removed "Upcoming:" prefix from due dates in task views to reduce confusion with the "upcoming" label used for tasks with future start dates
 - Updated future task detection to consider tasks as "upcoming" only if they are scheduled for tomorrow or later
 - Added new `isFutureDate` utility function in date-utils
