@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { ApiHttpError, v1Write, v1Read } from "@/lib/api/v1";
+import { parseApiDate } from "@/lib/api/dates";
 
 const LOG_SOURCE = "v1-events-id-route";
 
@@ -89,30 +90,14 @@ async function updateEvent(
     throw new ApiHttpError("INVALID_ARGUMENT", "Body must be a JSON object");
   }
 
-  // Validate if start/end are being updated
+  // Validate if start/end are being updated (strict RFC 3339)
   if (updates.start || updates.end) {
     const startTime = updates.start
-      ? new Date(updates.start).getTime()
+      ? parseApiDate(updates.start, "start").getTime()
       : event.start.getTime();
     const endTime = updates.end
-      ? new Date(updates.end).getTime()
+      ? parseApiDate(updates.end, "end").getTime()
       : event.end.getTime();
-
-    if (isNaN(startTime)) {
-      throw new ApiHttpError(
-        "INVALID_ARGUMENT",
-        "start must be a valid ISO date",
-        { field: "start" }
-      );
-    }
-
-    if (isNaN(endTime)) {
-      throw new ApiHttpError(
-        "INVALID_ARGUMENT",
-        "end must be a valid ISO date",
-        { field: "end" }
-      );
-    }
 
     if (endTime <= startTime) {
       throw new ApiHttpError(
@@ -141,8 +126,8 @@ async function updateEvent(
   if ("allDay" in updates) data.allDay = updates.allDay;
   if ("isRecurring" in updates) data.isRecurring = updates.isRecurring;
   if ("recurrenceRule" in updates) data.recurrenceRule = updates.recurrenceRule;
-  if ("start" in updates) data.start = new Date(String(updates.start));
-  if ("end" in updates) data.end = new Date(String(updates.end));
+  if ("start" in updates) data.start = parseApiDate(updates.start, "start");
+  if ("end" in updates) data.end = parseApiDate(updates.end, "end");
 
   const updated = await prisma.calendarEvent.update({
     where: { id: eventId },

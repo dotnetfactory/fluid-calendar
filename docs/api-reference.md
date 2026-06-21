@@ -8,6 +8,30 @@ create items and let FluidCalendar's auto-scheduler position your todos.
 - **Versioning:** in the URL path (`/api/v1`). Breaking changes ship under a new
   version; `v1` stays stable.
 
+## Design principles & standards
+
+Good design by default — we follow established standards so the API behaves the
+way an experienced integrator expects, with no surprises:
+
+- **Dates & times — RFC 3339 (the API profile of ISO 8601).** Every timestamp
+  you send must be a well-formed RFC 3339 value with an explicit offset, e.g.
+  `2026-06-24T15:00:00Z` or `2026-06-24T17:00:00+02:00`; a bare calendar date
+  (`2026-06-24`) is accepted as UTC midnight. Loose inputs (`"tomorrow"`,
+  `06/24/2026`, an offset-less time, an impossible date) are **rejected with a
+  400** rather than silently misinterpreted. We store everything in **UTC** and
+  always return timestamps as ISO-8601 UTC (`…Z`), so the caller does the
+  timezone math once, at the edge.
+- **Recurrence — iCalendar RRULE (RFC 5545).** `recurrenceRule` is a standard
+  RRULE string (e.g. `FREQ=WEEKLY;BYDAY=MO,WE`), the same grammar used by Google
+  Calendar, CalDAV, and `.ics` files.
+- **Intervals are half-open `[start, end)`** and `allDay` events are flagged
+  explicitly via the `allDay` field.
+- **UTC storage, offset-aware input** — send any offset; we normalize.
+
+Mechanical HTTP conventions (errors, pagination, rate-limit headers,
+idempotency) are in [Conventions](#conventions) below; they follow the same
+"match the prevailing standard" rule.
+
 ## Authentication
 
 1. In FluidCalendar, open **Settings → API & Developer** and turn on

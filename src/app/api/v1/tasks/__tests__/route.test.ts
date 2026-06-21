@@ -165,6 +165,17 @@ describe("POST /api/v1/tasks", () => {
     expect(body).toHaveLength(2);
   });
 
+  it("rejects a non-RFC-3339 dueDate with 400", async () => {
+    const { POST } = await import("../route");
+    const res = await POST(
+      createRequest("POST", undefined, { title: "T", dueDate: "06/24/2026" })
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error?.code).toBe("INVALID_ARGUMENT");
+    expect(body.error?.field).toBe("dueDate");
+  });
+
   it("ignores injected protected fields (no mass-assignment)", async () => {
     const { POST } = await import("../route");
     const create = jest.fn().mockResolvedValueOnce({ id: "t1" });

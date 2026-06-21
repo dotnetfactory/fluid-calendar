@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { ApiHttpError, v1Write, v1Read, V1Context } from "@/lib/api/v1";
+import { parseApiDate, parseOptionalApiDate } from "@/lib/api/dates";
 import { paginated } from "@/lib/api/respond";
 
 const LOG_SOURCE = "v1-events-route";
@@ -75,8 +76,8 @@ async function createEvents({ userId, request }: V1Context) {
           feedId: feed!.id,
           title: evt.title,
           description: evt.description,
-          start: new Date(evt.start),
-          end: new Date(evt.end),
+          start: parseApiDate(evt.start, "start"),
+          end: parseApiDate(evt.end, "end"),
           location: evt.location,
           isRecurring: evt.isRecurring ?? false,
           recurrenceRule: evt.recurrenceRule,
@@ -132,24 +133,8 @@ function validateEventInput(event: unknown) {
     );
   }
 
-  const startTime = new Date(String(e.start)).getTime();
-  const endTime = new Date(String(e.end)).getTime();
-
-  if (isNaN(startTime)) {
-    throw new ApiHttpError(
-      "INVALID_ARGUMENT",
-      "start must be a valid ISO date",
-      { field: "start" }
-    );
-  }
-
-  if (isNaN(endTime)) {
-    throw new ApiHttpError(
-      "INVALID_ARGUMENT",
-      "end must be a valid ISO date",
-      { field: "end" }
-    );
-  }
+  const startTime = parseApiDate(e.start, "start").getTime();
+  const endTime = parseApiDate(e.end, "end").getTime();
 
   if (endTime <= startTime) {
     throw new ApiHttpError(
@@ -192,31 +177,9 @@ async function listEvents({ userId, request }: V1Context) {
     );
   }
 
-  // Parse and validate date range
-  let fromDate: Date | null = null;
-  let toDate: Date | null = null;
-
-  if (from) {
-    fromDate = new Date(from);
-    if (isNaN(fromDate.getTime())) {
-      throw new ApiHttpError(
-        "INVALID_ARGUMENT",
-        "from must be a valid ISO date",
-        { field: "from" }
-      );
-    }
-  }
-
-  if (to) {
-    toDate = new Date(to);
-    if (isNaN(toDate.getTime())) {
-      throw new ApiHttpError(
-        "INVALID_ARGUMENT",
-        "to must be a valid ISO date",
-        { field: "to" }
-      );
-    }
-  }
+  // Parse and validate date range (strict RFC 3339)
+  const fromDate = parseOptionalApiDate(from, "from");
+  const toDate = parseOptionalApiDate(to, "to");
 
   // Bound every query to a fixed window so no request can scan full history:
   // up to 2 years ahead and 1 week back (a generous, timezone-offset-safe

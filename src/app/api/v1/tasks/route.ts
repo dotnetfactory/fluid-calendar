@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { RRule } from "rrule";
 
 import { v1Read, v1Write, ApiHttpError } from "@/lib/api/v1";
+import { parseApiDate, parseOptionalApiDate } from "@/lib/api/dates";
 import { paginated } from "@/lib/api/respond";
 import { autoScheduleReadiness } from "@/lib/api/schedule-guard";
 import { logger } from "@/lib/logger";
@@ -55,7 +56,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate all tasks have title
+    // Validate every item up front (titles + RFC 3339 dates) so a bad item
+    // fails the whole request before any task is created.
     for (let i = 0; i < tasksInput.length; i++) {
       const task = tasksInput[i];
       if (!task.title || typeof task.title !== "string" || task.title.trim() === "") {
@@ -64,6 +66,11 @@ export async function POST(request: NextRequest) {
           "title is required and must be a non-empty string",
           { field: "title" }
         );
+      }
+      parseOptionalApiDate(task.dueDate, "dueDate");
+      parseOptionalApiDate(task.startDate, "startDate");
+      if (task.autoScheduled?.deadline !== undefined) {
+        parseApiDate(task.autoScheduled.deadline, "autoScheduled.deadline");
       }
     }
 
@@ -138,8 +145,8 @@ export async function POST(request: NextRequest) {
             priority: priority || null,
             energyLevel: energyLevel || null,
             preferredTime: preferredTime || null,
-            dueDate: mappedDueDate ? new Date(mappedDueDate) : null,
-            startDate: startDate ? new Date(startDate) : null,
+            dueDate: parseOptionalApiDate(mappedDueDate, "dueDate"),
+            startDate: parseOptionalApiDate(startDate, "startDate"),
             projectId: projectId || null,
             isAutoScheduled,
             isRecurring: !!recurrenceRule,

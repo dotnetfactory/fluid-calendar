@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
 
 import { v1Read, v1Write, ApiHttpError } from "@/lib/api/v1";
+import { parseOptionalApiDate } from "@/lib/api/dates";
 import { prisma } from "@/lib/prisma";
 import { deleteTaskBlockEvent, schedulePushTaskBlock } from "@/lib/task-block-push";
 import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
@@ -82,10 +83,10 @@ export async function PATCH(
     if ("energyLevel" in json) updates.energyLevel = json.energyLevel;
     if ("preferredTime" in json) updates.preferredTime = json.preferredTime;
     if ("dueDate" in json) {
-      updates.dueDate = json.dueDate ? new Date(json.dueDate) : null;
+      updates.dueDate = parseOptionalApiDate(json.dueDate, "dueDate");
     }
     if ("startDate" in json) {
-      updates.startDate = json.startDate ? new Date(json.startDate) : null;
+      updates.startDate = parseOptionalApiDate(json.startDate, "startDate");
     }
 
     const { tagIds, projectId, recurrenceRule } = json;
