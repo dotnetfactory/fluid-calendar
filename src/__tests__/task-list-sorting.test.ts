@@ -35,25 +35,25 @@ function sortBy(
 }
 
 describe("rank maps", () => {
-  it("ranks priority none < low < medium < high", () => {
-    expect(PRIORITY_SORT_RANK[Priority.NONE]).toBeLessThan(
-      PRIORITY_SORT_RANK[Priority.LOW]
-    );
-    expect(PRIORITY_SORT_RANK[Priority.LOW]).toBeLessThan(
-      PRIORITY_SORT_RANK[Priority.MEDIUM]
-    );
-    expect(PRIORITY_SORT_RANK[Priority.MEDIUM]).toBeLessThan(
-      PRIORITY_SORT_RANK[Priority.HIGH]
-    );
+  it("ranks real priorities low < medium < high", () => {
+    expect(PRIORITY_SORT_RANK[Priority.LOW]).toBe(1);
+    expect(PRIORITY_SORT_RANK[Priority.MEDIUM]).toBe(2);
+    expect(PRIORITY_SORT_RANK[Priority.HIGH]).toBe(3);
+  });
+
+  it("does not rank Priority.NONE (treated as unranked, sorts with missing)", () => {
+    // "none" and an absent priority are the same user-facing intent (no
+    // priority); both must bucket last instead of "none" landing among ranked
+    // values. So NONE is intentionally absent from the rank map.
+    expect(
+      Object.prototype.hasOwnProperty.call(PRIORITY_SORT_RANK, Priority.NONE)
+    ).toBe(false);
   });
 
   it("ranks energy low < medium < high", () => {
-    expect(ENERGY_LEVEL_SORT_RANK[EnergyLevel.LOW]).toBeLessThan(
-      ENERGY_LEVEL_SORT_RANK[EnergyLevel.MEDIUM]
-    );
-    expect(ENERGY_LEVEL_SORT_RANK[EnergyLevel.MEDIUM]).toBeLessThan(
-      ENERGY_LEVEL_SORT_RANK[EnergyLevel.HIGH]
-    );
+    expect(ENERGY_LEVEL_SORT_RANK[EnergyLevel.LOW]).toBe(1);
+    expect(ENERGY_LEVEL_SORT_RANK[EnergyLevel.MEDIUM]).toBe(2);
+    expect(ENERGY_LEVEL_SORT_RANK[EnergyLevel.HIGH]).toBe(3);
   });
 });
 
@@ -64,16 +64,17 @@ describe("compareTaskPriority", () => {
   const none = makeTask({ id: "none", priority: Priority.NONE });
   const missing = makeTask({ id: "missing", priority: null });
 
-  it("ascending: none, low, medium, high (semantic, not alphabetical)", () => {
+  it("ascending: low, medium, high then no-priority last (semantic, not alphabetical)", () => {
     const result = sortBy(
       [high, low, none, medium],
       compareTaskPriority,
       1
     ).map((t) => t.id);
-    expect(result).toEqual(["none", "low", "medium", "high"]);
+    // "none" (no priority) buckets last, not first.
+    expect(result).toEqual(["low", "medium", "high", "none"]);
   });
 
-  it("descending: high, medium, low, none", () => {
+  it("descending: high, medium, low then no-priority last", () => {
     const result = sortBy(
       [low, high, none, medium],
       compareTaskPriority,
@@ -98,6 +99,20 @@ describe("compareTaskPriority", () => {
       -1
     ).map((t) => t.id);
     expect(result[result.length - 1]).toBe("missing");
+  });
+
+  // The app stores "no priority" as BOTH null (untouched modal) and
+  // Priority.NONE ("none", explicit select). Both must bucket together at the
+  // end so identical-intent tasks aren't split to opposite ends of the list.
+  it("treats Priority.NONE and a null priority identically (both last, together)", () => {
+    expect(compareTaskPriority(none, missing, 1)).toBe(0);
+    expect(compareTaskPriority(none, missing, -1)).toBe(0);
+    const asc = sortBy([none, high, missing, low], compareTaskPriority, 1).map(
+      (t) => t.id
+    );
+    // high/low ranked first; none + missing both at the tail.
+    expect(asc.slice(0, 2)).toEqual(["low", "high"]);
+    expect(asc.slice(2).sort()).toEqual(["missing", "none"]);
   });
 
   // The DB column is a plain String, so a stale/imported value outside the enum

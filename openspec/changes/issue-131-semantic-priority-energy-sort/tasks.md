@@ -14,6 +14,7 @@
 - [x] 3.4 Add unit tests for energy ascending, descending, and null-last behavior.
 - [x] 3.5 Add unit tests that an unknown persisted priority/energy string (the DB column is a plain String) buckets last in both directions and compares equal to another unknown value (no NaN). Comparators route missing/unknown ranks last via a shared `rankOf`/`compareRanks` helper.
 - [x] 3.6 Add unit tests that prototype-key strings ("toString", "__proto__", "constructor", "hasOwnProperty") are treated as unknown (sort last). `rankOf` uses `Object.prototype.hasOwnProperty.call` so inherited prototype properties never resolve as a rank and there is no hard runtime dependency on `Object.hasOwn`.
+- [x] 3.7 Add unit tests that `Priority.NONE` ("none") and a null priority sort together at the end (the app produces both for the no-priority intent). `Priority.NONE` is intentionally omitted from `PRIORITY_SORT_RANK` so it buckets with missing instead of among ranked values.
 
 ## 4. Gate
 - [x] 4.1 `npm run test:unit` for the new tests is green; `npm run type-check` and `npm run lint` are clean.

@@ -133,16 +133,19 @@ export const priorityColors = {
 };
 
 // Semantic rank for the Priority column so the Tasks list sorts by meaning
-// (none < low < medium < high) instead of alphabetically by the enum label.
-export const PRIORITY_SORT_RANK: Record<Priority, number> = {
-  [Priority.NONE]: 0,
+// (low < medium < high) instead of alphabetically by the enum label.
+// Priority.NONE is intentionally omitted: the app represents "no priority" as
+// BOTH null (an untouched modal) and the literal "none" (explicit select), so
+// both must bucket last together rather than "none" sorting among real values.
+// An omitted key makes rankOf return undefined, which compareRanks sorts last.
+export const PRIORITY_SORT_RANK: Partial<Record<Priority, number>> = {
   [Priority.LOW]: 1,
   [Priority.MEDIUM]: 2,
   [Priority.HIGH]: 3,
 };
 
 // Semantic rank for the Energy column (low < medium < high).
-export const ENERGY_LEVEL_SORT_RANK: Record<EnergyLevel, number> = {
+export const ENERGY_LEVEL_SORT_RANK: Partial<Record<EnergyLevel, number>> = {
   [EnergyLevel.LOW]: 1,
   [EnergyLevel.MEDIUM]: 2,
   [EnergyLevel.HIGH]: 3,
@@ -155,7 +158,7 @@ export const ENERGY_LEVEL_SORT_RANK: Record<EnergyLevel, number> = {
 // rather than producing NaN.
 const rankOf = (
   value: string | null | undefined,
-  ranks: Record<string, number>
+  ranks: Partial<Record<string, number>>
 ): number | undefined => {
   if (value == null) return undefined;
   // Use an own-property check so prototype keys ("toString", "__proto__", ...)

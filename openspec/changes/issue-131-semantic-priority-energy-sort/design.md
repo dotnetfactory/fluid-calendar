@@ -20,10 +20,11 @@ The enums (`src/types/task.ts`):
 
 ## Decisions
 
-- **Rank map per enum, ascending from least to greatest.** Define `PRIORITY_SORT_RANK` (`none=0, low=1, medium=2, high=3`) and `ENERGY_LEVEL_SORT_RANK` (`low=1, medium=2, high=3`) and compare `rank(a) - rank(b)` times `direction`. This is exactly the "map categories to numbers" approach the issue requests and mirrors the existing numeric comparison used for `duration`.
+- **Rank map per enum, ascending from least to greatest.** Define `PRIORITY_SORT_RANK` (`low=1, medium=2, high=3`) and `ENERGY_LEVEL_SORT_RANK` (`low=1, medium=2, high=3`) and compare `rank(a) - rank(b)` times `direction`. This is exactly the "map categories to numbers" approach the issue requests and mirrors the existing numeric comparison used for `duration`.
   - *Alternative considered:* inline object literals in the comparator. Rejected: a named, exported map is reusable and testable in isolation.
-- **Keep the existing null-handling pattern.** Retain the `if (!a.priority) return 1; if (!b.priority) return -1;` guards so empty values stay last, identical to the other nullable columns. This means `Priority.NONE` (a real value `"none"`) is ranked `0` and sorts among real values, while a missing priority sorts last - consistent with how the column renders.
-- **Ascending = low priority first.** Matches the column's sibling behavior (e.g. `title` A->Z ascending) and the issue's example mapping (`low=1, medium=2, ...`). Users can toggle to descending for high-first.
+- **Treat `Priority.NONE` as "no priority", same as null/missing - both bucket last.** The app stores the no-priority intent two ways: `TaskModal` saves `null` when the Select is untouched but the literal `"none"` when the user explicitly picks None, and inline editing converts `"none"` back to `null`. The DB column is a nullable string so both coexist. If `"none"` were ranked among real values it would sort to the opposite end of the list from `null`, splitting identical-intent rows. So `NONE` is intentionally omitted from the rank map; `rankOf` returns `undefined` for it and `compareRanks` buckets undefined last (two undefineds compare equal), unifying `"none"` and `null`.
+- **Robust rank lookup.** `rankOf` uses `Object.prototype.hasOwnProperty.call` so unknown persisted strings (the column is a plain `String?`, e.g. a stale/imported `"urgent"`) and object-prototype keys (`"toString"`, `"__proto__"`) never resolve to a rank; they are treated as unknown and bucket last instead of producing `NaN` (which `Array.sort` would treat as equal, silently corrupting order).
+- **Ascending = low priority first, no-priority last.** Matches the column's sibling behavior (e.g. `title` A->Z ascending) and the issue's example mapping (`low=1, medium=2, ...`). Users can toggle to descending for high-first.
 
 ## Risks / Trade-offs
 
