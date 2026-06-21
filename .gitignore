@@ -58,3 +58,6 @@ data/*
 /src/saas/
 /dist
 scripts/test-outlook-task-api.sh
+
+# local-only files (infra, scripts, etc. - never commit)
+/local/
