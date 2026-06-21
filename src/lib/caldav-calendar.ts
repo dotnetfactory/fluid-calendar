@@ -932,10 +932,11 @@ export class CalDAVCalendarService {
     const dtend = new ICAL.Property("dtend");
 
     if (event.allDay) {
-      dtstart.setParameter("value", "date");
-      dtend.setParameter("value", "date");
-
-      // Use ICAL.Time for all-day events with isDate=true
+      // Use ICAL.Time for all-day events with isDate=true. The date-typed value
+      // makes ical.js emit `VALUE=DATE` exactly once; also calling
+      // setParameter("value", "date") produced an invalid
+      // `VALUE=date;VALUE=DATE` that strict CalDAV servers (Baikal, Nextcloud)
+      // reject with an auth/error response (see GitHub issue #100).
       const formatDate = (date: Date) => {
         const dateString = date.toISOString().split("T")[0];
         return ICAL.Time.fromDateString(dateString);
