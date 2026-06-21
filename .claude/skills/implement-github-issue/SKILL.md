@@ -16,13 +16,15 @@ Take a single GitHub issue from raw ticket to an opened pull request, autonomous
 
 **The constraint comes first.** This skill has hard STOP gates. "Autonomous" means you do not pause to ask permission to *proceed* once a gate passes - it does **NOT** license skipping a gate. Every gate must be evaluated and its verdict stated in your output before you move on.
 
-**A STOP is terminal for this run.** On any STOP (Gate A, Gate B, Codex-missing, Codex-failed, loop-exhausted) you email Emad and then do nothing else for this issue: no branch, no PR, no partial "best-guess" deliverable. There is no "email *and* ship anyway" path.
+**A STOP is terminal for this run.** On any STOP (Gate A, Gate B, Codex-missing, Codex-failed, loop-exhausted) you email Emad and then do nothing else for this issue: no branch, no PR, no partial "best-guess" deliverable. There is no "email *and* ship anyway" path. (One STOP variant does more than email: if you determine the issue is **already implemented** on the default branch, you also close it with an explanatory comment - see Gate B, step 4.) If a STOP happens *after* the worktree was created (e.g. a step-7 loop-exhausted STOP), still **clean up the worktree** (step 10) before stopping - leaving the branch unpushed is fine, but do not leave the worktree behind.
+
+**Work in an isolated worktree.** All implementation happens in a dedicated git worktree under `.claude/worktrees` (step 6), never in the main checkout, and the worktree is always removed when the run ends (step 10).
 
 **Core principle:** Gather all context → gate on "is it complete?" and "should we even do this?" → spec → TDD → Codex review until green → PR. Never open a PR until BOTH the local test gate AND a fresh Codex `approve` verdict are green.
 
 ## Notifications: email `emad@elitecoders.co`
 
-Every STOP notifies by email via the **gws-gmail** skill (`gws` is at `/usr/local/bin/gws`). Do not use any other channel and do not post the content as a public GitHub comment.
+Every STOP notifies by email via the **gws-gmail** skill (`gws` is at `/usr/local/bin/gws`). Do not use any other channel and do not post the content as a public GitHub comment. (The **one exception** is the "already-implemented" close in Gate B - there you post a closing comment on the issue *and* email; see step 4.)
 
 **REQUIRED SUB-SKILL:** Use `gws-gmail` (its `+send` helper) to send. Confirm its exact flags from that skill before the first send:
 
@@ -39,11 +41,13 @@ Every body MUST include: the issue URL, the issue title, and a precise, actionab
 1. Preflight: repo + default branch, **issue-repo match**, resolve the **test/lint gate**, **detect Codex**
 2. Gather full context (issue body + every comment + every load-bearing image + linked PRs)
 3. **Gate A** - is context complete? State `Gate A: PASS because …` or email + STOP
-4. **Gate B** - should we implement this? State `Gate B: PASS because …` or email + STOP
-5. Spec it
-6. Implement with TDD on a feature branch (local gate green)
+4. **Gate B** - should we implement this? State `Gate B: PASS because …` or email + STOP (already-implemented → also comment + close the issue)
+5. Spec it via **OpenSpec** (proposal + design + tasks)
+6. Implement with TDD in an isolated **worktree** under `.claude/worktrees`, checking off `tasks.md` as you go (local gate green)
 7. Codex `adversarial-review` loop until `approve`
-8. Open the PR (ready for review), report the URL
+8. **Finalize the OpenSpec change**: complete `tasks.md` and **archive** the change
+9. Open the PR (ready for review), report the URL
+10. **Clean up the worktree** (always - on PR-opened and on any STOP after the worktree exists)
 
 ---
 
@@ -106,34 +110,65 @@ First **ground it**: grep/rg the affected area named in the issue and skim recen
 **Decline (email your reasoning + STOP)** when any holds:
 - Out of scope / not aligned with the project's purpose.
 - It needs a product or design decision the issue does not settle.
-- Already implemented/fixed on the default branch, or an **open PR already addresses it** - cite the concrete commit/PR/file:line.
+- **Already implemented/fixed on the default branch** - cite the concrete commit/PR/file:line. This is a special terminal outcome: **close the issue with a comment AND email** (see "Already-implemented → close + comment + email" below), not just email.
+- An **open PR already addresses it** (not yet merged) - cite the concrete PR/file:line; email + STOP, but do **not** close the issue (the open PR will close it on merge).
 - The issue is `state: CLOSED` (unless the user explicitly asked to reopen-and-implement).
 - It's a question/support request, not a code change.
 - It needs infra, secrets, or access you don't have.
 - Blast radius is too high to do unattended (destructive migration, auth/security rewrite, broad breaking change) - flag for a human.
 
-End this step with `Gate B: PASS because …` or do the email + STOP. Declining is a valid, expected outcome.
+End this step with `Gate B: PASS because …` or do the email + STOP (or the already-implemented close below). Declining is a valid, expected outcome.
 
-## 5. Spec it
+### Already-implemented → close + comment + email
 
-Write a short spec the tests and code will target: problem, approach, acceptance criteria, the tests to write, files to touch, risks.
+When (and only when) you determine the issue is **already implemented/fixed on the default branch** - you can cite the concrete commit/PR/file:line that delivers the requested behavior - this is the one decline reason where you also act on the issue itself:
 
-- If an `openspec/` directory exists, follow that repo's OpenSpec proposal convention. **This repo has none**, so keep the spec lightweight (a scratch plan is fine).
-- For genuinely ambiguous *design* (multiple reasonable UX/architecture paths), shape it with `superpowers:writing-plans` first. Don't invoke interactive elicitation skills in an unattended run - if design is so open it needs a human's answers, that's a Gate A/B STOP, not a brainstorm.
+1. **Comment on the issue** explaining it's already implemented, citing the evidence (commit SHA / merged PR / `file:line`) and, if useful, how to verify. Keep it factual and courteous.
+2. **Close the issue** as completed.
+
+```bash
+gh issue comment <N> --body "This is already implemented on \`<default-branch>\` as of <commit/PR> (see \`<file:line>\`). Closing as completed - reopen if your scenario differs."
+gh issue close <N> --reason completed
+```
+
+3. **Email Emad** as usual (the email is still required) noting that you closed #N as already-implemented, with the same evidence.
+
+This is the single exception to "do not comment on the issue" and "do not post to GitHub" - it applies ONLY to the already-implemented case. Every other Gate A/B decline stays email-only with no issue comment and no close (a human decides). Do not close an issue just because an open PR addresses it, or for out-of-scope / needs-a-decision / too-risky declines.
+
+## 5. Spec it - via OpenSpec
+
+**This repo uses OpenSpec** (an `openspec/` directory with `project.md`, `specs/`, and `changes/`). Specs go through the OpenSpec proposal convention, not an ad-hoc scratch plan.
+
+**REQUIRED SUB-SKILL:** Use `openspec-propose` (the `/opsx:propose` flow) to create the change. Drive it non-interactively from the issue you already gathered - the issue body, acceptance criteria, and rendered images are your input, so do **not** invoke its interactive "what do you want to build?" prompt:
+
+```bash
+openspec new change "issue-<N>-<short-slug>"      # scaffolds openspec/changes/issue-<N>-<short-slug>/
+openspec status --change "issue-<N>-<short-slug>" --json   # get artifact build order
+```
+
+- Generate the change artifacts (`proposal.md` = what & why, `design.md` = how, `tasks.md` = implementation steps) using `openspec instructions <artifact-id> --change "<name>" --json`, grounding each in the issue's stated behavior and acceptance criteria. `tasks.md` is the checklist your TDD loop (step 6) implements against.
+- Validate before implementing: `openspec validate "issue-<N>-<short-slug>"` must pass.
+- If `openspec` is somehow unavailable in this repo (no `openspec/` dir, CLI missing), fall back to a lightweight scratch spec (problem, approach, acceptance criteria, tests to write, files to touch, risks) and note the fallback in the PR body - but the default and expected path is OpenSpec.
+- For genuinely ambiguous *design* (multiple reasonable UX/architecture paths), capture the chosen approach in the OpenSpec `design.md`. Don't invoke interactive elicitation skills in an unattended run - if design is so open it needs a human's answers, that's a Gate A/B STOP, not a brainstorm.
+
+You implement against the change's `tasks.md` (step 6) and then **complete and archive** it (step 8) before opening the PR, so the PR carries the finished, archived spec.
 
 ## 6. Implement with TDD
 
 **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`. Red → green → refactor, one acceptance criterion at a time. No implementation code before a failing test.
 
-- Branch off the default branch first, and **assert you're not on it before any commit**:
+- **Create an isolated worktree** off the up-to-date default branch, on a fresh feature branch, under `.claude/worktrees`, and do all work there. This keeps the main checkout untouched. Ensure `.claude/worktrees/` is git-ignored (add it to `.gitignore` if it is not) so the worktree never shows up as untracked changes. **Assert you're not on the default branch before any commit**:
 
 ```bash
-git checkout <default-branch> && git pull --ff-only
-git checkout -b feat/issue-<N>-<short-slug>
+git fetch origin
+git worktree add -b feat/issue-<N>-<short-slug> .claude/worktrees/issue-<N> origin/<default-branch>
+cd .claude/worktrees/issue-<N>
 test "$(git rev-parse --abbrev-ref HEAD)" != "<default-branch>" || { echo "ABORT: on default branch"; exit 1; }
 ```
 
+- From here on, run all commands (TDD, the local gate, commits, the Codex review, the push, and `gh pr create`) **from inside the worktree directory**. Record the worktree path - you remove it in step 10.
 - Write each test, watch it fail, write minimal code, watch it pass, refactor. Keep the diff scoped to this issue.
+- **Track progress in the OpenSpec change**: as each `tasks.md` item's tests go green, check it off (`- [x]`) in `openspec/changes/issue-<N>-<short-slug>/tasks.md`. Keep `tasks.md` an accurate record of what's done.
 - Before review the **local gate must be green**: run `TESTS && TYPECHECK && LINT`. Fix until all pass. Commit (the Co-Authored-By / Claude-Session commit trailers come from the harness/global instructions, not the repo).
 
 ## 7. Codex review loop until `approve`
@@ -162,16 +197,44 @@ Parse `payload.result`: `verdict` (`approve` | `needs-attention`), `findings[]` 
 
 **Loop guard (no infinite loops):** cap at ~5 rounds. If still not green, email Emad a summary and STOP. Don't relabel a hard in-scope technical finding as "out of scope" just to bail - running out of rounds on real in-scope findings is an honest STOP-and-email.
 
-## 8. Open the PR
+## 8. Finalize the OpenSpec change (complete tasks + archive)
 
-Only after the local gate is green AND the **last action before pushing** was a Codex `adversarial-review` returning `verdict == "approve"` on the current HEAD (if you changed anything after the last review, re-review first):
+Once the implementation is green (local gate + Codex `approve`), finalize the OpenSpec change created in step 5:
+
+- **Complete `tasks.md`**: ensure every implemented task is checked off (`- [x]`) and the file reflects the final reality. If a planned task was intentionally dropped, note why inline rather than leaving it falsely unchecked.
+- **Archive the change** with the OpenSpec tooling (the `openspec-archive` / `/opsx:archive` flow). This validates the change, moves `openspec/changes/issue-<N>-<short-slug>/` into `openspec/changes/archive/`, and folds any spec deltas into the live `openspec/specs/`:
+
+```bash
+openspec validate "issue-<N>-<short-slug>"
+openspec archive "issue-<N>-<short-slug>" --yes
+```
+
+- Archiving touches **only OpenSpec markdown** (proposal/design/tasks/specs), not code, so it does **not** re-open the Codex code-review gate. Commit the archive result alongside the implementation so the PR carries the completed-and-archived spec. (If, while finalizing, you changed any *code*, re-run the Codex review per step 7 before pushing.)
+- If you fell back to a lightweight scratch spec in step 5 (no OpenSpec available), there is nothing to archive - skip this step and say so in the PR body.
+
+## 9. Open the PR
+
+Only after the local gate is green AND the **last action before pushing** was a Codex `adversarial-review` returning `verdict == "approve"` on the current HEAD (if you changed any *code* after the last review, re-review first; an OpenSpec archive of spec docs alone does not require re-review):
 
 ```bash
 git push -u origin <branch>
 gh pr create --base <default-branch> --title "<concise title>" --body "<body>"
 ```
 
-PR body MUST include: a change summary, a test plan, `Closes #<N>`, a note that Codex review passed, and any unfixed-finding justifications. Open it **ready for review** (not a draft). Append the "Generated with Claude Code" PR footer (from the harness/global instructions). Report the PR URL.
+PR body MUST include: a change summary, a test plan, `Closes #<N>`, a note that Codex review passed, a note that an OpenSpec change was created and archived (its archived path under `openspec/changes/archive/`), and any unfixed-finding justifications. Open it **ready for review** (not a draft). Append the "Generated with Claude Code" PR footer (from the harness/global instructions). Report the PR URL.
+
+## 10. Clean up the worktree
+
+Always remove the worktree created in step 6 once the run ends - whether you opened a PR or hit a STOP after the worktree existed. The pushed branch and the opened PR are unaffected by removing the worktree (the branch lives on the remote; the local branch just stops being checked out anywhere).
+
+```bash
+cd <main checkout>                         # leave the worktree dir first
+git worktree remove .claude/worktrees/issue-<N>
+# if it refuses due to leftover state and you are sure, add --force
+git worktree prune
+```
+
+Do this even on the email + STOP paths once a worktree exists. The only thing that should remain after a run is the remote branch/PR (on success) or nothing (on STOP) - never a leftover worktree.
 
 ## Rationalizations - STOP if you think any of these
 
@@ -200,8 +263,13 @@ PR body MUST include: a change summary, a test plan, `Closes #<N>`, a note that 
 | No working `codex` on any node | Email + STOP |
 | Can't determine a test/lint gate | Gate B decline (email + STOP) |
 | Load-bearing image won't render / repro unclear / no acceptance criteria | Gate A: email + STOP |
-| Out of scope / needs product call / duplicate / open PR exists / too risky | Gate B: email + STOP |
+| Already implemented on default branch | Gate B: comment + close issue (`--reason completed`) + email |
+| Out of scope / needs product call / open PR exists / too risky | Gate B: email + STOP (no issue comment, no close) |
 | Codex `needs-attention` | Fix real in-scope findings via TDD, re-review |
 | Codex errored / no verdict | Retry once, else email + STOP |
-| Codex still red after ~5 rounds | Email summary + STOP |
+| Codex still red after ~5 rounds | Email summary + STOP (then clean up worktree) |
+| Spec the work (step 5) | OpenSpec: `openspec new change "issue-<N>-<slug>"` → proposal/design/tasks |
+| Implementing (step 6+) | Work in a worktree at `.claude/worktrees/issue-<N>`; check off `tasks.md` as tests go green |
+| Implementation green (step 8) | Complete `tasks.md`, `openspec archive "issue-<N>-<slug>" --yes`, commit |
 | Local gate green AND fresh Codex `approve` | Push + open ready PR, report URL |
+| Run ends (PR opened OR any post-worktree STOP) | `git worktree remove .claude/worktrees/issue-<N>` |
