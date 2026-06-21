@@ -1,29 +1,37 @@
 # Tasks
 
-## 1. Tests (TDD - red first)
+## 1. VTIMEZONE generator (TDD)
 
-- [x] 1.1 Add a unit test asserting `convertToICalendar` emits a UTC `DTSTART`/`DTEND`
-  (trailing `Z`, no `TZID`, no `VALUE` param) for a timed event, and that the
-  emitted instant equals the input UTC instant.
-- [x] 1.2 Add a DST-spanning case (e.g. a summer and a winter instant) proving the
-  serialized UTC time is correct in both, independent of server timezone.
-- [x] 1.3 Add a regression case proving all-day events are unchanged
-  (`VALUE=DATE`, `YYYYMMDD`, no `Z`).
-- [x] 1.4 Add cases proving `RECURRENCE-ID` (single-instance update) and `EXDATE`
-  (single-instance delete) are emitted in UTC with a `Z` designator.
+- [x] 1.1 Add `src/lib/caldav-vtimezone.ts` building an RFC 5545 `VTIMEZONE` from
+  `Intl` timezone data (STANDARD/DAYLIGHT transitions + yearly RRULE), plus a
+  `zonedTime` helper that tags an instant with `TZID`.
+- [x] 1.2 Unit tests proving the generator is correct across DST boundaries and
+  hemispheres (NY, Shanghai no-DST, Kolkata, Sydney), and returns null for an
+  invalid zone.
 
-## 2. Fix
+## 2. Serializer fix (TDD)
 
-- [x] 2.1 In `convertToICalendar`, change the timed branch to
-  `ICAL.Time.fromJSDate(date, true)` for `DTSTART` and `DTEND`.
-- [x] 2.2 In `updateEvent`, change the `RECURRENCE-ID` value to
-  `ICAL.Time.fromJSDate(event.start, true)`.
-- [x] 2.3 In `deleteEvent`, change the `EXDATE` value to
-  `ICAL.Time.fromJSDate(event.start, true)`.
+- [x] 2.1 Tests: timed events with a known timezone emit `DTSTART;TZID` + a
+  matching VTIMEZONE; a recurring event keeps its wall-clock time across a DST
+  transition; no-timezone falls back to UTC `Z`; invalid timezone falls back to
+  UTC; all-day events stay `VALUE=DATE` with no VTIMEZONE.
+- [x] 2.2 In `convertToICalendar`, serialize the timed branch with `TZID` +
+  VTIMEZONE when a timezone is available, else UTC `Z`.
+- [x] 2.3 Add optional `timeZone` to `CalendarEventInput`; resolve it from the
+  event input or `UserSettings.timeZone` in `createEvent`/`updateEvent`.
 
-## 3. Verify
+## 3. RECURRENCE-ID / EXDATE value-type matching (TDD)
 
-- [x] 3.1 Run the new tests green.
-- [x] 3.2 `npm run type-check` clean.
-- [x] 3.3 `npm run lint` clean.
-- [x] 3.4 Update `CHANGELOG.md` under `[Unreleased] > Fixed`.
+- [x] 3.1 Tests (driven through real `deleteEvent` with prisma/fetch mocked):
+  timed master -> date-time EXDATE (`...Z`); all-day master -> floating
+  `VALUE=DATE` EXDATE with exactly one VALUE parameter.
+- [x] 3.2 Extract `buildInstanceReference` that reads the master DTSTART's value
+  type and emits a matching RECURRENCE-ID/EXDATE; use it in
+  `updateEvent`/`deleteEvent`.
+
+## 4. Verify
+
+- [x] 4.1 New tests green.
+- [x] 4.2 `npm run type-check` clean.
+- [x] 4.3 `npm run lint` clean.
+- [x] 4.4 Update `CHANGELOG.md` under `[Unreleased] > Fixed`.

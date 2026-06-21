@@ -2,7 +2,7 @@
 
 FluidCalendar stores calendar event `start`/`end` as `DateTime` columns
 (absolute UTC instants). When it pushes an event to a CalDAV server it serializes
-them with `ical.js`:
+them with `ical.js`. The original timed branch used:
 
 ```ts
 const startTime = ICAL.Time.fromJSDate(event.start, false); // bug
@@ -11,59 +11,77 @@ const startTime = ICAL.Time.fromJSDate(event.start, false); // bug
 `ICAL.Time.fromJSDate(date, useUTC)` reads the JS `Date`'s wall-clock components.
 With `useUTC = false` it copies the **local** (server-process timezone)
 components and marks the value as floating (no zone). The emitted line is e.g.
-`DTSTART:20250619T053000` (server in America/New_York) or
-`DTSTART:20250619T093000` (server in UTC) - in both cases with no `Z` and no
-`TZID`. RFC 5545 says a floating value "is interpreted in the time zone of the
-... user agent", so every client re-anchors it to its own zone, producing the
-reported N-hour shift.
+`DTSTART:20250619T093000` with no `Z` and no `TZID`. RFC 5545 says a floating
+value "is interpreted in the time zone of the ... user agent", so every client
+re-anchors it to its own zone, producing the reported N-hour shift.
 
 ## Goals / Non-Goals
 
-- Goal: timed events that FluidCalendar writes are interpreted at the same
-  absolute instant by every CalDAV client regardless of its timezone.
-- Goal: keep the fix minimal and consistent across all properties that encode a
-  timed instant (`DTSTART`, `DTEND`, `RECURRENCE-ID`, `EXDATE`).
-- Non-Goal: per-event `TZID` + embedded `VTIMEZONE`. The issue suggests this, but
-  it requires storing each event's intended display timezone (the schema has no
-  such column) and bundling timezone definitions. UTC with a `Z` designator is
-  equally unambiguous, is what the stored instant already represents, and is the
-  smallest correct change.
-- Non-Goal: changing all-day serialization (it must remain floating `VALUE=DATE`).
+- Goal: timed events that FluidCalendar writes are interpreted at the correct
+  wall-clock time by every CalDAV client regardless of its timezone.
+- Goal: recurring timed events keep their intended wall-clock time across DST
+  transitions (a fixed-UTC `DTSTART` + `RRULE` would drift by an hour).
+- Goal: keep the fix consistent across all properties that encode a timed
+  instant (`DTSTART`, `DTEND`, `RECURRENCE-ID`, `EXDATE`).
+- Non-Goal: changing all-day serialization (it must remain floating `VALUE=DATE`,
+  issue #100).
+- Non-Goal: a full IANA timezone database dependency - we derive the needed
+  `VTIMEZONE` transitions from the platform's `Intl` data.
 
 ## Decision
 
-Convert all timed instants with `ICAL.Time.fromJSDate(date, true)` so `ical.js`
-emits UTC date-time values with a trailing `Z`:
+Serialize timed instants with an **explicit timezone**:
 
-- `DTSTART` / `DTEND` in `convertToICalendar` (timed branch).
-- `RECURRENCE-ID` in `updateEvent` (single-instance edit).
-- `EXDATE` in `deleteEvent` (single-instance delete).
+- When the event's timezone is known (from the event input, else the user's
+  `UserSettings.timeZone`), emit `DTSTART;TZID=<zone>` / `DTEND;TZID=<zone>` and
+  add a matching `VTIMEZONE` subcomponent to the VCALENDAR. The wall-clock value
+  is the instant expressed in that zone (`zonedTime`), so clients show the same
+  wall-clock time the FluidCalendar UI shows, and recurring events keep that
+  wall-clock across DST.
+- When no timezone is known, fall back to UTC date-time via
+  `ICAL.Time.fromJSDate(date, true)` (trailing `Z`). This is unambiguous and
+  correct for single (non-recurring) events; only recurring-across-DST loses the
+  wall-clock guarantee, which is acceptable for the no-timezone fallback.
 
-`fromJSDate(date, true)` yields the UTC wall-clock of the same instant, so the
-output is independent of the server-process timezone - the fix works whether the
-container runs in UTC, Asia/Shanghai, or America/New_York, which is why the
-existing `TZ=...` workaround becomes unnecessary.
+`ical.js` ships no IANA database, so `src/lib/caldav-vtimezone.ts` builds the
+`VTIMEZONE` from `Intl.DateTimeFormat` offset lookups: it scans the reference
+year day-by-day, binary-searches each offset transition to the minute, and emits
+`STANDARD`/`DAYLIGHT` subcomponents with `YEARLY;BYMONTH;BYDAY` rules (or a single
+fixed `STANDARD` for zones without DST). `Intl` is used for offsets because it is
+exact at transition instants.
 
-### Why UTC `Z` and not `TZID=...`
+### Why TZID + VTIMEZONE (not UTC `Z` alone)
 
-| Option | Result | Cost |
-| --- | --- | --- |
-| `Z` (UTC) | unambiguous absolute instant, correct in all clients | one-arg change, no new data |
-| `TZID=Asia/...` + `VTIMEZONE` | also correct, shows event in its "home" zone | needs a stored per-event timezone + VTIMEZONE emission; not available |
+| Option | Single timed event | Recurring across DST | Cost |
+| --- | --- | --- | --- |
+| floating (old, bug) | wrong in other zones | wrong | - |
+| UTC `Z` | correct | drifts 1h after DST | tiny |
+| `TZID` + `VTIMEZONE` | correct, shows "home" wall-clock | correct | a VTIMEZONE builder |
 
-The stored value is already a UTC instant, so `Z` is the faithful representation.
+UTC `Z` is kept as the fallback when no timezone is available.
+
+### RECURRENCE-ID / EXDATE value-type matching
+
+`RECURRENCE-ID` (single-instance edit) and `EXDATE` (single-instance delete) must
+reference the master series' instances using the **same value type** as the
+master's `DTSTART`. The exception code now parses the fetched master VEVENT and,
+via `buildInstanceReference`, emits a `VALUE=DATE` value for an all-day master and
+a date-time value for a timed master. Previously it always emitted a date-time,
+so single-instance update/delete of an all-day recurring event could silently
+fail to match.
 
 ## Risks / Trade-offs
 
-- A client that previously "happened to be correct" only because both server and
-  client ran the same timezone as the floating value will now see the true UTC
-  instant - which is the correct behavior and matches what FluidCalendar's own UI
-  shows. Existing events already on the server are not rewritten by this change;
-  only newly created/updated events are affected (acceptable - same as any
-  serialization fix).
-- `RECURRENCE-ID`/`EXDATE` previously floating could fail to match server-side
-  master instances in non-UTC clients; emitting UTC makes them match the
-  (now UTC) `DTSTART` of the series. Low risk, strictly more correct.
+- The generated `VTIMEZONE` covers the reference (current) year's transitions with
+  yearly recurrence rules; historical rule changes are not modeled. This matches
+  how most clients emit `VTIMEZONE` and is sufficient for correct display.
+- A client that previously "happened to be correct" only because it shared the
+  server's timezone will now see the true intended instant - the correct behavior.
+  Existing events already on the server are not rewritten; only newly
+  created/updated events are affected (same as any serialization fix).
+- `RECURRENCE-ID`/`EXDATE` for a timed master are emitted in UTC, which is the
+  same absolute instant as a `TZID` master `DTSTART`; servers compare instants, so
+  this matches. A stricter `TZID`-tagged form is possible later (noted as a todo).
 
 ## Migration Plan
 
