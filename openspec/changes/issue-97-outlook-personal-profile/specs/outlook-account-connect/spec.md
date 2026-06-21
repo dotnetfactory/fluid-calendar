@@ -22,6 +22,21 @@ When connecting a Microsoft (Outlook) account, FluidCalendar SHALL determine the
 - **THEN** the connection fails with the `profile-fetch-failed` outcome
 - **AND** no account is stored
 
+### Requirement: Outlook is considered configured without a tenant ID
+
+FluidCalendar SHALL treat Outlook integration as configured when an Outlook client ID and client secret are present, regardless of whether a tenant ID is set. The tenant ID is optional (the OAuth flow defaults to the `common` tenant), so requiring it would disable the in-app "Connect Outlook" action for the documented personal-account setup.
+
+#### Scenario: Configured with client id and secret but no tenant id
+
+- **WHEN** the integration status is computed and the Outlook client ID and client secret are set but no tenant ID is configured
+- **THEN** Outlook is reported as configured
+- **AND** the in-app "Connect Outlook" action is enabled
+
+#### Scenario: Not configured when client id or secret is missing
+
+- **WHEN** the Outlook client ID or client secret is missing
+- **THEN** Outlook is reported as not configured
+
 ### Requirement: Outlook setup docs list the correct redirect URI
 
 The Outlook setup documentation SHALL instruct self-hosters to register the redirect URI `/api/calendar/outlook`, which is the path the Outlook connect callback actually uses, and SHALL NOT instruct registering `/api/auth/callback/azure-ad` or a `/api/calendar/outlook/callback` variant for Outlook calendar connect.

@@ -25,10 +25,13 @@ export async function GET(request: NextRequest) {
         ),
       },
       outlook: {
+        // Tenant ID is optional: getOutlookCredentials defaults the tenant to
+        // "common" and the OAuth endpoints are hardcoded to /common/, so a
+        // personal Microsoft account setup uses only client ID + secret. Don't
+        // require a tenant ID here or the Connect Outlook button stays disabled
+        // for the documented personal-account flow (issue #97).
         configured: !!(
-          settings?.outlookClientId &&
-          settings?.outlookClientSecret &&
-          settings?.outlookTenantId
+          settings?.outlookClientId && settings?.outlookClientSecret
         ),
       },
     });

@@ -9,7 +9,8 @@ Separately, the reporter first hit a `redirect_uri` mismatch (the rendered Micro
 ## What Changes
 
 - **Code fix:** In the Outlook connect callback, derive the account email from `userProfile.mail` and fall back to `userProfile.userPrincipalName` when `mail` is missing. Only treat the profile as failed when neither yields an email. This lets personal Microsoft accounts connect while leaving work/school accounts unchanged.
-- **Docs fix:** Correct the Outlook redirect URI in `README.md` (the Microsoft Outlook Setup section) and in `docs/_old/outlook.md` to the actual callback path `/api/calendar/outlook`, matching what the in-app System Settings panel already shows.
+- **Tenant-optional fix:** Stop requiring `outlookTenantId` in the integration-status check (`src/app/api/integration-status/route.ts`). Tenant ID is documented as optional (the OAuth flow defaults to the `common` tenant), but the check required it, which disabled the in-app "Connect Outlook" button for the documented personal-account setup. Outlook is now considered configured with just client ID + secret, matching the Google check.
+- **Docs fix:** Correct the Outlook redirect URI in `README.md` (the Microsoft Outlook Setup section), `docs/_old/outlook.md`, and `docs/self-hosting-setup-checklist.md` to the actual callback path `/api/calendar/outlook`, matching what the in-app System Settings panel already shows.
 - No schema change, no new dependency, no change to scopes or token handling.
 
 ## Capabilities
@@ -25,7 +26,8 @@ Separately, the reporter first hit a `redirect_uri` mismatch (the rendered Micro
 ## Impact
 
 - `src/app/api/calendar/outlook/route.ts` (email resolution in the connect callback).
-- `README.md` (Microsoft Outlook Setup redirect URI).
-- `docs/_old/outlook.md` (redirect URI line).
+- `src/lib/outlook.ts` (`resolveOutlookAccountEmail` helper + `MSGraphUser.mail` nullable).
+- `src/app/api/integration-status/route.ts` (Outlook no longer requires a tenant ID).
+- `README.md`, `docs/_old/outlook.md`, `docs/self-hosting-setup-checklist.md` (redirect URI).
 - `CHANGELOG.md` (`[unreleased]` entry).
 - No API surface, schema, or scope changes.

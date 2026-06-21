@@ -8,10 +8,16 @@
 - [x] 2.1 Add a small exported helper that resolves the account email from a `{ mail, userPrincipalName }` profile (`mail ?? userPrincipalName`, empty-string-safe)
 - [x] 2.2 Update `src/app/api/calendar/outlook/route.ts` to use the helper: compute `email` once, redirect to `profile-fetch-failed` only when it is empty, and pass `email` to `tokenManager.storeTokens`
 
-## 3. Docs
+## 3. Tenant-optional connect
+
+- [x] 3.0a Add a Jest test asserting integration-status reports Outlook configured with client id + secret and no tenant id (and not configured when id/secret missing)
+- [x] 3.0b Drop the `outlookTenantId` requirement in `src/app/api/integration-status/route.ts` so the Connect Outlook button is enabled for the documented personal-account setup
+
+## 3b. Docs
 
 - [x] 3.1 Correct the redirect URI in the `README.md` Microsoft Outlook Setup section to `/api/calendar/outlook` (dev + production examples)
 - [x] 3.2 Correct the redirect URI in `docs/_old/outlook.md` to `/api/calendar/outlook` (drop the trailing `/callback`)
+- [x] 3.3 Correct the redirect URI in `docs/self-hosting-setup-checklist.md` to `/api/calendar/outlook` and broaden the docs test to guard all setup docs
 
 ## 4. Changelog
 
