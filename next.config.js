@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Expose the package version to the client so the UI can display it.
+  // package.json stays the single source of truth for the version.
+  env: {
+    NEXT_PUBLIC_APP_VERSION: require("./package.json").version,
+  },
+
   // Disable all development indicators
   devIndicators: false,
 
