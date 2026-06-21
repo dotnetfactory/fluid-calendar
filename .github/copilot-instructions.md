@@ -40,9 +40,10 @@ Run a single test with `npx jest path/to/file.test.ts` or `npx jest -t "name"`.
 2. `npm run lint` - **zero warnings** (CI fails on any warning)
 3. `npm run test:unit` - green
 
-Do **not** run `npm run format` (it rewrites the whole repo); rely on prettier via
-lint-staged for changed files. Husky's pre-commit runs `lint-staged` (eslint
-zero-warnings + prettier + type-check on staged files).
+Do **not** run `npm run format` (it rewrites the whole repo); rely on your editor's
+Prettier integration for changed files. Husky's pre-commit hook runs `npm run lint`
+and `npm run type-check`; a `lint-staged` config (eslint zero-warnings + prettier +
+type-check on staged files) also exists in `package.json`.
 
 ## Architecture
 
