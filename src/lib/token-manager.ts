@@ -102,20 +102,29 @@ export class TokenManager {
     },
     userId: string
   ): Promise<string> {
-    const account = await prisma.connectedAccount.upsert({
-      where: {
-        userId_provider_email: {
-          userId,
-          provider,
-          email,
+    // Look up any existing OAuth account for this (userId, provider, email).
+    // We intentionally do not use a named composite unique input here: the
+    // ConnectedAccount uniqueness key includes caldavUrl (NULLS NOT DISTINCT)
+    // so multiple CalDAV servers can be connected, and OAuth rows (caldavUrl is
+    // null) remain one-per-(userId, provider, email).
+    const existing = await prisma.connectedAccount.findFirst({
+      where: { userId, provider, email },
+    });
+
+    if (existing) {
+      const updated = await prisma.connectedAccount.update({
+        where: { id: existing.id },
+        data: {
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          expiresAt: tokens.expiresAt,
         },
-      },
-      update: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        expiresAt: tokens.expiresAt,
-      },
-      create: {
+      });
+      return updated.id;
+    }
+
+    const created = await prisma.connectedAccount.create({
+      data: {
         provider,
         email,
         accessToken: tokens.accessToken,
@@ -125,7 +134,7 @@ export class TokenManager {
       },
     });
 
-    return account.id;
+    return created.id;
   }
 
   async refreshOutlookTokens(

@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
@@ -136,6 +137,27 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ success: true, accountId: account.id });
     } catch (error) {
+      // A unique-constraint violation here means this exact CalDAV server +
+      // username is already connected for this user (a genuine duplicate).
+      // Surface a clear conflict instead of a misleading "credentials" error.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        logger.warn(
+          "CalDAV server already connected for this user",
+          { serverUrl, username },
+          LOG_SOURCE
+        );
+        return NextResponse.json(
+          {
+            error:
+              "This CalDAV server is already connected for this account.",
+          },
+          { status: 409 }
+        );
+      }
+
       logger.error(
         "Error connecting to CalDAV server",
         {
