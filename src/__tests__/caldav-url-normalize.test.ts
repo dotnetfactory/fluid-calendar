@@ -58,6 +58,12 @@ describe("normalizeCalDAVServerUrl", () => {
     );
   });
 
+  it("adds the root path for a host-only URL with a query", () => {
+    expect(normalizeCalDAVServerUrl("https://Server.example.com?principal=1")).toBe(
+      "https://server.example.com/?principal=1"
+    );
+  });
+
   it("keeps distinct servers distinct", () => {
     expect(normalizeCalDAVServerUrl("https://a.example.com")).not.toBe(
       normalizeCalDAVServerUrl("https://b.example.com")
