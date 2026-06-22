@@ -34,6 +34,9 @@
 - [x] 2b.2 Add `src/components/settings/available-calendars-error.ts` and wire
   `AvailableCalendars.tsx` to set/render an error state (with retry) from a
   non-OK available-calendars response instead of the generic empty state.
+- [x] 2b.3 Also surface the classified error when the add-calendar POST fails
+  (the click handler previously swallowed it), reusing the helper with a
+  "Failed to add calendar" fallback.
 
 ## 3. Verify
 

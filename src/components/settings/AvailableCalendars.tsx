@@ -75,6 +75,7 @@ export function AvailableCalendars({ accountId, provider }: Props) {
     async (calendar: AvailableCalendar) => {
       try {
         setAddingCalendars((prev) => new Set(prev).add(calendar.id));
+        setErrorMessage(null);
         let endpoint;
 
         switch (provider) {
@@ -104,7 +105,14 @@ export function AvailableCalendars({ accountId, provider }: Props) {
           }),
         });
 
-        if (!response.ok) throw new Error("Failed to add calendar");
+        if (!response.ok) {
+          // Surface the server's classified error (e.g. the CalDAV
+          // connection-vs-auth message) so a failed add is not silent.
+          setErrorMessage(
+            await extractCalendarFetchError(response, "Failed to add calendar")
+          );
+          return;
+        }
 
         // Remove from available list
         setCalendars((prev) =>
@@ -120,6 +128,7 @@ export function AvailableCalendars({ accountId, provider }: Props) {
         );
       } catch (error) {
         console.error("Failed to add calendar:", error);
+        setErrorMessage("Failed to add calendar");
       } finally {
         setAddingCalendars((prev) => {
           const next = new Set(prev);

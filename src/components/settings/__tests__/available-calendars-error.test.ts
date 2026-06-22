@@ -38,4 +38,22 @@ describe("extractCalendarFetchError", () => {
       "Failed to load available calendars"
     );
   });
+
+  it("uses a provided fallback message (e.g. for the add-calendar action)", async () => {
+    const response = { json: async () => ({}) } as Response;
+
+    await expect(
+      extractCalendarFetchError(response, "Failed to add calendar")
+    ).resolves.toBe("Failed to add calendar");
+  });
+
+  it("still prefers the server error over a provided fallback", async () => {
+    const response = {
+      json: async () => ({ error: "Could not connect to the CalDAV server." }),
+    } as Response;
+
+    await expect(
+      extractCalendarFetchError(response, "Failed to add calendar")
+    ).resolves.toBe("Could not connect to the CalDAV server.");
+  });
 });
