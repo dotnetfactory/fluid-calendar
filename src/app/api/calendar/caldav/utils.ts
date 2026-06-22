@@ -73,6 +73,44 @@ export function formatAbsoluteUrl(baseUrl: string, path?: string): string {
 }
 
 /**
+ * Canonicalizes a CalDAV server URL so trivial textual variants of the same
+ * endpoint (case in scheme/host, default ports, a trailing slash) collapse to
+ * one value. This is the value stored in `caldavUrl` and used as part of the
+ * account uniqueness key, so canonicalizing it makes the duplicate-account
+ * guard robust against e.g. `https://Host.com/` vs `https://host.com`. The
+ * path is preserved as-is (CalDAV paths can be case-sensitive) apart from a
+ * single trailing slash. If the input is not a parseable URL it is returned
+ * trimmed and unchanged so we never reject an otherwise-working server.
+ */
+export function normalizeCalDAVServerUrl(url: string): string {
+  const trimmed = url.trim();
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return trimmed;
+  }
+
+  parsed.protocol = parsed.protocol.toLowerCase();
+  parsed.hostname = parsed.hostname.toLowerCase();
+
+  // Drop redundant default ports.
+  if (
+    (parsed.protocol === "https:" && parsed.port === "443") ||
+    (parsed.protocol === "http:" && parsed.port === "80")
+  ) {
+    parsed.port = "";
+  }
+
+  // Strip a single trailing slash from the path (but keep root "/").
+  if (parsed.pathname.length > 1 && parsed.pathname.endsWith("/")) {
+    parsed.pathname = parsed.pathname.replace(/\/+$/, "");
+  }
+
+  return parsed.toString();
+}
+
+/**
  * Creates a DAVClient instance for CalDAV operations
  * @param serverUrl The CalDAV server URL
  * @param username The username for authentication

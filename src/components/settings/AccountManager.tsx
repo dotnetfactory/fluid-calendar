@@ -171,6 +171,15 @@ export function AccountManager() {
                         <span className="text-sm font-medium">
                           {account.email}
                         </span>
+                        {account.provider === "CALDAV" &&
+                          account.caldavUrl && (
+                            <span
+                              className="text-muted-foreground max-w-full truncate text-xs"
+                              title={account.caldavUrl}
+                            >
+                              {account.caldavUrl}
+                            </span>
+                          )}
                         <Badge variant="outline" className="text-xs">
                           {account.calendars.length} calendars
                         </Badge>

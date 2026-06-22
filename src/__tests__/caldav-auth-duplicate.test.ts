@@ -21,6 +21,7 @@ jest.mock("@/app/api/calendar/caldav/utils", () => ({
   formatAbsoluteUrl: jest.fn((serverUrl: string) => serverUrl),
   handleFastmailPath: jest.fn(() => undefined),
   loginToCalDAVServer: jest.fn(),
+  normalizeCalDAVServerUrl: jest.fn((url: string) => url),
 }));
 jest.mock("@/lib/logger", () => ({
   logger: {

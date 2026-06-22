@@ -11,6 +11,7 @@ import {
   formatAbsoluteUrl,
   handleFastmailPath,
   loginToCalDAVServer,
+  normalizeCalDAVServerUrl,
 } from "../utils";
 
 const LOG_SOURCE = "CalDAVAuth";
@@ -112,10 +113,13 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Successfully connected, add the account to the database
-      const fullUrl = caldavPath
-        ? formatAbsoluteUrl(serverUrl, caldavPath)
-        : serverUrl;
+      // Successfully connected, add the account to the database. Canonicalize
+      // the stored URL so trivial textual variants of the same server collapse
+      // to one value - this URL is part of the account uniqueness key, so it
+      // keeps the duplicate guard from being bypassed by e.g. a trailing slash.
+      const fullUrl = normalizeCalDAVServerUrl(
+        caldavPath ? formatAbsoluteUrl(serverUrl, caldavPath) : serverUrl
+      );
 
       const account = await prisma.connectedAccount.create({
         data: {
