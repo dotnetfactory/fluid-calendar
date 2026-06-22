@@ -612,6 +612,10 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         if (!response.ok) {
           throw new Error("Failed to delete event from CalDAV Calendar");
         }
+      } else if (feed.type === "ICAL") {
+        // iCal subscriptions are read-only mirrors of an external document;
+        // deleting locally would only be undone on the next sync.
+        throw new Error("iCal subscriptions are read-only");
       } else {
         // For other calendars, use the existing API
         const response = await fetch(`/api/events/${id}`, {

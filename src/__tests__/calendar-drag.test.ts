@@ -1,5 +1,5 @@
 import { computeDropUpdate, DragChange } from "@/lib/calendar-drag";
-import { getEventEditability } from "@/lib/calendar-drag";
+import { getEventEditability, isWritableFeedType } from "@/lib/calendar-drag";
 import { CalendarEvent, CalendarFeed } from "@/types/calendar";
 
 const googleFeed: CalendarFeed = {
@@ -221,5 +221,24 @@ describe("getEventEditability", () => {
       kind: "blocked",
       reason: "This calendar is read-only",
     });
+  });
+});
+
+describe("isWritableFeedType", () => {
+  it("treats Google/Outlook/CalDAV as writable", () => {
+    expect(isWritableFeedType("GOOGLE")).toBe(true);
+    expect(isWritableFeedType("OUTLOOK")).toBe(true);
+    expect(isWritableFeedType("CALDAV")).toBe(true);
+  });
+
+  it("treats iCal subscriptions as read-only", () => {
+    // The server event routes branch on this to reject create/update/delete.
+    expect(isWritableFeedType("ICAL")).toBe(false);
+  });
+
+  it("treats unknown/missing types as read-only", () => {
+    expect(isWritableFeedType("LOCAL")).toBe(false);
+    expect(isWritableFeedType(null)).toBe(false);
+    expect(isWritableFeedType(undefined)).toBe(false);
   });
 });

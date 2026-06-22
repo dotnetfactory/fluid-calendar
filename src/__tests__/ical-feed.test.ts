@@ -1,4 +1,6 @@
 import {
+  assertSafeIcalHost,
+  expandIcalEvents,
   fetchIcalEvents,
   normalizeIcalUrl,
   parseIcalEvents,
@@ -153,11 +155,112 @@ describe("parseIcalEvents", () => {
   });
 
   it("does not carry DB-level recurrence instance linkage", () => {
-    // ICS masters expand at render time; we must not persist masterEventId that
-    // would point at a non-existent row (FK violation on insert).
+    // Instances are materialized standalone (no self-FK), so masterEventId must
+    // be null to avoid an FK violation on insert.
     const events = parseIcalEvents(RECURRING_EVENT_ICS);
     expect(events[0].masterEventId).toBeNull();
     expect(events[0].recurringEventId).toBeNull();
+  });
+});
+
+describe("expandIcalEvents", () => {
+  const windowStart = new Date("2026-01-01T00:00:00.000Z");
+  const windowEnd = new Date("2026-02-28T00:00:00.000Z");
+
+  it("leaves a one-off event unchanged", () => {
+    const parsed = parseIcalEvents(SINGLE_EVENT_ICS);
+    const expanded = expandIcalEvents(parsed, windowStart, windowEnd);
+    expect(expanded).toHaveLength(1);
+    expect(expanded[0].isMaster).toBe(false);
+    expect(expanded[0].title).toBe("Single Event");
+  });
+
+  it("materializes recurring occurrences within the window as renderable rows", () => {
+    const parsed = parseIcalEvents(RECURRING_EVENT_ICS); // weekly Mondays from 2026-01-05
+    const expanded = expandIcalEvents(parsed, windowStart, windowEnd);
+
+    const master = expanded.filter((e) => e.isMaster);
+    const instances = expanded.filter((e) => !e.isMaster);
+
+    // A master row is kept (preserves recurrence metadata) but is skipped at
+    // render time; the instances are what actually render.
+    expect(master).toHaveLength(1);
+    expect(master[0].recurrenceRule).toContain("FREQ=WEEKLY");
+
+    // Mondays Jan 5..Feb 23 2026 = 8 occurrences.
+    expect(instances.length).toBeGreaterThanOrEqual(7);
+    instances.forEach((inst) => {
+      expect(inst.isMaster).toBe(false);
+      expect(inst.isRecurring).toBe(false);
+      expect(inst.masterEventId).toBeNull();
+      expect(inst.title).toBe("Weekly Standup");
+      expect(inst.start.getTime()).toBeGreaterThanOrEqual(windowStart.getTime());
+      expect(inst.start.getTime()).toBeLessThanOrEqual(windowEnd.getTime());
+    });
+  });
+
+  it("preserves each occurrence's duration", () => {
+    const parsed = parseIcalEvents(RECURRING_EVENT_ICS); // 30-min events
+    const expanded = expandIcalEvents(parsed, windowStart, windowEnd);
+    const instance = expanded.find((e) => !e.isMaster)!;
+    expect(instance.end.getTime() - instance.start.getTime()).toBe(30 * 60_000);
+  });
+
+  it("keeps a master with an unparseable rule as a single fallback row", () => {
+    const parsed = parseIcalEvents(RECURRING_EVENT_ICS);
+    // Corrupt the rule so RRule.fromString throws.
+    parsed[0].recurrenceRule = "NOT-A-VALID-RULE";
+    const expanded = expandIcalEvents(parsed, windowStart, windowEnd);
+    // Falls back to keeping the original event so it isn't silently dropped.
+    expect(expanded.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("assertSafeIcalHost", () => {
+  it("allows ordinary public hostnames", () => {
+    expect(() =>
+      assertSafeIcalHost(new URL("https://calendar.example.com/cal.ics"))
+    ).not.toThrow();
+  });
+
+  it("rejects localhost", () => {
+    expect(() =>
+      assertSafeIcalHost(new URL("http://localhost/cal.ics"))
+    ).toThrow();
+    expect(() =>
+      assertSafeIcalHost(new URL("http://LOCALHOST:8080/cal.ics"))
+    ).toThrow();
+  });
+
+  it("rejects loopback IPs", () => {
+    expect(() =>
+      assertSafeIcalHost(new URL("http://127.0.0.1/cal.ics"))
+    ).toThrow();
+    expect(() => assertSafeIcalHost(new URL("http://[::1]/cal.ics"))).toThrow();
+  });
+
+  it("rejects private IPv4 ranges", () => {
+    expect(() =>
+      assertSafeIcalHost(new URL("http://10.0.0.5/cal.ics"))
+    ).toThrow();
+    expect(() =>
+      assertSafeIcalHost(new URL("http://192.168.1.10/cal.ics"))
+    ).toThrow();
+    expect(() =>
+      assertSafeIcalHost(new URL("http://172.16.5.5/cal.ics"))
+    ).toThrow();
+  });
+
+  it("rejects link-local and cloud metadata addresses", () => {
+    expect(() =>
+      assertSafeIcalHost(new URL("http://169.254.169.254/latest/meta-data/"))
+    ).toThrow();
+  });
+
+  it("rejects the .internal TLD", () => {
+    expect(() =>
+      assertSafeIcalHost(new URL("http://metadata.internal/cal.ics"))
+    ).toThrow();
   });
 });
 

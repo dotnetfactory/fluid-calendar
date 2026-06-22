@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { newDate } from "@/lib/date-utils";
-import { fetchIcalEvents } from "@/lib/ical-feed";
+import { expandIcalEvents, fetchIcalEvents } from "@/lib/ical-feed";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+
+// Window around "now" to materialize recurring occurrences at sync time.
+const EXPAND_PAST_MS = 366 * 24 * 60 * 60 * 1000; // ~1 year back
+const EXPAND_FUTURE_MS = 2 * 366 * 24 * 60 * 60 * 1000; // ~2 years ahead
 
 const LOG_SOURCE = "ICalFeedSyncAPI";
 
@@ -58,7 +62,15 @@ export async function PUT(
     // Fetch + parse first; on failure we leave existing events untouched.
     let events;
     try {
-      events = await fetchIcalEvents(feed.url);
+      const parsed = await fetchIcalEvents(feed.url);
+      // Materialize recurring occurrences within a bounded window so they
+      // render (the calendar render path does not expand masters).
+      const now = newDate();
+      events = expandIcalEvents(
+        parsed,
+        new Date(now.getTime() - EXPAND_PAST_MS),
+        new Date(now.getTime() + EXPAND_FUTURE_MS)
+      );
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to sync iCal feed";

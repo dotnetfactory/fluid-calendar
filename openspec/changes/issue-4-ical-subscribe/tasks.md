@@ -26,4 +26,9 @@
 
 ## 7. Gate + docs
 - [x] 7.1 Add a CHANGELOG `[Unreleased]` entry under Added referencing #4
-- [x] 7.2 Run the local gate: `npm run test:unit`, `npm run type-check`, `npm run lint` (all green; pre-existing google-* timezone suite failures ignored)
+- [x] 7.2 Run the local gate: `npm run test:unit`, `npm run type-check`, `npm run lint` (all green; pre-existing google-* test suites and a pre-existing token-manager type error on origin/main are ignored)
+
+## 8. Codex review round 1 fixes (verdict needs-attention -> 3 HIGH findings)
+- [x] 8.1 SSRF/resource hardening in `fetchIcalEvents`: block loopback/private/link-local/metadata hosts (literal IPs + DNS resolution via `assertSafeIcalHost`/`assertResolvedHostSafe`), manual redirect re-validation, `AbortController` timeout, streamed byte cap; unit tests for `assertSafeIcalHost`
+- [x] 8.2 Recurring events render: add `expandIcalEvents` to materialize occurrence rows at sync time (the render path does not expand masters); wire into the sync route; unit tests for expansion
+- [x] 8.3 Read-only enforced on delete: add `ICAL` rejection in store `removeEvent`; add server-side `isWritableFeedType` guards (403) to `/api/events` POST/PATCH/DELETE and `/api/events/[id]` PATCH/DELETE; unit tests for `isWritableFeedType`
