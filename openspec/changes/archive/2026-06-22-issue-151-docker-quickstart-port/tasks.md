@@ -11,7 +11,7 @@
 
 ## 3. Docs + changelog
 
-- [x] 3.1 Add a short note to the README Docker quick-start that the container port is fixed at 3000 by compose and that setting `PORT` in `.env` does not change the published port (to use a different host port, change the host side of the `ports` mapping)
+- [x] 3.1 Add a short note to the README Docker quick-start that the container bind target is fixed at `0.0.0.0:3000` by compose and that setting `PORT`/`HOSTNAME` in `.env` does not change where the app binds (to use a different host port, change the host side of the `ports` mapping AND update `NEXTAUTH_URL`/browser-facing URLs to the same origin)
 - [x] 3.2 Add a `CHANGELOG.md` entry under `[unreleased]` for the Docker quick-start port fix
 
 ## 4. Verify
