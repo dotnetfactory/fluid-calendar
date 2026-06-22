@@ -50,7 +50,7 @@ export interface SyncResult {
   updated: number;
   deleted: number;
   skipped: number;
-  direction: "bidirectional";
+  direction: "bidirectional" | "incoming";
   errors: { taskId: string; error: string }[];
 }
 

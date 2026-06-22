@@ -64,6 +64,14 @@ export class CalDAVTaskProvider implements TaskProviderInterface {
   }
 
   /**
+   * CalDAV task import is one-way: this provider does not push local changes
+   * back to the server, so the sync engine runs an incoming-only path.
+   */
+  supportsWriteBack(): boolean {
+    return false;
+  }
+
+  /**
    * Creates and caches the CalDAV client, mirroring the calendar service's
    * Basic-auth setup (the account's access token is used as the password).
    */

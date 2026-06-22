@@ -178,14 +178,22 @@ export class TaskSyncManager {
       // Get the tracker instance
       const tracker = new TaskChangeTracker();
 
-      // Implement true bidirectional sync
-      await this.syncBidirectional(
-        provider,
-        mapping,
-        result,
-        fieldMapper,
-        tracker
-      );
+      // Import-only providers (e.g. CalDAV) cannot accept write-back, so run an
+      // incoming-only path that pulls external -> local and never pushes local
+      // changes or deletes local tasks based on a possibly-partial external read.
+      if (provider.supportsWriteBack?.() === false) {
+        result.direction = "incoming";
+        await this.syncIncomingOnly(provider, mapping, result, fieldMapper);
+      } else {
+        // Implement true bidirectional sync
+        await this.syncBidirectional(
+          provider,
+          mapping,
+          result,
+          fieldMapper,
+          tracker
+        );
+      }
 
       // Update the mapping with success status
       await prisma.taskListMapping.update({
@@ -297,6 +305,131 @@ export class TaskSyncManager {
       );
 
       throw error;
+    }
+  }
+
+  /**
+   * Incoming-only sync for import-only providers (e.g. CalDAV, GitHub issue
+   * #144). Pulls external tasks into the local project: updates linked local
+   * tasks from their external counterpart and creates local tasks for new
+   * external ones. It deliberately does NOT push local changes to the external
+   * service and does NOT delete local tasks that are absent from the external
+   * read - a transient or partial read must never destroy previously imported
+   * data, and the provider cannot accept write-back anyway.
+   *
+   * @param provider The (import-only) task provider
+   * @param mapping The task list mapping
+   * @param result The sync result tracker
+   * @param fieldMapper The field mapper for this provider type
+   */
+  private async syncIncomingOnly(
+    provider: TaskProviderInterface,
+    mapping: TaskListMapping & { provider: DbTaskProvider },
+    result: SyncResult,
+    fieldMapper: FieldMapper
+  ): Promise<void> {
+    const tracker = new TaskChangeTracker();
+
+    // Local tasks already linked to this provider, keyed by external id.
+    const localTasks = (await prisma.task.findMany({
+      where: { projectId: mapping.projectId },
+      include: { tags: true, project: true },
+    })) as unknown as TaskWithSync[];
+
+    const localTaskByExternalId = new Map(
+      localTasks
+        .filter((t) => t.externalTaskId && t.source === mapping.provider.type)
+        .map((t) => [t.externalTaskId as string, t])
+    );
+
+    const externalTasks = await provider.getTasks(mapping.externalListId);
+
+    for (const externalTask of externalTasks) {
+      try {
+        const localTask = localTaskByExternalId.get(externalTask.id);
+
+        if (localTask) {
+          // Update the existing local task from the external version, preserving
+          // local-owned fields via the field mapper's merge rules.
+          const mappedExternalTask = fieldMapper.mapToInternalTask(
+            externalTask,
+            mapping.projectId
+          );
+          const mergedData = fieldMapper.mergeTaskData(
+            localTask,
+            mappedExternalTask
+          );
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { tags, project, ...updateData } = mergedData;
+
+          await prisma.task.update({
+            where: { id: localTask.id },
+            data: {
+              ...updateData,
+              externalUpdatedAt: externalTask.lastModified
+                ? newDate(externalTask.lastModified)
+                : externalTask.lastModifiedDateTime
+                  ? newDate(externalTask.lastModifiedDateTime)
+                  : new Date(),
+              lastSyncedAt: newDate(),
+              syncStatus: "SYNCED",
+              syncHash: tracker.generateTaskHash(localTask),
+            },
+          });
+
+          result.updated++;
+        } else {
+          // Create a new local task for this external task.
+          const internalTask = fieldMapper.mapToInternalTask(
+            externalTask,
+            mapping.projectId
+          );
+
+          await prisma.task.create({
+            data: {
+              title: internalTask.title || "Untitled Task",
+              description: internalTask.description,
+              status: internalTask.status || TaskStatus.TODO,
+              dueDate: internalTask.dueDate,
+              startDate: internalTask.startDate,
+              duration: internalTask.duration,
+              priority: internalTask.priority,
+              energyLevel: internalTask.energyLevel,
+              preferredTime: internalTask.preferredTime,
+              isRecurring: internalTask.isRecurring || false,
+              recurrenceRule: internalTask.recurrenceRule,
+              isAutoScheduled: mapping.isAutoScheduled,
+              scheduleLocked: false,
+              source: mapping.provider.type,
+              externalListId: mapping.externalListId,
+              externalTaskId: externalTask.id,
+              lastSyncedAt: newDate(),
+              syncStatus: "SYNCED",
+              userId: mapping.provider.userId,
+              projectId: mapping.projectId,
+              externalUpdatedAt: externalTask.lastModified
+                ? newDate(externalTask.lastModified)
+                : externalTask.lastModifiedDateTime
+                  ? newDate(externalTask.lastModifiedDateTime)
+                  : new Date(),
+              syncHash: tracker.generateTaskHash({
+                title: internalTask.title,
+                description: internalTask.description,
+                status: internalTask.status,
+                dueDate: internalTask.dueDate,
+              }),
+            },
+          });
+
+          result.imported++;
+        }
+      } catch (error) {
+        result.errors.push({
+          taskId: externalTask.id,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+        result.skipped++;
+      }
     }
   }
 
