@@ -28,6 +28,21 @@ export interface AgendaEvent {
 }
 
 /**
+ * Decide the delete mode for an event deleted from the agenda quick view.
+ *
+ * Deleting a single visible row must never escalate to wiping the whole
+ * recurring series: an expanded occurrence is `isRecurring: true` but is not
+ * the master, so it must delete as `"single"`. Only the recurring master
+ * (`isMaster: true`) deletes as `"series"`. Non-recurring events delete as
+ * `"single"`.
+ */
+export function resolveEventDeleteMode(
+  event: Pick<CalendarEvent, "isRecurring" | "isMaster">
+): "single" | "series" {
+  return event.isRecurring && event.isMaster ? "series" : "single";
+}
+
+/**
  * Format the merged calendar items (events + tasks-as-events from
  * `getAllCalendarItems`) into the FullCalendar event shape the Agenda view
  * renders, applying the same enabled-feed filtering the other views use and

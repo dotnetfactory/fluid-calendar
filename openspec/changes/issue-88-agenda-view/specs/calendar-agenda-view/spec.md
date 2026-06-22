@@ -27,3 +27,7 @@ The calendar SHALL provide an "Agenda" view that displays calendar events and sc
 #### Scenario: Navigation steps by week
 - **WHEN** the Agenda view is active and the user clicks the header next/previous navigation
 - **THEN** the agenda range advances or retreats by one week (consistent with the Week view), not by a month
+
+#### Scenario: Deleting a recurring occurrence does not delete the whole series
+- **WHEN** the user deletes a recurring event occurrence from the Agenda quick view that is an expanded instance (not the recurring master)
+- **THEN** only that occurrence is deleted (delete mode `single`), and the rest of the series is left intact; only deleting the recurring master deletes the series

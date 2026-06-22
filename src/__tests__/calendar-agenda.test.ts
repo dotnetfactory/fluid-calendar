@@ -1,4 +1,4 @@
-import { formatAgendaItems } from "@/lib/calendar-agenda";
+import { formatAgendaItems, resolveEventDeleteMode } from "@/lib/calendar-agenda";
 
 import { CalendarEvent, CalendarFeed } from "@/types/calendar";
 
@@ -168,5 +168,28 @@ describe("formatAgendaItems", () => {
     const result = formatAgendaItems([later, earlier], feeds);
 
     expect(result.map((r) => r.id)).toEqual(["earlier", "later"]);
+  });
+});
+
+describe("resolveEventDeleteMode", () => {
+  it("returns 'single' for a non-recurring event", () => {
+    const event = makeItem({ isRecurring: false });
+    expect(resolveEventDeleteMode(event)).toBe("single");
+  });
+
+  it("returns 'single' for a recurring occurrence (instance row, not the master)", () => {
+    // An expanded occurrence is recurring but is NOT the master; deleting it
+    // must remove only that occurrence, never the whole series.
+    const occurrence = makeItem({
+      isRecurring: true,
+      isMaster: false,
+      masterEventId: "master-1",
+    });
+    expect(resolveEventDeleteMode(occurrence)).toBe("single");
+  });
+
+  it("returns 'series' only for the recurring master event", () => {
+    const master = makeItem({ isRecurring: true, isMaster: true });
+    expect(resolveEventDeleteMode(master)).toBe("series");
   });
 });

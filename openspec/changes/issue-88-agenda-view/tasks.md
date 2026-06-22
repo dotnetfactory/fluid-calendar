@@ -7,6 +7,7 @@
 
 - [x] 2.1 Add `@fullcalendar/list` to `package.json` at the same `6.1.x` version as the other `@fullcalendar/*` packages
 - [x] 2.2 Create `src/components/calendar/AgendaView.tsx` using `listPlugin` (`initialView="listWeek"`), reusing `getAllCalendarItems` + `formatAgendaItems`, feed/task data loading, `EventQuickView` on click, `noEventsContent` empty state, and time formats from user settings (mirroring `DayView.tsx` patterns)
+- [x] 2.3 Add `resolveEventDeleteMode` (TDD) so deleting a recurring occurrence from the agenda quick view deletes only that occurrence (`single`) and never escalates an expanded instance to a whole-series delete; only the recurring master deletes as `series` (fixes Codex review finding)
 
 ## 3. Wire into the calendar header
 

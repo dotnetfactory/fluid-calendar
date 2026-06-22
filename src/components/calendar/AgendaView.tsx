@@ -7,7 +7,11 @@ import FullCalendar from "@fullcalendar/react";
 
 import { TaskModal } from "@/components/tasks/TaskModal";
 
-import { AgendaEvent, formatAgendaItems } from "@/lib/calendar-agenda";
+import {
+  AgendaEvent,
+  formatAgendaItems,
+  resolveEventDeleteMode,
+} from "@/lib/calendar-agenda";
 
 import { useCalendarStore } from "@/store/calendar";
 import { useSettingsStore } from "@/store/settings";
@@ -152,9 +156,11 @@ export function AgendaView({ currentDate }: AgendaViewProps) {
       }
     } else {
       if (confirm("Are you sure you want to delete this event?")) {
+        // Delete only the clicked occurrence unless it is the recurring master;
+        // never escalate a single visible row to a whole-series delete.
         await removeEvent(
           quickViewItem.id,
-          quickViewItem.isRecurring ? "series" : "single"
+          resolveEventDeleteMode(quickViewItem as CalendarEvent)
         );
         handleQuickViewClose();
       }
