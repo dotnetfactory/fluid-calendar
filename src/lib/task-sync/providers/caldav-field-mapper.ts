@@ -100,6 +100,22 @@ export class CalDAVFieldMapper extends FieldMapper {
         // External-owned on import: a removed VTODO RRULE clears the local rule.
         preserveLocalValue: false,
       },
+      {
+        internalField: "startDate",
+        externalField: "startDate",
+        // Start date is a LOCAL-owned field (see task-sync/README.md and
+        // CLAUDE.md): it must never be overwritten by the server. The base
+        // mapper's preserveLocalValue:true only skips a null incoming value, so
+        // a non-null VTODO DTSTART would still clobber the user's local start
+        // date during merge. Force the incoming value to undefined so it is
+        // always skipped, preserving the local start date on every import.
+        // todo: the base FieldMapper (and the Outlook provider, which feeds a
+        // non-null external startDate) share this "overwrite local-owned field
+        // when external is non-null" gap; fix it at the framework level so all
+        // providers honor the local-owned contract, then drop this override.
+        preserveLocalValue: true,
+        transformToInternal: () => undefined,
+      },
     ];
 
     super(caldavMappings);

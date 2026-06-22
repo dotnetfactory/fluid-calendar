@@ -146,4 +146,18 @@ describe("CalDAVFieldMapper.mergeTaskData clears external-owned fields (issue #1
     const merged = mapper.mergeTaskData(local, incoming);
     expect(merged.startDate).toEqual(start);
   });
+
+  it("preserves local-owned startDate even when the VTODO has a DTSTART", () => {
+    const localStart = new Date("2025-03-01T08:00:00.000Z");
+    const serverStart = new Date("2025-09-09T09:00:00.000Z");
+    const local = localTask({ startDate: localStart });
+    // The server provides a (non-null) DTSTART; it must NOT overwrite the
+    // user's local start date, which is local-owned.
+    const incoming = mapper.mapToInternalTask(
+      externalTask({ startDate: serverStart }),
+      "p"
+    );
+    const merged = mapper.mergeTaskData(local, incoming);
+    expect(merged.startDate).toEqual(localStart);
+  });
 });
