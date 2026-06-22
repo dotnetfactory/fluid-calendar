@@ -18,3 +18,4 @@
 
 - [x] 4.1 Add a failing test: `mode: "single"` on a recurring master id (has `recurrence`, no `recurringEventId`) must throw and must NOT call `events.delete`.
 - [x] 4.2 Guard `deleteGoogleEvent` single mode: fetch the event and refuse (throw) when the target is a recurring master, so a single delete can never erase the whole series.
+- [x] 4.3 Harden the guard to fire for ANY non-`"series"` mode (not just `"single"`), since the DELETE route forwards `mode` untyped; add a regression test for an invalid/missing mode against a recurring master.

@@ -24,13 +24,19 @@ The `eventId` provided already identifies the specific occurrence (for a recurri
 - **THEN** the system calls `events.delete` with that `eventId`
 - **AND** the system does NOT attempt an `events.instances` lookup
 
-### Requirement: Single mode never deletes an entire recurring series
+### Requirement: Non-series delete never deletes an entire recurring series
 
-A single-occurrence delete MUST NOT delete a recurring master event, because Google treats deleting a master as deleting the whole series. The system SHALL refuse a single-mode delete when the target is a recurring master (it has `recurrence` set and no `recurringEventId`) rather than silently erasing the series.
+A delete in any mode other than `"series"` MUST NOT delete a recurring master event, because Google treats deleting a master as deleting the whole series. The system SHALL refuse the delete when the mode is not exactly `"series"` and the target is a recurring master (it has `recurrence` set and no `recurringEventId`) rather than silently erasing the series. The guard applies to any non-`"series"` value (including `"single"`, an unknown string, or a missing mode) because the mode arrives from request JSON untyped and could be malformed.
 
 #### Scenario: Refusing a single-mode delete of a recurring master
 
 - **WHEN** `deleteGoogleEvent` is called with `mode: "single"` and an `eventId` whose event has `recurrence` set and no `recurringEventId` (a recurring master)
+- **THEN** the system throws an error and does NOT call `events.delete`
+- **AND** the whole recurring series is left intact
+
+#### Scenario: An invalid or missing mode cannot bypass the master guard
+
+- **WHEN** `deleteGoogleEvent` is called for a recurring master with a mode that is neither `"single"` nor `"series"` (e.g. an unknown string or a missing value forwarded from request JSON)
 - **THEN** the system throws an error and does NOT call `events.delete`
 - **AND** the whole recurring series is left intact
 

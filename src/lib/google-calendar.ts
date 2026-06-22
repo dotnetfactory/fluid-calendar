@@ -290,8 +290,11 @@ export async function deleteGoogleEvent(
     // deleting a master as deleting the WHOLE series, which would be worse than
     // the wrong-occurrence bug this fix addresses. A single delete must target
     // an expanded occurrence; refuse a master and let the caller use series mode.
+    // Guard for ANY non-"series" mode (not just "single"): the DELETE route
+    // forwards `mode` from request JSON untyped, so a malformed/missing value
+    // must not slip past the guard and erase the series.
     if (
-      mode === "single" &&
+      mode !== "series" &&
       event.data.recurrence &&
       !event.data.recurringEventId
     ) {

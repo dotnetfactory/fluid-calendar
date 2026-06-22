@@ -112,6 +112,30 @@ describe("deleteGoogleEvent - single occurrence targets the clicked instance", (
     expect(del).not.toHaveBeenCalled();
   });
 
+  it("an invalid/unknown mode does not bypass the master guard (no series wipe)", async () => {
+    // The DELETE route forwards `mode` from request JSON untyped, so a malformed
+    // request could send something that is neither "single" nor "series".
+    const masterId = "master123";
+    const { calendar, del } = makeFakeCalendar({
+      id: masterId,
+      recurrence: ["RRULE:FREQ=WEEKLY"],
+    });
+
+    await expect(
+      deleteGoogleEvent(
+        accountId,
+        userId,
+        calendarId,
+        masterId,
+        // Simulate an invalid mode coming off the wire.
+        "this" as unknown as "single" | "series",
+        async () => calendar
+      )
+    ).rejects.toThrow();
+
+    expect(del).not.toHaveBeenCalled();
+  });
+
   it("series mode deletes the master recurring event", async () => {
     const clickedId = "master123_20260601T090000Z";
     const { calendar, del } = makeFakeCalendar({
