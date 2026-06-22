@@ -46,8 +46,18 @@ export function DuplicateProjectDialog({
 
     setIsSubmitting(true);
     try {
-      await duplicateProject(project.id, name.trim());
-      toast.success("Project duplicated");
+      const { tasksRefreshed } = await duplicateProject(
+        project.id,
+        name.trim()
+      );
+      // The duplicate succeeded server-side either way. Only the local task
+      // refresh may have failed - surface that as a reload prompt, never a
+      // failure (a failure toast would invite a retry and create a 2nd copy).
+      if (tasksRefreshed) {
+        toast.success("Project duplicated");
+      } else {
+        toast.warning("Project duplicated. Reload to see the copied tasks.");
+      }
       onClose();
     } catch (error) {
       console.error("Error duplicating project:", error);
