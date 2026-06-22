@@ -13,14 +13,21 @@
 -- on legacy data. The old (userId, provider, email) index used the default
 -- NULLS DISTINCT, so rows with a NULL userId could be duplicated; those would
 -- collide once NULLs are treated as equal. We keep the most recently updated
--- row per key (it carries the freshest tokens; ties broken by id) and delete
--- older duplicates. This is a no-op on clean databases.
+-- row per key (it carries the freshest tokens; ties broken by id) and remove
+-- the older duplicates. This is a no-op on clean databases.
 --
--- Compute the losing duplicate account ids once, drop their dependent calendar
--- feeds (CalendarFeed.accountId has no cascade), then drop the accounts.
+-- This is non-destructive to calendar data: instead of deleting the losing
+-- account's feeds (which would cascade-delete their CalendarEvents), we
+-- REASSIGN each losing account's feeds to the surviving account for the same
+-- key, then delete only the now-detached losing account rows.
 CREATE TEMP TABLE "_dup_connected_accounts" ON COMMIT DROP AS
-SELECT "id" FROM (
+SELECT "id" AS loser_id, "keep_id"
+FROM (
   SELECT "id",
+         FIRST_VALUE("id") OVER (
+           PARTITION BY "userId", "provider", "email", "caldavUrl"
+           ORDER BY "updatedAt" DESC, "id" DESC
+         ) AS "keep_id",
          ROW_NUMBER() OVER (
            PARTITION BY "userId", "provider", "email", "caldavUrl"
            ORDER BY "updatedAt" DESC, "id" DESC
@@ -29,11 +36,15 @@ SELECT "id" FROM (
 ) ranked
 WHERE ranked.rn > 1;
 
-DELETE FROM "CalendarFeed"
-WHERE "accountId" IN (SELECT "id" FROM "_dup_connected_accounts");
+-- Move feeds from each losing account to the surviving one (preserves events).
+UPDATE "CalendarFeed" f
+SET "accountId" = d."keep_id"
+FROM "_dup_connected_accounts" d
+WHERE f."accountId" = d.loser_id;
 
+-- Delete only the now-detached duplicate accounts.
 DELETE FROM "ConnectedAccount"
-WHERE "id" IN (SELECT "id" FROM "_dup_connected_accounts");
+WHERE "id" IN (SELECT loser_id FROM "_dup_connected_accounts");
 
 -- Order matters: create the replacement index BEFORE dropping the old one so
 -- the table is never left without a uniqueness guard, even if this migration

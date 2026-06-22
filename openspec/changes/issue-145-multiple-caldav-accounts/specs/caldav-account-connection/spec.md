@@ -56,12 +56,13 @@ Anywhere connected accounts are listed for management, CalDAV accounts that shar
 - **THEN** the accounts list includes each account's CalDAV server URL
 - **AND** the settings UI shows the server URL for each CalDAV account so they are not identical cards
 
-### Requirement: Tightening the uniqueness constraint is safe on existing data
+### Requirement: Tightening the uniqueness constraint is safe and non-destructive on existing data
 
-The migration that introduces the wider `NULLS NOT DISTINCT` key SHALL NOT fail on databases that contain pre-existing rows which would collide under the new key (e.g. duplicate rows with a null `userId`, which the old `NULLS DISTINCT` index permitted). It SHALL de-duplicate such rows first, keeping the most recently updated row per key and removing the dependent calendar feeds of the rows it deletes, then create the new index.
+The migration that introduces the wider `NULLS NOT DISTINCT` key SHALL NOT fail on databases that contain pre-existing rows which would collide under the new key (e.g. duplicate rows with a null `userId`, which the old `NULLS DISTINCT` index permitted). It SHALL de-duplicate such rows first, keeping the most recently updated row per key. It SHALL preserve calendar data: the calendar feeds (and their cascade-linked events) of a removed duplicate account are reassigned to the surviving account for that key rather than deleted. Only after de-duplication does it create the new index.
 
-#### Scenario: Migration applies over legacy duplicate rows
+#### Scenario: Migration applies over legacy duplicate rows without losing calendar data
 
-- **WHEN** the database has two `ConnectedAccount` rows that are equal under `(userId, provider, email, caldavUrl)` with NULLs treated as equal
-- **THEN** the migration deletes the older duplicate (and its calendar feeds) and keeps the newest
+- **WHEN** the database has two `ConnectedAccount` rows that are equal under `(userId, provider, email, caldavUrl)` with NULLs treated as equal, and the older one owns a calendar feed with events
+- **THEN** the migration keeps the newest account and deletes the older duplicate
+- **AND** the older account's feed is reassigned to the surviving account (its events are preserved, not cascade-deleted)
 - **AND** the new unique index is created successfully
