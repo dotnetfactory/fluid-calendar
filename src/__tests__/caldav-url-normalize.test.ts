@@ -70,6 +70,10 @@ describe("normalizeCalDAVServerUrl", () => {
     expect(normalizeCalDAVServerUrl("https://user:pass@Host.com/dav")).toBe(
       "https://host.com/dav"
     );
+    // A password containing "@" (last "@" is the userinfo delimiter).
+    expect(normalizeCalDAVServerUrl("https://user:p@ss@Host.com/dav")).toBe(
+      "https://host.com/dav"
+    );
   });
 
   it("keeps distinct servers distinct", () => {

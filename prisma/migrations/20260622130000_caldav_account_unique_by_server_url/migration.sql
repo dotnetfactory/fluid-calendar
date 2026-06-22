@@ -50,10 +50,12 @@ SET "caldavUrl" = (
   FROM (
     SELECT
       lower(substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://')) AS scheme,
-      -- authority between '://' and first /?#, lowercased, with "userinfo@" stripped
+      -- authority between '://' and first /?#, lowercased, with userinfo stripped.
+      -- Strip through the LAST '@' (greedy), matching the URL API, so a password
+      -- containing '@' (e.g. "user:p@ss@host") is fully removed.
       regexp_replace(
         lower(substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://([^/?#]*)')),
-        '^[^@]*@',
+        '^.*@',
         ''
       ) AS hostport,
       substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*([^#]*)') AS rest
