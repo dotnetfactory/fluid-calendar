@@ -9,6 +9,10 @@ import { createAllDayDate, newDate, newDateFromYMD } from "@/lib/date-utils";
 import { createGoogleOAuthClient } from "@/lib/google";
 import { getGoogleCalendarClient } from "@/lib/google-calendar";
 import { prisma } from "@/lib/prisma";
+import {
+  getPushedBlockEventIds,
+  isOwnPushedBlock,
+} from "@/lib/task-block-push";
 import { TokenManager } from "@/lib/token-manager";
 
 const LOG_SOURCE = "GoogleCalendarAPI";
@@ -272,6 +276,11 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Our own pushed task blocks get synced back by Google as events; skip
+      // re-importing them so a task block never renders twice. Pre-fetched here,
+      // outside the transaction.
+      const pushedBlockIds = await getPushedBlockEventIds(userId);
+
       await prisma.$transaction(async (tx) => {
         // Master events are prefetched before starting the transaction (to avoid network calls inside transaction)
         // `masterEvents` is available from the outer scope
@@ -279,6 +288,10 @@ export async function POST(request: NextRequest) {
 
         // Create or update master events
         for (const [eventId, masterEventData] of masterEvents) {
+          // Skip echoes of our own pushed task blocks
+          if (isOwnPushedBlock(eventId, pushedBlockIds)) {
+            continue;
+          }
           const existingMaster = await tx.calendarEvent.findFirst({
             where: {
               feedId: feed.id,
@@ -360,6 +373,11 @@ export async function POST(request: NextRequest) {
 
         // Create or update instances
         for (const event of events) {
+          // Skip echoes of our own pushed task blocks
+          if (isOwnPushedBlock(event.id, pushedBlockIds)) {
+            continue;
+          }
+
           const masterEvent = event.recurringEventId
             ? await tx.calendarEvent.findFirst({
                 where: {
@@ -527,6 +545,11 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // Our own pushed task blocks get synced back by Google as events; skip
+    // re-importing them so a task block never renders twice. Pre-fetched here,
+    // outside the transactions below.
+    const pushedBlockIds = await getPushedBlockEventIds(userId);
+
     // Now perform database operations in transaction
     await prisma.$transaction(async (tx) => {
       console.log("Deleting existing events");
@@ -543,6 +566,12 @@ export async function PUT(request: NextRequest) {
         
         // Skip events without start time
         if (!event.start?.dateTime && !event.start?.date) continue;
+
+        // Skip echoes of our own pushed task blocks
+        if (isOwnPushedBlock(event.id, pushedBlockIds)) {
+          console.log("Skipping echo of pushed task block:", event.id);
+          continue;
+        }
 
         // Get recurrence rule from pre-fetched master events
         if (event.recurringEventId) {

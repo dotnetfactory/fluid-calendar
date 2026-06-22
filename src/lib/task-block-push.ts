@@ -655,3 +655,37 @@ export async function repushDirtyBlocks(userId: string) {
     );
   }
 }
+
+/**
+ * Returns the set of Google event ids that are this user's pushed task blocks.
+ *
+ * These are events FluidCalendar created on the user's Google calendar; the
+ * Google feed sync re-imports them, so any path that consumes feed events (sync
+ * import, conflict detection, display) must be able to recognize and skip them.
+ * Pre-fetch this OUTSIDE a transaction to avoid a query inside the DB write loop.
+ */
+export async function getPushedBlockEventIds(
+  userId: string,
+  client = prisma
+): Promise<Set<string>> {
+  const tasks = await client.task.findMany({
+    where: { userId, blockEventId: { not: null } },
+    select: { blockEventId: true },
+  });
+  return new Set(
+    tasks.map((t) => t.blockEventId).filter(Boolean) as string[]
+  );
+}
+
+/**
+ * True when a fetched Google event is an echo of one of our own pushed task
+ * blocks (matched by event id). Such echoes must not be persisted as
+ * CalendarEvents — the task already represents that time, and importing it would
+ * render the block twice in the calendar.
+ */
+export function isOwnPushedBlock(
+  eventId: string | null | undefined,
+  pushedBlockIds: Set<string>
+): boolean {
+  return !!eventId && pushedBlockIds.has(eventId);
+}
