@@ -261,46 +261,34 @@ export async function deleteGoogleEvent(
   userId: string,
   calendarId: string,
   eventId: string,
-  mode: "single" | "series" = "single"
+  mode: "single" | "series" = "single",
+  // Test seam: lets callers inject a calendar client. Defaults to the real one.
+  getClient: typeof getGoogleCalendarClient = getGoogleCalendarClient
 ) {
-  const calendar = await getGoogleCalendarClient(accountId, userId);
+  const calendar = await getClient(accountId, userId);
 
   try {
-    // Get the event to check if it's part of a series
-    const event = await calendar.events.get({
-      calendarId,
-      eventId,
-    });
-
-    // For series deletion, use the recurring event ID if available
-    if (mode === "series" && event.data.recurringEventId) {
-      await calendar.events.delete({
+    // For series deletion, look up the event so we can target the master
+    // recurring event id.
+    if (mode === "series") {
+      const event = await calendar.events.get({
         calendarId,
-        eventId: event.data.recurringEventId,
-      });
-      return;
-    }
-
-    // For single instance deletions, we need to get the instance first
-    if (mode === "single") {
-      const instances = await calendar.events.instances({
-        calendarId,
-        eventId: event.data.recurringEventId || eventId,
-        timeMin: newDate().toISOString(),
-        maxResults: 1,
+        eventId,
       });
 
-      if (instances.data.items?.[0]) {
-        // Delete the specific instance
+      if (event.data.recurringEventId) {
         await calendar.events.delete({
           calendarId,
-          eventId: instances.data.items[0].id!,
+          eventId: event.data.recurringEventId,
         });
         return;
       }
     }
 
-    // If not part of a series or no instance found, delete the event directly
+    // For single-occurrence deletions, the provided eventId already identifies
+    // the clicked occurrence (an expanded instance id for recurring events, or
+    // the event's own id otherwise), so delete it directly. Do NOT re-query for
+    // the "next upcoming" instance, which would delete the wrong occurrence.
     await calendar.events.delete({
       calendarId,
       eventId,
