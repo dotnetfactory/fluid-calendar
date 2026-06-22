@@ -243,20 +243,29 @@ export async function POST(request: NextRequest) {
             });
           }
         } catch (principalError) {
+          const classified = classifyCalDAVError(principalError);
           logger.error(
             "Failed to use principal URL to find calendars",
             {
-              error:
-                principalError instanceof Error
-                  ? principalError.message
-                  : String(principalError),
+              kind: classified.kind,
+              error: classified.details,
               principalUrl: client.account.principalUrl,
               serverUrl,
               username,
             },
             LOG_SOURCE
           );
-          // Don't return an error here, as we'll try to use the home URL next
+          if (classified.kind === "connection") {
+            return NextResponse.json(
+              {
+                success: false,
+                error: classified.message,
+                details: classified.details,
+              },
+              { status: classified.status }
+            );
+          }
+          // Otherwise don't return; we'll try the home URL next.
         }
       }
 
@@ -300,19 +309,28 @@ export async function POST(request: NextRequest) {
             });
           }
         } catch (homeError) {
+          const classified = classifyCalDAVError(homeError);
           logger.error(
             "Failed to use home URL to find calendars",
             {
-              error:
-                homeError instanceof Error
-                  ? homeError.message
-                  : String(homeError),
+              kind: classified.kind,
+              error: classified.details,
               homeUrl: client.account.homeUrl,
               serverUrl,
               username,
             },
             LOG_SOURCE
           );
+          if (classified.kind === "connection") {
+            return NextResponse.json(
+              {
+                success: false,
+                error: classified.message,
+                details: classified.details,
+              },
+              { status: classified.status }
+            );
+          }
         }
       }
 
