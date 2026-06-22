@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Duplicate a project from the project sidebar: a modal with an editable name (defaulting to `Copy of <name>`) creates a new project copying its incomplete tasks for use as a template (#60)
 - Create a multi-day all-day event by dragging the mouse across multiple days on the all-day row, like Google Calendar; the New Event modal opens pre-filled as an all-day event spanning the selected days (#79)
 - Added `.github/copilot-instructions.md` with repository-wide guidance for GitHub Copilot's coding agent (setup, commands, architecture, SAAS/open-source separation, code-style conventions)
 - Show the application version in a footer on every page, linking to the project's GitHub page (#111)

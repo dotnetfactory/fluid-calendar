@@ -8,6 +8,21 @@ import {
   UpdateProject,
 } from "@/types/project";
 
+import { useTaskStore } from "./task";
+
+/**
+ * Result of a duplicate action. The duplicate itself is a server-side mutation
+ * that either succeeds or rejects. `tasksRefreshed` reports whether the
+ * follow-up task-store refresh also succeeded: when it is `false` the project
+ * (and its tasks) were created on the server, but the local task list could not
+ * be refreshed, so callers should prompt a reload rather than presenting a
+ * failure (which would invite a retry and create a second duplicate).
+ */
+interface DuplicateProjectResult {
+  project: Project;
+  tasksRefreshed: boolean;
+}
+
 interface ProjectState {
   projects: Project[];
   activeProject: Project | null;
@@ -17,6 +32,10 @@ interface ProjectState {
   // Actions
   fetchProjects: () => Promise<void>;
   createProject: (project: NewProject) => Promise<Project>;
+  duplicateProject: (
+    id: string,
+    name?: string
+  ) => Promise<DuplicateProjectResult>;
   updateProject: (id: string, updates: UpdateProject) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
   setActiveProject: (project: Project | null) => void;
@@ -58,6 +77,40 @@ export const useProjectStore = create<ProjectState>()(
           const newProject = await response.json();
           set((state) => ({ projects: [...state.projects, newProject] }));
           return newProject;
+        } catch (error) {
+          set({ error: error as Error });
+          throw error;
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      duplicateProject: async (id: string, name?: string) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await fetch(`/api/projects/${id}/duplicate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(name ? { name } : {}),
+          });
+          if (!response.ok) throw new Error("Failed to duplicate project");
+          const newProject = await response.json();
+          set((state) => ({ projects: [newProject, ...state.projects] }));
+          // The endpoint returns the project + task count, not the cloned tasks
+          // themselves. Refresh the task store so the duplicated incomplete
+          // tasks (and the sidebar/task-view counts derived from them) appear
+          // immediately without requiring a manual reload.
+          //
+          // The duplicate has already committed server-side at this point, so a
+          // refresh failure must NOT be reported as a failed duplicate: that
+          // would invite the user to retry and create a second copy. `fetchTasks`
+          // swallows its own fetch failures (it records an error on the task
+          // store and resolves), so we inspect that error and report the refresh
+          // outcome via `tasksRefreshed` instead of throwing. The caller can then
+          // prompt a reload rather than presenting a retryable failure.
+          await useTaskStore.getState().fetchTasks();
+          const tasksRefreshed = !useTaskStore.getState().error;
+          return { project: newProject, tasksRefreshed };
         } catch (error) {
           set({ error: error as Error });
           throw error;
