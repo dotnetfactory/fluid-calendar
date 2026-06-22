@@ -344,6 +344,12 @@ export class TaskSyncManager {
     const tracker = new TaskChangeTracker();
 
     // Local tasks already linked to this provider, keyed by external id.
+    // todo: this keys by (projectId, source, externalTaskId) and ignores
+    // externalListId (matching the pre-existing bidirectional path). If two
+    // CalDAV collections that happen to share a VTODO UID are mapped into the
+    // SAME project, the second could update/skip the wrong local task. RFC 5545
+    // UIDs are meant to be globally unique so this is rare; include
+    // externalListId in the key if cross-list UID collisions become a problem.
     const localTasks = (await prisma.task.findMany({
       where: { projectId: mapping.projectId },
       include: { tags: true, project: true },
