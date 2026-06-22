@@ -18,6 +18,17 @@ A connected CalDAV account SHALL be uniquely identified by `(user, provider, use
 - **THEN** the request is rejected with a duplicate/conflict error
 - **AND** the error message states that this CalDAV server is already connected, not that the credentials are incorrect
 
+### Requirement: Adding a CalDAV calendar is scoped to the selected account
+
+Because a user can now have multiple CalDAV accounts, and CalDAV calendar URLs/hrefs are account-local server data, the add-calendar endpoint SHALL look up an existing feed scoped to the selected `accountId` (not just the user). Two CalDAV accounts that return the same calendar URL SHALL each get their own feed under their own account.
+
+#### Scenario: Two accounts with the same calendar URL each get their own feed
+
+- **WHEN** account A already has a CalDAV feed with URL `https://host/dav/cal/`
+- **AND** the user adds the same-URL calendar for a different account B
+- **THEN** the existing-feed lookup is scoped to account B (finds nothing)
+- **AND** a new feed is created under account B rather than returning account A's feed
+
 ### Requirement: OAuth account identity stays scoped by email
 
 The change to CalDAV identity SHALL NOT weaken uniqueness for OAuth providers. For `GOOGLE` and `OUTLOOK` accounts (where the CalDAV server URL is null), a user SHALL still be limited to one connected account per `(user, provider, email)`. This is achieved by treating null server URLs as equal (`NULLS NOT DISTINCT`) in the uniqueness constraint, so two OAuth rows with the same `(userId, provider, email)` still collide.
