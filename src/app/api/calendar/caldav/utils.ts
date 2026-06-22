@@ -4,6 +4,122 @@ import { logger } from "@/lib/logger";
 
 const LOG_SOURCE = "CalDAVUtils";
 
+/** Whether a CalDAV login failure was a connection or an authentication error. */
+export type CalDAVErrorKind = "connection" | "auth";
+
+/** Result of classifying a CalDAV connection/login failure. */
+export interface ClassifiedCalDAVError {
+  kind: CalDAVErrorKind;
+  /** User-facing message to return in the `error` field. */
+  message: string;
+  /** HTTP status to return. */
+  status: number;
+  /** Original error text, surfaced in the `details` field. */
+  details: string;
+}
+
+const CONNECTION_ERROR_MESSAGE =
+  "Could not connect to the CalDAV server. Please check the server URL, your " +
+  "network/firewall, and (for self-signed certificates) the server's TLS " +
+  "certificate.";
+const AUTH_ERROR_MESSAGE =
+  "Failed to authenticate with CalDAV server. Please check your credentials.";
+
+// Tokens (lower-cased) that identify a network-layer / TLS connection failure
+// rather than a credentials rejection. Matched against the error message and
+// the `code` of every error in the `cause` chain. Grounded in the shapes Node's
+// fetch (undici) and tsdav throw - see issues #117 (self-signed TLS,
+// `fetch failed` / `UNABLE_TO_VERIFY_LEAF_SIGNATURE`) and #115.
+const CONNECTION_ERROR_TOKENS = [
+  "fetch failed",
+  "enotfound",
+  "econnrefused",
+  "econnreset",
+  "etimedout",
+  "ehostunreach",
+  "enetunreach",
+  "eai_again",
+  "epipe",
+  "econnaborted",
+  "unable_to_verify_leaf_signature",
+  "self_signed_cert_in_chain",
+  "self signed certificate",
+  "depth_zero_self_signed_cert",
+  "cert_has_expired",
+  "err_tls_cert_altname_invalid",
+  "certificate",
+  "getaddrinfo",
+  "socket hang up",
+  "network",
+  "timed out",
+  "econn",
+  // A malformed/unparseable server URL surfaced by Node's fetch is a "check the
+  // server URL" problem, not a credentials problem. Match the fetch-specific
+  // signals only - NOT a bare "invalid url", which also appears in our own
+  // local path-construction errors (those stay 400 bad-path, see the routes).
+  "err_invalid_url",
+  "failed to parse url",
+];
+
+/**
+ * Collects the lower-cased `message` and `code` from an error and every error
+ * in its `cause` chain (bounded depth to avoid cycles), so a classifier can
+ * inspect both `err.message === "fetch failed"` and a nested
+ * `err.cause.code === "ENOTFOUND"`.
+ */
+function collectErrorSignals(error: unknown): string[] {
+  const signals: string[] = [];
+  let current: unknown = error;
+  for (let depth = 0; current != null && depth < 10; depth++) {
+    if (typeof current === "string") {
+      signals.push(current.toLowerCase());
+      break;
+    }
+    if (typeof current === "object") {
+      const obj = current as { message?: unknown; code?: unknown; cause?: unknown };
+      if (typeof obj.message === "string") signals.push(obj.message.toLowerCase());
+      if (typeof obj.code === "string") signals.push(obj.code.toLowerCase());
+      if (obj.cause === current) break; // guard against self-reference
+      current = obj.cause;
+      continue;
+    }
+    break;
+  }
+  return signals;
+}
+
+/**
+ * Classifies a CalDAV login/connection failure as either a network/TLS
+ * connection error or a genuine authentication error, so the API can return an
+ * accurate message and HTTP status instead of always blaming credentials.
+ *
+ * Unrecognized errors default to `auth` so the response is never less
+ * informative than the previous hardcoded credentials/401 behavior.
+ */
+export function classifyCalDAVError(error: unknown): ClassifiedCalDAVError {
+  const details = error instanceof Error ? error.message : String(error);
+  const signals = collectErrorSignals(error);
+  const isConnectionError = CONNECTION_ERROR_TOKENS.some((token) =>
+    signals.some((signal) => signal.includes(token))
+  );
+
+  if (isConnectionError) {
+    return {
+      kind: "connection",
+      message: CONNECTION_ERROR_MESSAGE,
+      status: 502,
+      details,
+    };
+  }
+
+  return {
+    kind: "auth",
+    message: AUTH_ERROR_MESSAGE,
+    status: 401,
+    details,
+  };
+}
+
 /**
  * Helper function to ensure a URL is properly formatted
  * @param baseUrl The base URL (e.g., https://caldav.fastmail.com)
