@@ -344,10 +344,20 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       return [];
     }
 
-    return this.calendarService.findConflicts(slot, selectedCalendars, userId);
+    return this.calendarService.findConflicts(
+      slot,
+      selectedCalendars,
+      userId,
+      undefined,
+      this.settings.bufferMinutes
+    );
   }
 
   private hasInMemoryConflict(slot: TimeSlot): boolean {
+    // Tasks scheduled earlier in this same run live only in memory (the DB
+    // schedules were cleared at the start of the replan), so the buffer must be
+    // enforced here too — otherwise back-to-back tasks slip through.
+    const bufferMinutes = this.settings.bufferMinutes;
     // Check all project tasks for conflicts
     for (const [, projectTasks] of this.slotScorer
       .getScheduledTasks()
@@ -356,7 +366,10 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
         if (
           areIntervalsOverlapping(
             { start: slot.start, end: slot.end },
-            { start: projectTask.start, end: projectTask.end }
+            {
+              start: addMinutes(projectTask.start, -bufferMinutes),
+              end: addMinutes(projectTask.end, bufferMinutes),
+            }
           )
         ) {
           return true;
@@ -386,7 +399,8 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       slotsToCheck,
       selectedCalendars,
       task.userId || "",
-      task.id
+      task.id,
+      this.settings.bufferMinutes
     );
 
     // Process results and check for conflicts with in-memory scheduled tasks
