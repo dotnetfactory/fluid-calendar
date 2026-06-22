@@ -204,4 +204,22 @@ describe("getEventEditability", () => {
       durationEditable: false,
     });
   });
+
+  it("locks events on read-only iCal feeds", () => {
+    const icalFeed: CalendarFeed = {
+      id: "feed-ical",
+      name: "Bundesliga",
+      type: "ICAL",
+      enabled: true,
+    };
+    const item = makeEvent({ feedId: "feed-ical" });
+    expect(getEventEditability(item, [icalFeed])).toEqual({
+      startEditable: false,
+      durationEditable: false,
+    });
+    expect(computeDropUpdate(makeChange(item), [icalFeed])).toEqual({
+      kind: "blocked",
+      reason: "This calendar is read-only",
+    });
+  });
 });

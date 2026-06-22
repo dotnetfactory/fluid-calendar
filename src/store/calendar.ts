@@ -88,7 +88,7 @@ interface CalendarStore extends CalendarState {
   addFeed: (
     name: string,
     url: string,
-    type: "GOOGLE" | "OUTLOOK" | "CALDAV",
+    type: "GOOGLE" | "OUTLOOK" | "CALDAV" | "ICAL",
     color?: string
   ) => Promise<void>;
   removeFeed: (id: string) => Promise<void>;
@@ -672,6 +672,17 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
 
         if (!response.ok) {
           throw new Error("Failed to sync CalDAV Calendar");
+        }
+      } else if (feed.type === "ICAL") {
+        const response = await fetch(`/api/feeds/${id}/ical-sync`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ feedId: id }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to sync iCal Calendar");
         }
       }
 
