@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
           accessToken: tokens.access_token!,
           refreshToken: tokens.refresh_token!,
           // expiry_date is an absolute epoch-ms timestamp from google-auth-library,
-          // not a duration — adding Date.now() pushed expiry decades out, so the
+          // not a duration. Adding Date.now() pushed expiry decades out, so the
           // token was never refreshed and every later call 401'd.
           expiresAt: newDate(tokens.expiry_date || Date.now() + 3600 * 1000),
         },
