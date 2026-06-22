@@ -36,15 +36,31 @@ The change to CalDAV identity SHALL NOT weaken uniqueness for OAuth providers. F
 - **AND** it does not rely on a Prisma named unique input that was removed by the constraint change
 - **AND** if a concurrent first-time callback creates the row first, the unique-constraint error is caught and the existing row is updated instead (idempotent)
 
-### Requirement: CalDAV server URLs are canonicalized before use as an identity key
+### Requirement: CalDAV server URLs are canonicalized (origin only) before use as an identity key
 
-The stored CalDAV server URL SHALL be canonicalized so trivial textual variants of the same endpoint do not bypass the duplicate guard and create duplicate accounts. Canonicalization SHALL lowercase the scheme and host, drop default ports (443/https, 80/http), and remove a single trailing slash, while preserving the (case-sensitive) path otherwise. A value that is not a parseable URL SHALL be stored trimmed and otherwise unchanged.
+The stored CalDAV server URL SHALL have its origin canonicalized so trivial textual variants of the same endpoint do not bypass the duplicate guard and create duplicate accounts. Canonicalization SHALL lowercase the scheme and host and drop redundant default ports (443 for https, 80 for http). It SHALL preserve the path, query, and fragment byte-for-byte (no trailing-slash trimming, no case change), because `caldavUrl` is the exact endpoint later used for calendar listing and sync and CalDAV collection paths are slash- and case-sensitive. A value that is not a parseable URL SHALL be stored trimmed and otherwise unchanged.
 
-#### Scenario: Trailing-slash variant is treated as the same server
+#### Scenario: Host/scheme/port variant is treated as the same server
 
-- **WHEN** a user connects `https://server.example.com/` and later `https://server.example.com`
+- **WHEN** a user connects `https://Server.example.com/dav` and later `https://server.example.com:443/dav`
 - **THEN** both resolve to the same stored URL
 - **AND** the second attempt is rejected as a duplicate rather than creating a second account
+
+#### Scenario: A path-based collection URL is stored exactly as validated
+
+- **WHEN** a user connects a path-based CalDAV URL such as `https://caldav.fastmail.com/dav/calendars/user/me/`
+- **THEN** the stored URL preserves the path and its trailing slash exactly
+- **AND** the endpoint later used for listing/sync is the same one that was validated
+
+### Requirement: Existing CalDAV URLs are canonicalized by the migration
+
+So that legacy rows (stored raw before this change) and post-upgrade reconnections share one identity, the migration SHALL canonicalize existing `caldavUrl` values to the same origin-only form the application now stores, before de-duplicating and creating the index.
+
+#### Scenario: Legacy raw URL collides with a canonical reconnect
+
+- **WHEN** a pre-upgrade account stored `https://Server.com` and the same user/server/username is reconnected after the upgrade (stored canonically as `https://server.com/`)
+- **THEN** the migration canonicalizes the legacy value to `https://server.com/`
+- **AND** the two are treated as the same account (de-duplicated) rather than left as duplicates
 
 ### Requirement: Connected CalDAV accounts are distinguishable in account management
 

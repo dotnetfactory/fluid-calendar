@@ -73,14 +73,21 @@ export function formatAbsoluteUrl(baseUrl: string, path?: string): string {
 }
 
 /**
- * Canonicalizes a CalDAV server URL so trivial textual variants of the same
- * endpoint (case in scheme/host, default ports, a trailing slash) collapse to
- * one value. This is the value stored in `caldavUrl` and used as part of the
- * account uniqueness key, so canonicalizing it makes the duplicate-account
- * guard robust against e.g. `https://Host.com/` vs `https://host.com`. The
- * path is preserved as-is (CalDAV paths can be case-sensitive) apart from a
- * single trailing slash. If the input is not a parseable URL it is returned
- * trimmed and unchanged so we never reject an otherwise-working server.
+ * Canonicalizes ONLY the origin (scheme + host + port) of a CalDAV server URL
+ * so trivial textual variants - scheme/host case, redundant default ports -
+ * collapse to one value. This is the value stored in `caldavUrl` and used as
+ * part of the account uniqueness key, so canonicalizing the origin makes the
+ * duplicate-account guard robust against e.g. `https://Host.com/dav` vs
+ * `https://host.com/dav`.
+ *
+ * The path/query/fragment are preserved BYTE-FOR-BYTE (no trailing-slash
+ * trimming, no case changes): `caldavUrl` is the exact endpoint that calendar
+ * listing and sync later use, and CalDAV collection paths are slash- and
+ * case-sensitive (e.g. Fastmail `/dav/calendars/user/<email>/`). Mutating the
+ * path could persist an endpoint that differs from the one we validated.
+ *
+ * If the input is not a parseable URL it is returned trimmed and otherwise
+ * unchanged so we never reject an otherwise-working server.
  */
 export function normalizeCalDAVServerUrl(url: string): string {
   const trimmed = url.trim();
@@ -91,23 +98,25 @@ export function normalizeCalDAVServerUrl(url: string): string {
     return trimmed;
   }
 
-  parsed.protocol = parsed.protocol.toLowerCase();
-  parsed.hostname = parsed.hostname.toLowerCase();
+  const scheme = parsed.protocol.toLowerCase(); // includes trailing ":"
+  const host = parsed.hostname.toLowerCase();
 
-  // Drop redundant default ports.
+  // Drop redundant default ports; otherwise keep the explicit port.
+  let port = parsed.port;
   if (
-    (parsed.protocol === "https:" && parsed.port === "443") ||
-    (parsed.protocol === "http:" && parsed.port === "80")
+    (scheme === "https:" && port === "443") ||
+    (scheme === "http:" && port === "80")
   ) {
-    parsed.port = "";
+    port = "";
   }
 
-  // Strip a single trailing slash from the path (but keep root "/").
-  if (parsed.pathname.length > 1 && parsed.pathname.endsWith("/")) {
-    parsed.pathname = parsed.pathname.replace(/\/+$/, "");
-  }
+  const origin = `${scheme}//${host}${port ? `:${port}` : ""}`;
 
-  return parsed.toString();
+  // Re-attach the rest of the original URL (path + query + hash) verbatim.
+  // `parsed.protocol`/`host`/`port` are exactly the prefix `URL` parsed off
+  // the front, so slicing them off `trimmed` would be fragile; instead rebuild
+  // from the parsed components, preserving the original pathname/search/hash.
+  return `${origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
 }
 
 /**

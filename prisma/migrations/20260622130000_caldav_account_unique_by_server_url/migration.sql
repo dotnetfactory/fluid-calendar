@@ -8,6 +8,34 @@
 -- one-per-(userId, provider, email), preserving the previous behavior for
 -- Google/Outlook.
 
+-- Canonicalize existing caldavUrl values to the SAME form the app now stores
+-- (normalizeCalDAVServerUrl): lowercase the scheme://host[:port] authority and
+-- drop the redundant default port, leaving the path/query/fragment untouched.
+-- The JS normalizer parses with the URL API, which appends a root "/" path when
+-- none is present, so a host-only legacy value ("https://Server.com") becomes
+-- "https://server.com/"; we replicate that here. Without this, a legacy raw row
+-- would not match a post-upgrade reconnect that stores the canonical form,
+-- recreating the very duplicate this change prevents - but only for existing
+-- users. No-op for already-canonical and non-CalDAV (null) values.
+UPDATE "ConnectedAccount"
+SET "caldavUrl" = (
+  -- authority: lowercased scheme://host[:port], with a redundant :443/:80 dropped
+  regexp_replace(
+    lower(substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*')),
+    '^(https://[^:/?#]+):443$|^(http://[^:/?#]+):80$',
+    '\1\2'
+  )
+  -- rest: path+query+fragment verbatim, defaulting to "/" when there is none
+  -- (matching the URL API the JS normalizer uses, which appends a root path)
+  || CASE
+       WHEN substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*(.*)$') = ''
+         THEN '/'
+       ELSE substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*(.*)$')
+     END
+)
+WHERE "caldavUrl" IS NOT NULL
+  AND "caldavUrl" ~ '^[a-zA-Z][a-zA-Z0-9+.-]*://';
+
 -- Safety: de-duplicate any pre-existing rows that would collide under the new
 -- NULLS NOT DISTINCT key before creating the index, so the CREATE never aborts
 -- on legacy data. The old (userId, provider, email) index used the default
