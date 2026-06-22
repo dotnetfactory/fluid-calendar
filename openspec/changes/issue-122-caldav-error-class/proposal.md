@@ -49,12 +49,17 @@ message that points at the server URL, network, and TLS certificate).
   - Anything else defaults to **auth** so behavior never regresses below the
     current credentials/401 response. (The wrapping `try/catch` in each route
     keeps the existing generic 500 for non-login failures.)
-- Wire the helper into the `loginToCalDAVServer` catch block of all three
-  routes - `test/route.ts`, `auth/route.ts`, `available/route.ts` - so each
-  returns the classified message + status instead of the hardcoded
-  credentials/401. The JSON response shape (`{ error, details, success? }`) is
-  unchanged, so the existing UI (`CalDAVAccountForm`, `AvailableCalendars`)
-  needs no change - it already renders `data.error` verbatim.
+- Wire the helper into the `loginToCalDAVServer` catch block of every CalDAV
+  login boundary - `test/route.ts`, `auth/route.ts`, `available/route.ts`, and
+  the add-selected-calendar `route.ts` - so each returns the classified message
+  + status instead of the hardcoded credentials/401.
+- Surface the classified error in the available-calendars list
+  (`AvailableCalendars.tsx`), which previously swallowed a non-OK response and
+  rendered a generic empty state. A small pure helper
+  (`extractCalendarFetchError`) reads the server's `error` field (falling back
+  to a default), and the component shows it as an error state with a retry. The
+  JSON response shape (`{ error, details, success? }`) is otherwise unchanged;
+  `CalDAVAccountForm` already renders `data.error` verbatim.
 - Add unit coverage for the classifier (connection vs auth across the real
   error shapes from #117/#122) and for the route wiring (a `fetch failed`
   login error yields a connection message + 502; an `Invalid credentials`
@@ -79,9 +84,13 @@ reported.
 - Code: `src/app/api/calendar/caldav/utils.ts` (new `classifyCalDAVError`
   helper); `src/app/api/calendar/caldav/test/route.ts`,
   `src/app/api/calendar/caldav/auth/route.ts`,
-  `src/app/api/calendar/caldav/available/route.ts` (use the helper in the
-  login-failure catch). New unit tests under
-  `src/app/api/calendar/caldav/__tests__/`.
+  `src/app/api/calendar/caldav/available/route.ts`, and
+  `src/app/api/calendar/caldav/route.ts` (use the helper in the login-failure
+  catch); `src/components/settings/AvailableCalendars.tsx` +
+  `src/components/settings/available-calendars-error.ts` (surface the server
+  error in the list view). New unit tests under
+  `src/app/api/calendar/caldav/__tests__/` and
+  `src/components/settings/__tests__/`.
 - No schema, dependency, or UI changes. Risk is confined to the message and
   status returned for a CalDAV login failure; the default-to-auth fallback means
   no failure becomes *less* informative than today.

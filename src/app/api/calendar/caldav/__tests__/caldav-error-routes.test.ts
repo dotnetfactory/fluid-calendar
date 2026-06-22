@@ -182,3 +182,50 @@ describe("CalDAV available route classifies login failures", () => {
     expect(data.error.toLowerCase()).toContain("credentials");
   });
 });
+
+describe("CalDAV add-calendar route classifies login failures", () => {
+  beforeEach(() => {
+    mockAuthenticateRequest.mockResolvedValue({ userId: "user-1" } as never);
+    (prisma.connectedAccount.findUnique as jest.Mock).mockResolvedValue({
+      id: "acc-1",
+      provider: "CALDAV",
+      caldavUrl: "https://dav.local",
+      caldavUsername: "u",
+      accessToken: "p",
+      userId: "user-1",
+    });
+    jest
+      .spyOn(utils, "createCalDAVClient")
+      .mockReturnValue({} as ReturnType<typeof utils.createCalDAVClient>);
+  });
+
+  function addRequest() {
+    return {
+      json: async () => ({ accountId: "acc-1", calendarId: "https://dav.local/c/" }),
+      url: "http://localhost/api/calendar/caldav",
+    } as unknown as Parameters<typeof import("../route")["POST"]>[0];
+  }
+
+  it("returns a connection error (502) for `fetch failed`", async () => {
+    jest.spyOn(utils, "loginToCalDAVServer").mockRejectedValue(FETCH_FAILED);
+    const { POST } = await import("../route");
+
+    const res = assertResponse(await POST(addRequest()));
+    const data = await res.json();
+
+    expect(res.status).toBe(502);
+    expect(data.error.toLowerCase()).toContain("connect");
+    expect(data.error.toLowerCase()).not.toContain("credentials");
+  });
+
+  it("returns an auth error (401) for `Invalid credentials`", async () => {
+    jest.spyOn(utils, "loginToCalDAVServer").mockRejectedValue(INVALID_CREDS);
+    const { POST } = await import("../route");
+
+    const res = assertResponse(await POST(addRequest()));
+    const data = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(data.error.toLowerCase()).toContain("credentials");
+  });
+});

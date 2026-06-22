@@ -49,10 +49,17 @@ without change.
 - **THEN** the classifier returns `kind: "auth"` with the credentials message
   and HTTP status `401`
 
-#### Scenario: All three connection routes use the classification
+#### Scenario: Every CalDAV login route uses the classification
 
-- **WHEN** the `test`, `auth`, or `available` CalDAV route catches a login
-  failure
+- **WHEN** any CalDAV route that performs a login (test, connect, list available
+  calendars, or add a selected calendar) catches a login failure
 - **THEN** it returns the classified message and status from the shared
   classifier
 - **AND** it includes the original error text in the `details` field
+
+#### Scenario: The available-calendars list surfaces the classified error
+
+- **WHEN** the available-calendars list view receives a non-OK response from the
+  available-calendars endpoint
+- **THEN** it shows the server-provided error message (the classified
+  connection-or-auth message) rather than a generic "no calendars" empty state

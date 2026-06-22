@@ -21,13 +21,23 @@
   message + status 502; an `Invalid credentials` login error -> credentials
   message + status 401. Cover `test`, `auth`, and `available`.
 - [x] 2.2 Replace the hardcoded credentials/401 response in the
-  `loginToCalDAVServer` catch of `test/route.ts`, `auth/route.ts`, and
-  `available/route.ts` with the classified `{ error, details }` + status (keep
-  each route's existing `success: false` field where it has one).
+  `loginToCalDAVServer` catch of `test/route.ts`, `auth/route.ts`,
+  `available/route.ts`, and the add-selected-calendar `route.ts` with the
+  classified `{ error, details }` + status (keep each route's existing
+  `success: false` field where it has one).
+
+## 2b. Surface the error in the available-calendars list (TDD)
+
+- [x] 2b.1 Test `extractCalendarFetchError` (pure helper): returns the server
+  `error` field; falls back to a default when the body has no error / is not
+  JSON.
+- [x] 2b.2 Add `src/components/settings/available-calendars-error.ts` and wire
+  `AvailableCalendars.tsx` to set/render an error state (with retry) from a
+  non-OK available-calendars response instead of the generic empty state.
 
 ## 3. Verify
 
-- [x] 3.1 New tests green (`npm run test:unit`) - 14 new tests pass.
+- [x] 3.1 New tests green (`npm run test:unit`) - 19 new tests pass.
 - [x] 3.2 `npm run type-check` clean.
 - [x] 3.3 `npm run lint` clean.
 - [x] 3.4 Update `CHANGELOG.md` under `[Unreleased] > Fixed`.
