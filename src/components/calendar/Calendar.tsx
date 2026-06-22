@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { HiMenu } from "react-icons/hi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 
+import { AgendaView } from "@/components/calendar/AgendaView";
 import { DayView } from "@/components/calendar/DayView";
 import { FeedManager } from "@/components/calendar/FeedManager";
 import { MonthView } from "@/components/calendar/MonthView";
@@ -216,6 +217,17 @@ export function Calendar({
             >
               Year
             </button>
+            <button
+              onClick={() => setView("agenda")}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-sm font-medium",
+                view === "agenda"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              Agenda
+            </button>
           </div>
         </header>
 
@@ -227,6 +239,8 @@ export function Calendar({
             <WeekView currentDate={currentDate} onDateClick={setDate} />
           ) : view === "month" ? (
             <MonthView currentDate={currentDate} onDateClick={setDate} />
+          ) : view === "agenda" ? (
+            <AgendaView currentDate={currentDate} />
           ) : (
             <MultiMonthView currentDate={currentDate} onDateClick={setDate} />
           )}
