@@ -8,37 +8,56 @@
 -- one-per-(userId, provider, email), preserving the previous behavior for
 -- Google/Outlook.
 
+-- Requires PostgreSQL >= 15 for the unique-index `NULLS NOT DISTINCT` clause
+-- below. `entrypoint.sh` runs `prisma migrate deploy` at startup, so fail fast
+-- with a clear, actionable message on older servers instead of a cryptic syntax
+-- error. (The bundled docker-compose uses postgres:16.)
+DO $$
+BEGIN
+  IF current_setting('server_version_num')::int < 150000 THEN
+    RAISE EXCEPTION
+      'FluidCalendar migration 20260622130000 requires PostgreSQL 15 or newer (found %). The CalDAV account uniqueness index uses NULLS NOT DISTINCT. Please upgrade PostgreSQL.',
+      current_setting('server_version');
+  END IF;
+END $$;
+
 -- Canonicalize existing caldavUrl values to the SAME form the app now stores
--- (normalizeCalDAVServerUrl): lowercase the scheme://host[:port] authority and
--- drop the redundant default port, keep the path+query verbatim, and drop the
--- (server-irrelevant) fragment. The JS normalizer parses with the URL API,
--- which always yields a "/" pathname for an authority, so a host-only legacy
--- value ("https://Server.com" or "https://Server.com?x=1") becomes
--- "https://server.com/" ("https://server.com/?x=1"); we replicate that here by
--- ensuring the post-authority remainder starts with "/". Without this, a legacy
--- raw row would not match a post-upgrade reconnect that stores the canonical
--- form, recreating the very duplicate this change prevents - but only for
--- existing users. No-op for already-canonical and non-CalDAV (null) values.
+-- (normalizeCalDAVServerUrl): lowercase scheme + host, drop any userinfo
+-- (user:pass@) and the redundant default port, keep the path+query verbatim,
+-- and drop the (server-irrelevant) fragment. The JS normalizer rebuilds the
+-- origin from URL.protocol + URL.hostname (no userinfo) and always yields a "/"
+-- pathname for an authority, so e.g. "https://U:P@Server.com:443?x=1" becomes
+-- "https://server.com/?x=1". We replicate that here. Dropping userinfo also
+-- avoids leaking embedded credentials now that caldavUrl is exposed in the
+-- accounts API/UI. Without this, a legacy raw row would not match a post-upgrade
+-- reconnect that stores the canonical form, recreating the very duplicate this
+-- change prevents. No-op for already-canonical and non-CalDAV (null) values.
 UPDATE "ConnectedAccount"
 SET "caldavUrl" = (
-  -- authority: lowercased scheme://host[:port], with a redundant :443/:80 dropped
-  regexp_replace(
-    lower(substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*')),
-    '^(https://[^:/?#]+):443$|^(http://[^:/?#]+):80$',
-    '\1\2'
-  )
-  -- rest: path+query after the authority (fragment dropped). Ensure it begins
-  -- with "/" so a host-only or query-only legacy URL matches the URL-API form
-  -- ("" -> "/", "?x" -> "/?x", "/dav" / "/dav?x" unchanged).
-  || (
-    SELECT CASE
-             WHEN rest = '' OR left(rest, 1) <> '/' THEN '/' || rest
-             ELSE rest
-           END
-    FROM (
-      SELECT substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*([^#]*)') AS rest
-    ) r
-  )
+  SELECT
+    scheme
+    -- host[:port], lowercased, userinfo stripped, redundant default port dropped
+    -- only when it matches the scheme (https:443 / http:80), like the JS normalizer.
+    || CASE
+         WHEN scheme = 'https://' THEN regexp_replace(hostport, '^([^:]+):443$', '\1')
+         WHEN scheme = 'http://'  THEN regexp_replace(hostport, '^([^:]+):80$',  '\1')
+         ELSE hostport
+       END
+    -- rest: path+query (fragment dropped); ensure it begins with "/" so a
+    -- host-only or query-only legacy URL matches the URL-API form
+    -- ("" -> "/", "?x" -> "/?x", "/dav" / "/dav?x" unchanged).
+    || CASE WHEN rest = '' OR left(rest, 1) <> '/' THEN '/' || rest ELSE rest END
+  FROM (
+    SELECT
+      lower(substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://')) AS scheme,
+      -- authority between '://' and first /?#, lowercased, with "userinfo@" stripped
+      regexp_replace(
+        lower(substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://([^/?#]*)')),
+        '^[^@]*@',
+        ''
+      ) AS hostport,
+      substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*([^#]*)') AS rest
+  ) parts
 )
 WHERE "caldavUrl" IS NOT NULL
   AND "caldavUrl" ~ '^[a-zA-Z][a-zA-Z0-9+.-]*://';

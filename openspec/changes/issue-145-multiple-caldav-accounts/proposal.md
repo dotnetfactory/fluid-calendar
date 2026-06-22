@@ -20,7 +20,9 @@ The correct identity of a CalDAV account is `(user, username, server URL)`, not 
 - The CalDAV auth route still surfaces a clear message if you try to add the **same** server with the same username twice (a genuine duplicate), instead of a generic "credentials" error.
 - Database migration to replace the unique index, using Postgres 16 `NULLS NOT DISTINCT`.
 
-This is a core (open-source) bug fix - no SAAS-only code, no UI change. CalDAV is a self-hosted feature, so the fix belongs in the shared codebase.
+This is a core (open-source) bug fix. CalDAV is a self-hosted feature, so the fix belongs in the shared codebase. It includes a small UI addition (showing the CalDAV server URL in account management so same-username accounts are distinguishable).
+
+Note: the `NULLS NOT DISTINCT` unique index requires PostgreSQL 15+ (the bundled docker-compose uses 16). The migration fails fast with a clear message on older servers and the README documents the requirement.
 
 ## Capabilities
 

@@ -64,6 +64,14 @@ describe("normalizeCalDAVServerUrl", () => {
     );
   });
 
+  it("drops embedded userinfo (credentials), matching the URL API", () => {
+    // Userinfo is not part of the server identity and must not leak into the
+    // stored caldavUrl (which is now surfaced in the accounts API/UI).
+    expect(normalizeCalDAVServerUrl("https://user:pass@Host.com/dav")).toBe(
+      "https://host.com/dav"
+    );
+  });
+
   it("keeps distinct servers distinct", () => {
     expect(normalizeCalDAVServerUrl("https://a.example.com")).not.toBe(
       normalizeCalDAVServerUrl("https://b.example.com")
