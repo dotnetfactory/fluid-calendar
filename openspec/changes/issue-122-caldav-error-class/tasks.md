@@ -40,16 +40,20 @@
 
 ## 2c. Classify post-login connection failures (TDD)
 
-- [x] 2c.1 Tests: a `fetch failed` thrown by calendar discovery *after* login
-  succeeds (in the add-calendar and list-available routes) -> connection
-  message + 502 (not a generic 500).
-- [x] 2c.2 In the outer catch of `route.ts` and `available/route.ts`, classify
-  the error; return the connection message + 502 when it is a connection error,
-  otherwise keep the existing generic 500.
+- [x] 2c.1 Tests: a `fetch failed` thrown by a post-login CalDAV network call
+  (calendar discovery in add-calendar / list-available, and path validation in
+  connect) -> connection message + 502 (not a generic 500 / bad-path 400).
+- [x] 2c.2 Scope the connection classification to the post-login CalDAV calls
+  themselves: wrap `fetchCalDAVCalendars` in `route.ts` and `available/route.ts`
+  (and the path-validation `fetchCalDAVCalendars` in `auth/route.ts`) in their
+  own try/catch that returns the connection message + 502 for a connection
+  error and re-throws / keeps the existing message otherwise. The outer catches
+  keep their generic 500 so a DB/pool error is never mislabeled as a CalDAV
+  connection failure.
 
 ## 3. Verify
 
-- [x] 3.1 New tests green (`npm run test:unit`) - 23 new tests pass.
+- [x] 3.1 New tests green (`npm run test:unit`) - 24 new tests pass.
 - [x] 3.2 `npm run type-check` clean.
 - [x] 3.3 `npm run lint` clean.
 - [x] 3.4 Update `CHANGELOG.md` under `[Unreleased] > Fixed`.

@@ -129,8 +129,28 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Fetch available calendars
-      const calendars = await fetchCalDAVCalendars(client);
+      // Fetch available calendars. A connection/TLS failure can occur here
+      // (after login succeeds); classify it so the user gets the connection
+      // message rather than a generic 500. Scoped to the CalDAV call only so a
+      // later DB error is not mistaken for a CalDAV connection failure.
+      let calendars;
+      try {
+        calendars = await fetchCalDAVCalendars(client);
+      } catch (fetchError) {
+        const classified = classifyCalDAVError(fetchError);
+        if (classified.kind === "connection") {
+          logger.error(
+            `Failed to fetch CalDAV calendars for account: ${accountId}`,
+            { kind: classified.kind, error: classified.details },
+            LOG_SOURCE
+          );
+          return NextResponse.json(
+            { error: classified.message, details: classified.details },
+            { status: classified.status }
+          );
+        }
+        throw fetchError;
+      }
 
       // Process calendars to ensure proper type handling
       const processedCalendars = calendars.map((calendar) => ({
@@ -174,29 +194,18 @@ export async function GET(request: NextRequest) {
         formattedCalendars.filter((cal) => !cal.alreadyAdded)
       );
     } catch (error) {
-      // A connection/TLS failure can also occur after login succeeds (e.g.
-      // during calendar discovery); report it as a connection error rather
-      // than a generic 500 so the user gets the same actionable message.
-      const classified = classifyCalDAVError(error);
       logger.error(
         `Error fetching available calendars for account: ${accountId}`,
         {
-          kind: classified.kind,
-          error: classified.details,
+          error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack || null : null,
         },
         LOG_SOURCE
       );
-      if (classified.kind === "connection") {
-        return NextResponse.json(
-          { error: classified.message, details: classified.details },
-          { status: classified.status }
-        );
-      }
       return NextResponse.json(
         {
           error: "Failed to fetch available calendars",
-          details: classified.details,
+          details: error instanceof Error ? error.message : String(error),
         },
         { status: 500 }
       );

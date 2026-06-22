@@ -92,27 +92,33 @@ export async function POST(request: NextRequest) {
 
           await fetchCalDAVCalendars(client);
         } catch (pathError) {
+          // Path validation runs another CalDAV network call after login; a
+          // connection/TLS failure here must be reported as a connection error,
+          // not a bad-path error. Non-connection failures keep the 400 path
+          // message.
+          const classified = classifyCalDAVError(pathError);
           logger.error(
             "Failed to validate CalDAV path",
             {
-              error:
-                pathError instanceof Error
-                  ? pathError.message
-                  : String(pathError),
+              kind: classified.kind,
+              error: classified.details,
               caldavPath,
               serverUrl,
               username,
             },
             LOG_SOURCE
           );
+          if (classified.kind === "connection") {
+            return NextResponse.json(
+              { error: classified.message, details: classified.details },
+              { status: classified.status }
+            );
+          }
           return NextResponse.json(
             {
               error:
                 "Failed to validate the CalDAV path. Please check the path and try again.",
-              details:
-                pathError instanceof Error
-                  ? pathError.message
-                  : String(pathError),
+              details: classified.details,
             },
             { status: 400 }
           );

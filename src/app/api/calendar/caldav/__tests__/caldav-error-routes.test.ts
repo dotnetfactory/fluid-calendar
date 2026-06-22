@@ -133,6 +133,27 @@ describe("CalDAV auth route classifies login failures", () => {
     expect(res.status).toBe(401);
     expect(data.error.toLowerCase()).toContain("credentials");
   });
+
+  it("classifies a post-login `fetch failed` during path validation as a connection error (502)", async () => {
+    jest.spyOn(utils, "loginToCalDAVServer").mockResolvedValue(true);
+    jest.spyOn(utils, "fetchCalDAVCalendars").mockRejectedValue(FETCH_FAILED);
+    const { POST } = await import("../auth/route");
+
+    const res = assertResponse(
+      await POST(
+        jsonRequest({
+          serverUrl: "https://dav.local",
+          username: "u",
+          password: "p",
+          path: "/dav/calendars/u/",
+        })
+      )
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(502);
+    expect(data.error.toLowerCase()).toContain("connect");
+  });
 });
 
 describe("CalDAV available route classifies login failures", () => {
