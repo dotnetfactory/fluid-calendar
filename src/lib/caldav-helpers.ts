@@ -4,8 +4,110 @@ import ICAL from "ical.js";
 import { ICalRRule } from "./caldav-interfaces";
 import { newDate } from "./date-utils";
 import { logger } from "./logger";
+import { ExternalTask } from "./task-sync/providers/task-provider.interface";
 
 const LOG_SOURCE = "CalDAVHelpers";
+
+/**
+ * Read an iCalendar date/date-time property off a component as a JS Date.
+ * Returns undefined when the property is absent or cannot be converted. Handles
+ * the `ICAL.Time` objects ical.js yields (which expose `toJSDate()`), date-only
+ * (`VALUE=DATE`) values, and plain string fallbacks.
+ */
+function readVTodoDate(
+  vtodo: ICAL.Component,
+  propName: string
+): Date | undefined {
+  const value = vtodo.getFirstPropertyValue(propName);
+  if (value === null || value === undefined) return undefined;
+
+  if (typeof value === "object") {
+    const maybeTime = value as { toJSDate?: () => Date };
+    if (typeof maybeTime.toJSDate === "function") {
+      const date = maybeTime.toJSDate();
+      return isNaN(date.getTime()) ? undefined : date;
+    }
+  }
+
+  const parsed = new Date(String(value));
+  return isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+/**
+ * Converts a VTODO component into the external-task shape used by the task-sync
+ * framework so CalDAV tasks can be imported into FluidCalendar (GitHub issue
+ * #144). Returns null when the VTODO has no UID, since a stable identifier is
+ * required to link the external task to a local one across syncs.
+ *
+ * The raw VTODO `STATUS` string is carried through untranslated; the CalDAV
+ * field mapper maps it to the FluidCalendar `TaskStatus` enum. The same applies
+ * to `PRIORITY` (0-9), which the mapper buckets into high/medium/low.
+ *
+ * @param vtodo VTODO component parsed from a CalDAV calendar object
+ * @returns The external task, or null if the VTODO lacks a UID
+ */
+export function convertVTodoToTask(vtodo: ICAL.Component): ExternalTask | null {
+  try {
+    const uidValue = vtodo.getFirstPropertyValue("uid");
+    const uid = uidValue ? String(uidValue) : "";
+    if (!uid) {
+      // Without a UID we cannot stably link this task across syncs; skip it.
+      return null;
+    }
+
+    const summaryValue = vtodo.getFirstPropertyValue("summary");
+    const title = summaryValue ? String(summaryValue) : "Untitled Task";
+
+    const descriptionValue = vtodo.getFirstPropertyValue("description");
+    const description = descriptionValue ? String(descriptionValue) : null;
+
+    const dueDate = readVTodoDate(vtodo, "due") ?? null;
+    const startDate = readVTodoDate(vtodo, "dtstart") ?? null;
+    const completedDate = readVTodoDate(vtodo, "completed") ?? null;
+
+    const statusValue = vtodo.getFirstPropertyValue("status");
+    const status = statusValue ? String(statusValue) : undefined;
+
+    const priorityValue = vtodo.getFirstPropertyValue("priority");
+    const priority =
+      priorityValue === null || priorityValue === undefined
+        ? undefined
+        : String(priorityValue);
+
+    const rrule = vtodo.getFirstPropertyValue("rrule");
+    const isRecurring = !!rrule;
+    const recurrenceRule = rrule
+      ? convertICalRRuleToRRuleString(
+          rrule as unknown as ICalRRule | Record<string, unknown>
+        )
+      : null;
+
+    const lastModified =
+      readVTodoDate(vtodo, "last-modified") ?? readVTodoDate(vtodo, "dtstamp");
+
+    return {
+      id: uid,
+      title,
+      description,
+      status,
+      priority,
+      dueDate,
+      startDate,
+      completedDate,
+      listId: "",
+      isRecurring,
+      recurrenceRule,
+      lastModified,
+    };
+  } catch (error) {
+    logger.warn(
+      "Failed to convert VTODO to task",
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      LOG_SOURCE
+    );
+    return null;
+  }
+}
 
 /**
  * Converts an iCalendar recurrence rule object to RRule string format

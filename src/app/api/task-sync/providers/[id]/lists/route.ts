@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { getMsGraphClient } from "@/lib/outlook-utils";
 import { prisma } from "@/lib/prisma";
+import { CalDAVTaskProvider } from "@/lib/task-sync/providers/caldav-provider";
 import { OutlookTaskProvider } from "@/lib/task-sync/providers/outlook-provider";
 import { TaskProviderInterface } from "@/lib/task-sync/providers/task-provider.interface";
 
@@ -82,6 +83,9 @@ export async function GET(
       );
       const tasksClient = await getGoogleTasksClient(provider.account.id, provider.userId);
       providerImpl = new GoogleTaskProvider(tasksClient, provider.account.id, provider.userId);
+    } else if (provider.type === "CALDAV") {
+      // The CalDAV provider creates its own tsdav client from the account
+      providerImpl = new CalDAVTaskProvider(provider.account);
     } else {
       return NextResponse.json(
         { error: `Provider type ${provider.type} not supported` },

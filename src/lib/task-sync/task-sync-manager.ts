@@ -15,7 +15,6 @@ import {
 
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
-// import { CalDAVTaskProvider } from "./providers/caldav-provider";
 // Import utility to get Microsoft Graph client
 import { getMsGraphClient } from "@/lib/outlook-utils";
 import { prisma } from "@/lib/prisma";
@@ -23,6 +22,8 @@ import { prisma } from "@/lib/prisma";
 import { TaskStatus } from "@/types/task";
 
 import { FieldMapper } from "./field-mapper";
+import { CalDAVFieldMapper } from "./providers/caldav-field-mapper";
+import { CalDAVTaskProvider } from "./providers/caldav-provider";
 import { OutlookFieldMapper } from "./providers/outlook-field-mapper";
 import { GoogleFieldMapper } from "./providers/google-field-mapper";
 // Import provider implementations
@@ -57,6 +58,8 @@ export class TaskSyncManager {
         return new OutlookFieldMapper();
       case "GOOGLE":
         return new GoogleFieldMapper();
+      case "CALDAV":
+        return new CalDAVFieldMapper();
       // Add cases for other provider types
       default:
         return new FieldMapper();
@@ -105,8 +108,13 @@ export class TaskSyncManager {
         );
         const googleClient = await getGoogleTasksClient(dbProvider.accountId, dbProvider.account.userId);
         return new GoogleTaskProvider(googleClient, dbProvider.accountId, dbProvider.account.userId);
-      // case "CALDAV":
-      //   return new CalDAVTaskProvider(dbProvider);
+      case "CALDAV":
+        if (!dbProvider.account) {
+          throw new Error(
+            `Missing account for CalDAV provider ${providerId}`
+          );
+        }
+        return new CalDAVTaskProvider(dbProvider.account);
       default:
         throw new Error(`Unsupported provider type: ${dbProvider.type}`);
     }
