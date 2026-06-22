@@ -57,6 +57,16 @@ without change.
   classifier
 - **AND** it includes the original error text in the `details` field
 
+#### Scenario: A post-login connection failure is also classified
+
+- **WHEN** login succeeds but a subsequent CalDAV network operation in the same
+  request (e.g. calendar discovery during list-available or add-calendar) fails
+  with a connection/TLS error
+- **THEN** the route reports it as a connection error (the connection message +
+  a `5xx` gateway status) rather than a generic 500
+- **AND** a non-connection failure at that stage keeps the route's existing
+  generic error and status
+
 #### Scenario: The available-calendars list surfaces the classified error
 
 - **WHEN** the available-calendars list view receives a non-OK response from the

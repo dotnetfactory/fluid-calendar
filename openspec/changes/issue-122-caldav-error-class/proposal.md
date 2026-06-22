@@ -65,8 +65,15 @@ message that points at the server URL, network, and TLS certificate).
   login error yields a connection message + 502; an `Invalid credentials`
   login error yields the credentials message + 401).
 
+A connection/TLS failure can also occur on a network hop *after* login succeeds
+(e.g. calendar discovery during list-available or add-calendar). For those, the
+add-calendar and list-available routes also run their outer catch through the
+classifier and return the connection message + 502 when it is a connection
+error, while keeping their existing generic 500 for any other failure.
+
 This does not change credential storage, the path-validation branch, or the
-generic catch-all error handling - only how a *login* failure is classified and
+generic catch-all error handling for non-connection failures - only how a
+*login* failure (and a post-login *connection* failure) is classified and
 reported.
 
 ## Capabilities

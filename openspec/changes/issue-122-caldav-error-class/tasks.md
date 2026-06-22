@@ -38,9 +38,18 @@
   (the click handler previously swallowed it), reusing the helper with a
   "Failed to add calendar" fallback.
 
+## 2c. Classify post-login connection failures (TDD)
+
+- [x] 2c.1 Tests: a `fetch failed` thrown by calendar discovery *after* login
+  succeeds (in the add-calendar and list-available routes) -> connection
+  message + 502 (not a generic 500).
+- [x] 2c.2 In the outer catch of `route.ts` and `available/route.ts`, classify
+  the error; return the connection message + 502 when it is a connection error,
+  otherwise keep the existing generic 500.
+
 ## 3. Verify
 
-- [x] 3.1 New tests green (`npm run test:unit`) - 19 new tests pass.
+- [x] 3.1 New tests green (`npm run test:unit`) - 23 new tests pass.
 - [x] 3.2 `npm run type-check` clean.
 - [x] 3.3 `npm run lint` clean.
 - [x] 3.4 Update `CHANGELOG.md` under `[Unreleased] > Fixed`.

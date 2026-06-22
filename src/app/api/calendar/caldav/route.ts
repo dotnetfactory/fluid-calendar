@@ -247,19 +247,30 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (error) {
+      // A connection/TLS failure can also occur after login succeeds (e.g.
+      // during calendar discovery); report it as a connection error rather
+      // than a generic 500 so the user gets the same actionable message.
+      const classified = classifyCalDAVError(error);
       logger.error(
         `Error adding CalDAV calendar for account: ${accountId}`,
         {
-          error: error instanceof Error ? error.message : String(error),
+          kind: classified.kind,
+          error: classified.details,
           stack: error instanceof Error ? error.stack || null : null,
           calendarId,
         },
         LOG_SOURCE
       );
+      if (classified.kind === "connection") {
+        return NextResponse.json(
+          { error: classified.message, details: classified.details },
+          { status: classified.status }
+        );
+      }
       return NextResponse.json(
         {
           error: "Failed to add CalDAV calendar",
-          details: error instanceof Error ? error.message : String(error),
+          details: classified.details,
         },
         { status: 500 }
       );

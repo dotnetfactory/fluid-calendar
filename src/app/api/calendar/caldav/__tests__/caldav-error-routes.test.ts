@@ -181,6 +181,19 @@ describe("CalDAV available route classifies login failures", () => {
     expect(res.status).toBe(401);
     expect(data.error.toLowerCase()).toContain("credentials");
   });
+
+  it("classifies a post-login `fetch failed` (calendar discovery) as a connection error (502)", async () => {
+    // Login succeeds, but the next CalDAV network hop fails with fetch failed.
+    jest.spyOn(utils, "loginToCalDAVServer").mockResolvedValue(true);
+    jest.spyOn(utils, "fetchCalDAVCalendars").mockRejectedValue(FETCH_FAILED);
+    const { GET } = await import("../available/route");
+
+    const res = assertResponse(await GET(getRequest()));
+    const data = await res.json();
+
+    expect(res.status).toBe(502);
+    expect(data.error.toLowerCase()).toContain("connect");
+  });
 });
 
 describe("CalDAV add-calendar route classifies login failures", () => {
@@ -227,5 +240,17 @@ describe("CalDAV add-calendar route classifies login failures", () => {
 
     expect(res.status).toBe(401);
     expect(data.error.toLowerCase()).toContain("credentials");
+  });
+
+  it("classifies a post-login `fetch failed` (calendar fetch) as a connection error (502)", async () => {
+    jest.spyOn(utils, "loginToCalDAVServer").mockResolvedValue(true);
+    jest.spyOn(utils, "fetchCalDAVCalendars").mockRejectedValue(FETCH_FAILED);
+    const { POST } = await import("../route");
+
+    const res = assertResponse(await POST(addRequest()));
+    const data = await res.json();
+
+    expect(res.status).toBe(502);
+    expect(data.error.toLowerCase()).toContain("connect");
   });
 });
