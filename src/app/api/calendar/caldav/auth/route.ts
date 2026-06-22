@@ -83,10 +83,39 @@ export async function POST(request: NextRequest) {
 
       // If path is provided, try to fetch calendars to verify the path
       if (caldavPath) {
+        // Build the absolute URL outside the network try so a malformed path
+        // (a local construction error) stays a 400 bad-path response and is not
+        // misclassified as an upstream connection failure.
+        let fullUrl: string;
+        try {
+          fullUrl = formatAbsoluteUrl(serverUrl, caldavPath);
+        } catch (urlError) {
+          logger.error(
+            "Invalid CalDAV path",
+            {
+              error:
+                urlError instanceof Error ? urlError.message : String(urlError),
+              caldavPath,
+              serverUrl,
+              username,
+            },
+            LOG_SOURCE
+          );
+          return NextResponse.json(
+            {
+              error:
+                "Failed to validate the CalDAV path. Please check the path and try again.",
+              details:
+                urlError instanceof Error ? urlError.message : String(urlError),
+            },
+            { status: 400 }
+          );
+        }
+
         try {
           logger.info(
             `Verifying CalDAV path: ${caldavPath}`,
-            { fullUrl: formatAbsoluteUrl(serverUrl, caldavPath), username },
+            { fullUrl, username },
             LOG_SOURCE
           );
 

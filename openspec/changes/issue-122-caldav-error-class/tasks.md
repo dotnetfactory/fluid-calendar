@@ -55,10 +55,15 @@
   of continuing toward a misleading no-calendars result. The outer catches keep
   their generic 500 so a DB/pool error is never mislabeled as a CalDAV
   connection failure.
+- [x] 2c.3 Build `formatAbsoluteUrl(serverUrl, caldavPath)` outside the network
+  try in `auth/route.ts` and `test/route.ts`, so a malformed path (a local URL
+  construction error) stays a 400 bad-path response and is never misclassified
+  as a connection error. The classifier no longer matches a bare "invalid url"
+  (only the fetch-specific `ERR_INVALID_URL` / "Failed to parse URL").
 
 ## 3. Verify
 
-- [x] 3.1 New tests green (`npm run test:unit`) - 27 new tests pass.
+- [x] 3.1 New tests green (`npm run test:unit`) - 29 new tests pass.
 - [x] 3.2 `npm run type-check` clean.
 - [x] 3.3 `npm run lint` clean.
 - [x] 3.4 Update `CHANGELOG.md` under `[Unreleased] > Fixed`.

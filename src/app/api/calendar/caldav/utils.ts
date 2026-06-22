@@ -53,11 +53,11 @@ const CONNECTION_ERROR_TOKENS = [
   "network",
   "timed out",
   "econn",
-  // A malformed/unparseable server URL is a "check the server URL" problem,
-  // not a credentials problem (Node fetch: ERR_INVALID_URL / "Failed to parse
-  // URL from ...").
+  // A malformed/unparseable server URL surfaced by Node's fetch is a "check the
+  // server URL" problem, not a credentials problem. Match the fetch-specific
+  // signals only - NOT a bare "invalid url", which also appears in our own
+  // local path-construction errors (those stay 400 bad-path, see the routes).
   "err_invalid_url",
-  "invalid url",
   "failed to parse url",
 ];
 

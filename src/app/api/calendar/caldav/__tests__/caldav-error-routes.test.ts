@@ -187,6 +187,36 @@ describe("CalDAV auth route classifies login failures", () => {
     expect(res.status).toBe(502);
     expect(data.error.toLowerCase()).toContain("connect");
   });
+
+  it("keeps a malformed path (local URL construction error) as a 400 bad-path, not a 502", async () => {
+    jest.spyOn(utils, "loginToCalDAVServer").mockResolvedValue(true);
+    jest
+      .spyOn(utils, "formatAbsoluteUrl")
+      .mockImplementation(() => {
+        throw new Error("Invalid base URL: https://dav.local");
+      });
+    const fetchSpy = jest
+      .spyOn(utils, "fetchCalDAVCalendars")
+      .mockResolvedValue([]);
+    const { POST } = await import("../auth/route");
+
+    const res = assertResponse(
+      await POST(
+        jsonRequest({
+          serverUrl: "https://dav.local",
+          username: "u",
+          password: "p",
+          path: "/bad path/",
+        })
+      )
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.error.toLowerCase()).toContain("path");
+    expect(data.error.toLowerCase()).not.toContain("connect");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe("CalDAV available route classifies login failures", () => {

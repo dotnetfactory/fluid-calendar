@@ -91,6 +91,17 @@ describe("classifyCalDAVError", () => {
     expect(result.message.toLowerCase()).toContain("server url");
   });
 
+  it("does NOT treat our local `Invalid base URL` path-construction error as a connection error", () => {
+    // formatAbsoluteUrl throws these for a malformed path; they must stay a
+    // client/path error, not a 502 connection error.
+    expect(classifyCalDAVError(new Error("Invalid base URL: foo")).kind).toBe(
+      "auth"
+    );
+    expect(
+      classifyCalDAVError(new Error("Invalid URL in path: /bad")).kind
+    ).toBe("auth");
+  });
+
   it("defaults an unrecognized error to an auth error (no regression below today's behavior)", () => {
     const err = new Error("something completely unexpected");
     const result = classifyCalDAVError(err);
