@@ -6,6 +6,7 @@ import { DAVCalendar } from "tsdav";
 import { logger } from "@/lib/logger";
 
 import {
+  classifyCalDAVError,
   createCalDAVClient,
   fetchCalDAVCalendars,
   formatAbsoluteUrl,
@@ -67,13 +68,12 @@ export async function POST(request: NextRequest) {
       try {
         await loginToCalDAVServer(client, serverUrl, username);
       } catch (loginError) {
+        const classified = classifyCalDAVError(loginError);
         logger.error(
           "Failed to login to CalDAV server",
           {
-            error:
-              loginError instanceof Error
-                ? loginError.message
-                : String(loginError),
+            kind: classified.kind,
+            error: classified.details,
             serverUrl,
             username,
           },
@@ -82,14 +82,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error:
-              "Failed to authenticate with CalDAV server. Please check your credentials.",
-            details:
-              loginError instanceof Error
-                ? loginError.message
-                : String(loginError),
+            error: classified.message,
+            details: classified.details,
           },
-          { status: 401 }
+          { status: classified.status }
         );
       }
 

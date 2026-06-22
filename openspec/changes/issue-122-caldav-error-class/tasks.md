@@ -1,0 +1,33 @@
+# Tasks
+
+## 1. Shared classifier (TDD)
+
+- [x] 1.1 Write `src/app/api/calendar/caldav/__tests__/classifyCalDAVError.test.ts`
+  covering: `fetch failed` `TypeError` -> connection/502; nested
+  `cause.code === "ENOTFOUND"` -> connection/502;
+  `UNABLE_TO_VERIFY_LEAF_SIGNATURE` (self-signed TLS, #117) -> connection/502;
+  `ECONNREFUSED`/`ETIMEDOUT` -> connection/502; `Invalid credentials`
+  (tsdav 401, #122) -> auth/401; an unrecognized error string -> auth/401
+  (default); `details` always carries the raw message.
+- [x] 1.2 Implement `classifyCalDAVError(error: unknown): ClassifiedCalDAVError`
+  in `src/app/api/calendar/caldav/utils.ts` (walks the `cause` chain, matches the
+  connection/TLS token list, defaults unknown to auth). Export the type.
+
+## 2. Wire the routes (TDD)
+
+- [x] 2.1 Write route tests under
+  `src/app/api/calendar/caldav/__tests__/` proving each route maps a login
+  failure through the classifier: a `fetch failed` login error -> connection
+  message + status 502; an `Invalid credentials` login error -> credentials
+  message + status 401. Cover `test`, `auth`, and `available`.
+- [x] 2.2 Replace the hardcoded credentials/401 response in the
+  `loginToCalDAVServer` catch of `test/route.ts`, `auth/route.ts`, and
+  `available/route.ts` with the classified `{ error, details }` + status (keep
+  each route's existing `success: false` field where it has one).
+
+## 3. Verify
+
+- [x] 3.1 New tests green (`npm run test:unit`) - 14 new tests pass.
+- [x] 3.2 `npm run type-check` clean.
+- [x] 3.3 `npm run lint` clean.
+- [x] 3.4 Update `CHANGELOG.md` under `[Unreleased] > Fixed`.

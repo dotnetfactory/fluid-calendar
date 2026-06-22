@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
 import {
+  classifyCalDAVError,
   createCalDAVClient,
   fetchCalDAVCalendars,
   formatAbsoluteUrl,
@@ -57,16 +58,23 @@ export async function POST(request: NextRequest) {
       try {
         await loginToCalDAVServer(client, serverUrl, username);
       } catch (loginError) {
+        const classified = classifyCalDAVError(loginError);
+        logger.error(
+          "Failed to login to CalDAV server",
+          {
+            kind: classified.kind,
+            error: classified.details,
+            serverUrl,
+            username,
+          },
+          LOG_SOURCE
+        );
         return NextResponse.json(
           {
-            error:
-              "Failed to authenticate with CalDAV server. Please check your credentials.",
-            details:
-              loginError instanceof Error
-                ? loginError.message
-                : String(loginError),
+            error: classified.message,
+            details: classified.details,
           },
-          { status: 401 }
+          { status: classified.status }
         );
       }
 
