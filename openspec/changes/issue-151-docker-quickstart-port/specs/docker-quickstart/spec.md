@@ -1,20 +1,21 @@
 ## ADDED Requirements
 
-### Requirement: Container listen port is pinned independent of the operator's .env
+### Requirement: Container bind address and port are pinned independent of the operator's .env
 
-The Docker quick-start `app` service SHALL fix the container's HTTP listen port to 3000 regardless of any `PORT` value present in the operator's `.env`, so that the published `app` port mapping always reaches a listening server. Because the published image's standalone server honors `process.env.PORT`, and the `app` service loads the operator's `.env` via `env_file`, the compose file SHALL set `PORT=3000` in the `app` service's `environment` (which takes precedence over `env_file`).
+The Docker quick-start `app` service SHALL fix the container's HTTP bind address and port to `0.0.0.0:3000` regardless of any `PORT` or `HOSTNAME` value present in the operator's `.env`, so that the published `app` port mapping always reaches a listening server. Because the published image's Next.js standalone server binds to `process.env.HOSTNAME:process.env.PORT`, and the `app` service loads the operator's `.env` via `env_file`, the compose file SHALL set `PORT=3000` and `HOSTNAME=0.0.0.0` in the `app` service's `environment` (which takes precedence over `env_file`).
 
-#### Scenario: App service pins PORT to the container port
+#### Scenario: App service pins PORT and HOSTNAME to a reachable bind target
 
 - **WHEN** the `app` service in `docker-compose.yml` is inspected
 - **THEN** it sets `PORT=3000` in its `environment`
+- **AND** it sets `HOSTNAME=0.0.0.0` in its `environment`
 - **AND** the container side of its published `ports` mapping is `3000`
 
 #### Scenario: Operator .env is still loaded
 
 - **WHEN** the `app` service in `docker-compose.yml` is inspected
 - **THEN** it still loads the operator's configuration via `env_file: .env`
-- **AND** the pinned `PORT` overrides any `PORT` the operator placed in `.env`
+- **AND** the pinned `PORT`/`HOSTNAME` override any `PORT`/`HOSTNAME` the operator placed in `.env`
 
 ### Requirement: Quick-start docs explain the container port behavior
 

@@ -50,6 +50,15 @@ describe("Docker quick-start (issue #151)", () => {
     expect(appEnv.PORT).toBe("3000");
   });
 
+  it("pins the container HOSTNAME to 0.0.0.0 so a .env HOSTNAME can't bind it to an unreachable address", () => {
+    // The Next.js standalone server binds to process.env.HOSTNAME; a stray
+    // HOSTNAME (e.g. `localhost`) forwarded from the operator's .env would bind
+    // the server to loopback inside the container, leaving the published
+    // 3000:3000 mapping pointed at an unreachable address - same failure class
+    // as the PORT bug (#151 review).
+    expect(appEnv.HOSTNAME).toBe("0.0.0.0");
+  });
+
   it("publishes the app on container port 3000, matching the pinned PORT", () => {
     const ports = app.ports ?? [];
     const containerPorts = ports.map((p) => {

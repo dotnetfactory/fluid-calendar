@@ -5,11 +5,14 @@ services:
       - "3000:3000"
     env_file:
       - .env
-    # Pin the container's listen port so an unrelated PORT in the operator's .env
-    # cannot change it (env_file is overridden by environment). This keeps the
-    # 3000:3000 publish pointed at a listening server. See issue #151.
+    # Pin the container's bind address and port so unrelated PORT/HOSTNAME values
+    # in the operator's .env cannot change them (env_file is overridden by
+    # environment). The Next.js standalone server binds to HOSTNAME:PORT, so this
+    # keeps the 3000:3000 publish pointed at a reachable, listening server.
+    # See issue #151.
     environment:
       - PORT=3000
+      - HOSTNAME=0.0.0.0
     depends_on:
       db:
         condition: service_healthy
