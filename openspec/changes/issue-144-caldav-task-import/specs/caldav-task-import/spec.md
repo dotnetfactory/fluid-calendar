@@ -51,3 +51,28 @@ The CalDAV task provider SHALL support reading task lists and tasks for incoming
 
 - **WHEN** code calls the CalDAV task provider's create-task operation
 - **THEN** the operation throws an error indicating CalDAV task write-back is not supported
+
+#### Scenario: An import-only CalDAV sync never deletes local tasks from a partial read
+
+- **WHEN** a CalDAV mapping is synced and the external read returns no tasks (e.g. a transient or partial failure)
+- **THEN** previously imported local tasks linked to that mapping are not deleted
+- **AND** no write-back operation is attempted against the CalDAV server
+
+### Requirement: CalDAV credentials are only used for the owning user
+
+Before FluidCalendar uses a CalDAV account's stored URL and password to list or import tasks, it SHALL verify that the linked account is owned by the requesting/provider user and is a CalDAV account. A task provider linked to an account the user does not own SHALL NOT have that account's CalDAV credentials used.
+
+#### Scenario: A provider linked to another user's account is rejected
+
+- **WHEN** a CalDAV task provider's linked account is not owned by the provider's user (or is not a CalDAV account)
+- **THEN** listing or importing tasks for that provider fails without contacting the CalDAV server using that account's credentials
+
+### Requirement: CalDAV task import is reachable from the settings UI
+
+A user with a connected CalDAV account SHALL be able to select it when creating a task provider in the task-sync settings, so CalDAV task import can be enabled without hand-calling the API.
+
+#### Scenario: A CalDAV account appears as a task-provider option
+
+- **WHEN** the user opens the task-sync provider creation dialog with a connected CalDAV account
+- **THEN** that CalDAV account is offered as a compatible account
+- **AND** selecting it creates a provider of type CALDAV

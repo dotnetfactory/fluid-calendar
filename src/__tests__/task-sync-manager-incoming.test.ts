@@ -14,6 +14,7 @@ jest.mock("@/lib/prisma", () => ({
     },
     task: {
       findMany: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
       update: jest.fn().mockResolvedValue({}),
       delete: jest.fn().mockResolvedValue({}),
@@ -32,6 +33,7 @@ const mockPrisma = prisma as unknown as {
   taskListMapping: { findUnique: jest.Mock; update: jest.Mock };
   task: {
     findMany: jest.Mock;
+    findFirst: jest.Mock;
     create: jest.Mock;
     update: jest.Mock;
     delete: jest.Mock;
@@ -80,6 +82,7 @@ describe("TaskSyncManager incoming-only sync for import-only providers (issue #1
   beforeEach(() => {
     jest.clearAllMocks();
     mockPrisma.task.create.mockResolvedValue({});
+    mockPrisma.task.findFirst.mockResolvedValue(null);
     mockPrisma.taskListMapping.update.mockResolvedValue({});
   });
 
@@ -108,6 +111,31 @@ describe("TaskSyncManager incoming-only sync for import-only providers (issue #1
     expect(provider.createTask).not.toHaveBeenCalled();
     expect(provider.updateTask).not.toHaveBeenCalled();
     expect(provider.deleteTask).not.toHaveBeenCalled();
+  });
+
+  it("does NOT create a duplicate when the external task was already imported after the snapshot", async () => {
+    const external: ExternalTask = {
+      id: "uid-1",
+      title: "Buy milk",
+      listId: "https://dav.example.com/cal/tasks/",
+    };
+    const provider = makeImportOnlyProvider([external]);
+
+    // Snapshot shows no local tasks, but a concurrent sync already created one,
+    // so the pre-create existence check finds it.
+    mockPrisma.task.findMany.mockResolvedValue([]);
+    mockPrisma.task.findFirst.mockResolvedValue({ id: "race-1" });
+
+    const manager = new TaskSyncManager();
+    jest.spyOn(manager, "getProvider").mockResolvedValue(provider);
+    jest
+      .spyOn(manager, "getFieldMapper")
+      .mockReturnValue(new CalDAVFieldMapper());
+
+    const result = await manager.syncTaskList(mapping());
+
+    expect(result.success).toBe(true);
+    expect(mockPrisma.task.create).not.toHaveBeenCalled();
   });
 
   it("does NOT delete a locally-linked task that is missing from the external read", async () => {

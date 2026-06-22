@@ -114,6 +114,19 @@ export class TaskSyncManager {
             `Missing account for CalDAV provider ${providerId}`
           );
         }
+        // Defense-in-depth: only use the account's CalDAV credentials if the
+        // account is actually owned by the provider's user and is a CalDAV
+        // account. A provider row's accountId is client-supplied at creation,
+        // so without this check a row could point at another user's
+        // ConnectedAccount and leak its CalDAV URL/password (issue #144 review).
+        if (
+          dbProvider.account.userId !== dbProvider.userId ||
+          dbProvider.account.provider !== "CALDAV"
+        ) {
+          throw new Error(
+            `CalDAV provider ${providerId} is not linked to a CalDAV account owned by the user`
+          );
+        }
         return new CalDAVTaskProvider(dbProvider.account);
       default:
         throw new Error(`Unsupported provider type: ${dbProvider.type}`);
@@ -379,6 +392,23 @@ export class TaskSyncManager {
 
           result.updated++;
         } else {
+          // Guard against creating a duplicate if a concurrent/previous sync
+          // already imported this external task after our snapshot was taken.
+          // (This narrows but does not fully close the race; the engine has no
+          // DB-level unique constraint on external task identity.)
+          const existing = await prisma.task.findFirst({
+            where: {
+              projectId: mapping.projectId,
+              source: mapping.provider.type,
+              externalTaskId: externalTask.id,
+            },
+            select: { id: true },
+          });
+          if (existing) {
+            result.skipped++;
+            continue;
+          }
+
           // Create a new local task for this external task.
           const internalTask = fieldMapper.mapToInternalTask(
             externalTask,
