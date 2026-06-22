@@ -31,3 +31,7 @@ The calendar SHALL provide an "Agenda" view that displays calendar events and sc
 #### Scenario: Deleting a recurring occurrence does not delete the whole series
 - **WHEN** the user deletes a recurring event occurrence from the Agenda quick view that is an expanded instance (not the recurring master)
 - **THEN** only that occurrence is deleted (delete mode `single`), and the rest of the series is left intact; only deleting the recurring master deletes the series
+
+#### Scenario: The global "new event" command works while the Agenda view is active
+- **WHEN** the user triggers the calendar create-event command (or shortcut) while the Agenda view is active
+- **THEN** the New Event modal opens (the Agenda view honors the shared event-modal store, like the other calendar views), rather than the command silently doing nothing

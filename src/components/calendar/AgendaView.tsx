@@ -12,6 +12,7 @@ import {
   formatAgendaItems,
   resolveEventDeleteMode,
 } from "@/lib/calendar-agenda";
+import { useEventModalStore } from "@/lib/commands/groups/calendar";
 
 import { useCalendarStore } from "@/store/calendar";
 import { useSettingsStore } from "@/store/settings";
@@ -42,6 +43,7 @@ export function AgendaView({ currentDate }: AgendaViewProps) {
   const tasks = useTaskStore((state) => state.tasks);
   const [quickViewItem, setQuickViewItem] = useState<CalendarEvent | Task>();
   const [isTask, setIsTask] = useState(false);
+  const eventModalStore = useEventModalStore();
   const [clickedElement, setClickedElement] = useState<HTMLElement | null>(null);
 
   // Update events when the calendar range changes
@@ -120,7 +122,10 @@ export function AgendaView({ currentDate }: AgendaViewProps) {
 
   const handleEventModalClose = () => {
     setIsEventModalOpen(false);
+    eventModalStore.setOpen(false);
     setSelectedEvent(undefined);
+    eventModalStore.setDefaultDate(undefined);
+    eventModalStore.setDefaultEndDate(undefined);
   };
 
   const handleTaskModalClose = () => {
@@ -221,9 +226,11 @@ export function AgendaView({ currentDate }: AgendaViewProps) {
       />
 
       <EventModal
-        isOpen={isEventModalOpen}
+        isOpen={isEventModalOpen || eventModalStore.isOpen}
         onClose={handleEventModalClose}
         event={selectedEvent}
+        defaultDate={eventModalStore.defaultDate}
+        defaultEndDate={eventModalStore.defaultEndDate}
       />
 
       {selectedTask && (
