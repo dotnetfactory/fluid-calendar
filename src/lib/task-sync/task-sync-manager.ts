@@ -383,10 +383,12 @@ export class TaskSyncManager {
                 ? newDate(externalTask.lastModified)
                 : externalTask.lastModifiedDateTime
                   ? newDate(externalTask.lastModifiedDateTime)
-                  : new Date(),
+                  : newDate(),
               lastSyncedAt: newDate(),
               syncStatus: "SYNCED",
-              syncHash: tracker.generateTaskHash(localTask),
+              // Hash the merged (post-update) data so the stored hash reflects
+              // what was actually written, not the pre-merge snapshot.
+              syncHash: tracker.generateTaskHash(mergedData),
             },
           });
 
@@ -426,6 +428,9 @@ export class TaskSyncManager {
               priority: internalTask.priority,
               energyLevel: internalTask.energyLevel,
               preferredTime: internalTask.preferredTime,
+              // External-owned completion state: an imported already-completed
+              // VTODO must carry its completion timestamp from the first import.
+              completedAt: internalTask.completedAt,
               isRecurring: internalTask.isRecurring || false,
               recurrenceRule: internalTask.recurrenceRule,
               isAutoScheduled: mapping.isAutoScheduled,
@@ -441,7 +446,7 @@ export class TaskSyncManager {
                 ? newDate(externalTask.lastModified)
                 : externalTask.lastModifiedDateTime
                   ? newDate(externalTask.lastModifiedDateTime)
-                  : new Date(),
+                  : newDate(),
               syncHash: tracker.generateTaskHash({
                 title: internalTask.title,
                 description: internalTask.description,

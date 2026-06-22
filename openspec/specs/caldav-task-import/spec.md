@@ -40,6 +40,12 @@ When converting a `VTODO` to a task, FluidCalendar SHALL map: `SUMMARY` to title
 - **AND** the resulting task's due date equals the `DUE` value
 - **AND** the resulting task's status is the completed status
 
+#### Scenario: Clearing an external-owned field upstream clears it locally
+
+- **WHEN** a previously imported task was completed (or had a due date, description, or recurrence rule) and the corresponding `VTODO` is later changed so that property is removed (e.g. the task is reopened so `COMPLETED`/`STATUS:COMPLETED` is gone)
+- **THEN** the next incoming sync clears the local task's external-owned field (the local copy mirrors the CalDAV source of truth) rather than retaining the stale value
+- **AND** local-owned fields (such as start date) are preserved
+
 #### Scenario: A recurring VTODO is marked recurring
 
 - **WHEN** a `VTODO` has an `RRULE` of `FREQ=WEEKLY`

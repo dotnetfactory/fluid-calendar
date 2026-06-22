@@ -29,7 +29,7 @@ function readVTodoDate(
     }
   }
 
-  const parsed = new Date(String(value));
+  const parsed = newDate(String(value));
   return isNaN(parsed.getTime()) ? undefined : parsed;
 }
 

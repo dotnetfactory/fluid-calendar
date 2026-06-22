@@ -69,4 +69,81 @@ describe("CalDAVFieldMapper.mapToInternalTask (issue #144)", () => {
     expect(internal.isRecurring).toBe(true);
     expect(internal.recurrenceRule).toBe("FREQ=WEEKLY");
   });
+
+  it("maps completedDate to completedAt", () => {
+    const completed = new Date("2025-07-02T09:00:00.000Z");
+    const internal = mapper.mapToInternalTask(
+      externalTask({ status: "COMPLETED", completedDate: completed }),
+      "p"
+    );
+    expect(internal.completedAt).toEqual(completed);
+  });
+});
+
+/**
+ * CalDAV import is one-way: when an external-owned field is removed/reset
+ * upstream (e.g. a completed task is reopened, a due date is cleared), the local
+ * task must clear it too rather than retaining a stale value (issue #144 review).
+ */
+describe("CalDAVFieldMapper.mergeTaskData clears external-owned fields (issue #144)", () => {
+  const mapper = new CalDAVFieldMapper();
+
+  function localTask(overrides: Record<string, unknown>) {
+    return {
+      id: "local-1",
+      title: "Old title",
+      tags: [],
+      project: null,
+      ...overrides,
+    } as never;
+  }
+
+  it("clears completedAt when a VTODO is reopened (COMPLETED removed)", () => {
+    const local = localTask({
+      status: TaskStatus.COMPLETED,
+      completedAt: new Date("2025-01-01T00:00:00.000Z"),
+    });
+    // External read: reopened task -> NEEDS-ACTION, no completion date.
+    const incoming = mapper.mapToInternalTask(
+      externalTask({ status: "NEEDS-ACTION", completedDate: null }),
+      "p"
+    );
+    const merged = mapper.mergeTaskData(local, incoming);
+    expect(merged.status).toBe(TaskStatus.TODO);
+    expect(merged.completedAt).toBeNull();
+  });
+
+  it("clears dueDate, description and recurrence when removed upstream", () => {
+    const local = localTask({
+      dueDate: new Date("2025-01-01T00:00:00.000Z"),
+      description: "old notes",
+      isRecurring: true,
+      recurrenceRule: "FREQ=WEEKLY",
+    });
+    const incoming = mapper.mapToInternalTask(
+      externalTask({
+        dueDate: null,
+        description: null,
+        isRecurring: false,
+        recurrenceRule: null,
+      }),
+      "p"
+    );
+    const merged = mapper.mergeTaskData(local, incoming);
+    expect(merged.dueDate).toBeNull();
+    expect(merged.description).toBeNull();
+    expect(merged.isRecurring).toBe(false);
+    expect(merged.recurrenceRule).toBeNull();
+  });
+
+  it("preserves local-owned startDate even when absent upstream", () => {
+    const start = new Date("2025-03-01T08:00:00.000Z");
+    const local = localTask({ startDate: start });
+    const incoming = mapper.mapToInternalTask(
+      externalTask({ startDate: null }),
+      "p"
+    );
+    const merged = mapper.mergeTaskData(local, incoming);
+    expect(merged.startDate).toEqual(start);
+  });
 });

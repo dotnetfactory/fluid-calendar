@@ -113,6 +113,33 @@ describe("TaskSyncManager incoming-only sync for import-only providers (issue #1
     expect(provider.deleteTask).not.toHaveBeenCalled();
   });
 
+  it("writes completedAt when importing an already-completed external task", async () => {
+    const completed = new Date("2025-01-01T12:00:00.000Z");
+    const external: ExternalTask = {
+      id: "uid-1",
+      title: "Finished thing",
+      listId: "https://dav.example.com/cal/tasks/",
+      status: "COMPLETED",
+      completedDate: completed,
+    };
+    const provider = makeImportOnlyProvider([external]);
+
+    mockPrisma.task.findMany.mockResolvedValue([]);
+
+    const manager = new TaskSyncManager();
+    jest.spyOn(manager, "getProvider").mockResolvedValue(provider);
+    jest
+      .spyOn(manager, "getFieldMapper")
+      .mockReturnValue(new CalDAVFieldMapper());
+
+    const result = await manager.syncTaskList(mapping());
+
+    expect(result.success).toBe(true);
+    expect(mockPrisma.task.create).toHaveBeenCalledTimes(1);
+    const createArg = mockPrisma.task.create.mock.calls[0][0];
+    expect(createArg.data.completedAt).toEqual(completed);
+  });
+
   it("does NOT create a duplicate when the external task was already imported after the snapshot", async () => {
     const external: ExternalTask = {
       id: "uid-1",

@@ -36,9 +36,17 @@ function vtodoPriorityToInternal(value: unknown): Priority {
  * CalDAVFieldMapper
  *
  * Field mappings between our internal task model and CalDAV `VTODO` items
- * (GitHub issue #144). Only `status` and `priority` need CalDAV-specific
- * translation; the remaining fields (title, description, due/start dates,
- * recurrence) already align with the base mapper's external field names.
+ * (GitHub issue #144).
+ *
+ * CalDAV import is one-way (incoming only), so the local task must faithfully
+ * mirror the VTODO source of truth: an external-owned field that is removed or
+ * reset upstream (e.g. a completed task reopened, a due date cleared) must be
+ * cleared locally too. The base mapper marks `description`, `dueDate`, and
+ * recurrence as preserve-local (so a `null` incoming value is skipped); we
+ * override them - and `status`/`priority`/`completedAt` - to `false` so an
+ * absent VTODO value clears the local field rather than leaving it stale. Truly
+ * local-owned fields (`startDate`, duration, energy level, preferred time) keep
+ * the base mapper's preserve-local behavior and are never overwritten on import.
  */
 export class CalDAVFieldMapper extends FieldMapper {
   constructor() {
@@ -64,10 +72,48 @@ export class CalDAVFieldMapper extends FieldMapper {
       {
         internalField: "completedAt",
         externalField: "completedDate",
-        preserveLocalValue: true,
+        // External-owned: when a VTODO is reopened upstream its COMPLETED
+        // property disappears, so the local completion timestamp must clear.
+        preserveLocalValue: false,
+      },
+      {
+        internalField: "description",
+        externalField: "description",
+        // External-owned on import: a cleared VTODO DESCRIPTION clears locally.
+        preserveLocalValue: false,
+      },
+      {
+        internalField: "dueDate",
+        externalField: "dueDate",
+        // External-owned on import: a removed VTODO DUE clears the local due date.
+        preserveLocalValue: false,
+      },
+      {
+        internalField: "isRecurring",
+        externalField: "isRecurring",
+        // External-owned on import: mirrors the VTODO RRULE presence.
+        preserveLocalValue: false,
+      },
+      {
+        internalField: "recurrenceRule",
+        externalField: "recurrenceRule",
+        // External-owned on import: a removed VTODO RRULE clears the local rule.
+        preserveLocalValue: false,
       },
     ];
 
     super(caldavMappings);
+
+    // The base mapper appends provider mappings after its defaults, so a field
+    // we override (e.g. dueDate, description, recurrence) ends up with two
+    // entries. getFieldMapping() returns the FIRST match, which would be the
+    // base default - silently ignoring our preserveLocalValue override during
+    // merge. Collapse to one entry per internalField with the provider mapping
+    // winning, so both applyMappings() and getFieldMapping() see our overrides.
+    const byInternalField = new Map<string, FieldMapping>();
+    for (const mapping of this.fieldMappings) {
+      byInternalField.set(mapping.internalField, mapping);
+    }
+    this.fieldMappings = Array.from(byInternalField.values());
   }
 }
