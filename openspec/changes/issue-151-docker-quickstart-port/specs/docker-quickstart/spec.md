@@ -25,3 +25,4 @@ The README Docker quick-start SHALL state that the container's port is managed b
 - **WHEN** a self-hoster reads the Docker quick-start section of `README.md`
 - **THEN** it explains that the container listens on port 3000 and that setting `PORT` in `.env` does not change the published port
 - **AND** it tells operators to change the host side of the `ports` mapping to use a different host port
+- **AND** it warns that changing the host port also requires updating `NEXTAUTH_URL` (and the other browser-facing URL variables) to the same origin, since the app derives its OAuth redirect URLs from `NEXTAUTH_URL`

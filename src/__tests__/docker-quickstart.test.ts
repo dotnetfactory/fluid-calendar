@@ -82,9 +82,26 @@ describe("Docker quick-start (issue #151)", () => {
       return next === -1 ? readme.slice(idx) : readme.slice(idx, next);
     })();
 
+    // Isolate the explicit port note so trivial mentions elsewhere in the
+    // quick-start (e.g. the NEXTAUTH_URL line in the env example) cannot mask a
+    // missing instruction.
+    const portNote = (() => {
+      const idx = section.indexOf("Note on the port");
+      if (idx === -1) return "";
+      const next = section.indexOf("\n\n", idx);
+      return next === -1 ? section.slice(idx) : section.slice(idx, next);
+    })();
+
     it("explains the container port is fixed and PORT in .env does not change it", () => {
-      expect(section).toContain("PORT");
-      expect(section.toLowerCase()).toContain("ports");
+      expect(portNote).toContain("PORT");
+      expect(portNote.toLowerCase()).toContain("ports");
+    });
+
+    it("warns that changing the host port also requires updating NEXTAUTH_URL to the same origin", () => {
+      // Issue #151 review: the quick-start sets NEXTAUTH_URL=http://localhost:3000
+      // and the app derives OAuth redirect URLs from it, so remapping the host
+      // port without updating NEXTAUTH_URL breaks auth. The note must say so.
+      expect(portNote).toContain("NEXTAUTH_URL");
     });
   });
 });

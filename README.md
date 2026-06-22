@@ -268,7 +268,7 @@ Note: For production deployment:
 
 That's it! The application will be running with a PostgreSQL database automatically configured. The docker-compose.yml file is already configured to use the pre-built Docker image.
 
-> **Note on the port:** the container listens on port `3000`, which `docker-compose.yml` pins via `environment: PORT=3000`. Setting `PORT` in your `.env` will **not** change the published port (compose overrides it) - this avoids the app binding to a different port than the one published. To serve on a different host port, change the host side of the `ports` mapping in `docker-compose.yml` (for example `"8080:3000"` to use `http://localhost:8080`).
+> **Note on the port:** the container listens on port `3000`, which `docker-compose.yml` pins via `environment: PORT=3000`. Setting `PORT` in your `.env` will **not** change the published port (compose overrides it) - this avoids the app binding to a different port than the one published. To serve on a different host port, change the host side of the `ports` mapping in `docker-compose.yml` (for example `"8080:3000"` to use `http://localhost:8080`) **and** update `NEXTAUTH_URL` (and the other browser-facing URLs - `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`) in your `.env` to the same host/port, since the app derives its OAuth redirect URLs from `NEXTAUTH_URL`; leaving it on `:3000` while browsing on `:8080` breaks sign-in and calendar auth.
 
 ### For Developers
 
