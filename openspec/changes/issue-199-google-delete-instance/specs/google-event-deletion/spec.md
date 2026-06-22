@@ -24,6 +24,16 @@ The `eventId` provided already identifies the specific occurrence (for a recurri
 - **THEN** the system calls `events.delete` with that `eventId`
 - **AND** the system does NOT attempt an `events.instances` lookup
 
+### Requirement: Single mode never deletes an entire recurring series
+
+A single-occurrence delete MUST NOT delete a recurring master event, because Google treats deleting a master as deleting the whole series. The system SHALL refuse a single-mode delete when the target is a recurring master (it has `recurrence` set and no `recurringEventId`) rather than silently erasing the series.
+
+#### Scenario: Refusing a single-mode delete of a recurring master
+
+- **WHEN** `deleteGoogleEvent` is called with `mode: "single"` and an `eventId` whose event has `recurrence` set and no `recurringEventId` (a recurring master)
+- **THEN** the system throws an error and does NOT call `events.delete`
+- **AND** the whole recurring series is left intact
+
 ### Requirement: Series delete removes the whole recurring series
 
 When deleting in series mode an event that belongs to a recurring series, the system SHALL delete the master recurring event so the entire series is removed.

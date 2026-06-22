@@ -13,3 +13,8 @@
 - [x] 3.1 Add tests: series mode deletes the master `recurringEventId`; non-recurring single-mode delete uses the provided id without an instances lookup.
 - [x] 3.2 Run the local gate: new test green, `npm run type-check` clean, `npm run lint` clean.
 - [x] 3.3 Update `CHANGELOG.md` under `[unreleased]` with the user-facing bug fix.
+
+## 4. Master-delete safety guard (from Codex review)
+
+- [x] 4.1 Add a failing test: `mode: "single"` on a recurring master id (has `recurrence`, no `recurringEventId`) must throw and must NOT call `events.delete`.
+- [x] 4.2 Guard `deleteGoogleEvent` single mode: fetch the event and refuse (throw) when the target is a recurring master, so a single delete can never erase the whole series.

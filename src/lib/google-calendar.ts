@@ -268,14 +268,15 @@ export async function deleteGoogleEvent(
   const calendar = await getClient(accountId, userId);
 
   try {
-    // For series deletion, look up the event so we can target the master
-    // recurring event id.
-    if (mode === "series") {
-      const event = await calendar.events.get({
-        calendarId,
-        eventId,
-      });
+    // Get the event so we can distinguish a recurring master from an expanded
+    // occurrence (a master has `recurrence` but no `recurringEventId`).
+    const event = await calendar.events.get({
+      calendarId,
+      eventId,
+    });
 
+    // For series deletion, target the master recurring event id.
+    if (mode === "series") {
       if (event.data.recurringEventId) {
         await calendar.events.delete({
           calendarId,
@@ -283,6 +284,20 @@ export async function deleteGoogleEvent(
         });
         return;
       }
+    }
+
+    // Safety guard: never single-delete a recurring master id. Google treats
+    // deleting a master as deleting the WHOLE series, which would be worse than
+    // the wrong-occurrence bug this fix addresses. A single delete must target
+    // an expanded occurrence; refuse a master and let the caller use series mode.
+    if (
+      mode === "single" &&
+      event.data.recurrence &&
+      !event.data.recurringEventId
+    ) {
+      throw new Error(
+        "Refusing single-occurrence delete of a recurring master event; use series mode to delete the whole series."
+      );
     }
 
     // For single-occurrence deletions, the provided eventId already identifies

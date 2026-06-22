@@ -89,6 +89,29 @@ describe("deleteGoogleEvent - single occurrence targets the clicked instance", (
     expect(instances).not.toHaveBeenCalled();
   });
 
+  it("single mode refuses to delete a recurring master id (would erase the whole series)", async () => {
+    // A true master: has recurrence, but no recurringEventId.
+    const masterId = "master123";
+    const { calendar, del } = makeFakeCalendar({
+      id: masterId,
+      recurrence: ["RRULE:FREQ=WEEKLY"],
+    });
+
+    await expect(
+      deleteGoogleEvent(
+        accountId,
+        userId,
+        calendarId,
+        masterId,
+        "single",
+        async () => calendar
+      )
+    ).rejects.toThrow();
+
+    // Must NOT delete the master id in single mode.
+    expect(del).not.toHaveBeenCalled();
+  });
+
   it("series mode deletes the master recurring event", async () => {
     const clickedId = "master123_20260601T090000Z";
     const { calendar, del } = makeFakeCalendar({
