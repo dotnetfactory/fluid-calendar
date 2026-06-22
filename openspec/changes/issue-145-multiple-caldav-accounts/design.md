@@ -53,9 +53,16 @@ When the same server URL + username is added twice, the `create()` still throws 
 
 ## Migration Plan
 
-1. Edit `prisma/schema.prisma`: replace `@@unique([userId, provider, email])` with the 4-column key (NULLS NOT DISTINCT).
-2. Generate a migration that `DROP`s `ConnectedAccount_userId_provider_email_key` and `CREATE`s the new `UNIQUE ... NULLS NOT DISTINCT` index.
-3. `storeTokens` no longer references the old named key.
+1. Edit `prisma/schema.prisma`: replace `@@unique([userId, provider, email])` with the 4-column key.
+2. Hand-author a migration that `CREATE`s the new `UNIQUE ... NULLS NOT DISTINCT` index **before** `DROP`ing the old `ConnectedAccount_userId_provider_email_key`, so the table is never without a uniqueness guard even if the migration is interrupted (Prisma also wraps each migration in a transaction, making this belt-and-suspenders). Adding `caldavUrl` to the key only makes rows more distinct, so no legacy row can fail the new index.
+3. `storeTokens` no longer references the old named key and stays atomic (P2002 retry).
+
+Verified end-to-end against a disposable Postgres 16: full migration history applies, the resulting index carries `NULLS NOT DISTINCT`, the old index is gone, and `prisma migrate diff --from-migrations ... --to-schema` reports **no drift**.
+
+## Codex review resolutions
+
+- **Migration could drop the old guard before the new one exists** (high): resolved by reordering to CREATE-then-DROP (above).
+- **Schema encodes weaker uniqueness than the migration** (high): Prisma 6.3's `@@unique` DSL cannot express `nullsNotDistinct`, so `prisma migrate diff --from-empty` / `prisma db push` emit the index *without* `NULLS NOT DISTINCT`. This repo provisions exclusively via `prisma migrate deploy` (see `package.json` `prisma:update`), which applies the hand-written migration with the correct semantics; `db push` is not used. We mitigate the latent footgun three ways: (a) an explicit `schema.prisma` comment forbidding `db push` for this model, (b) a guard unit test that fails if the migration ever loses `NULLS NOT DISTINCT` or the expected columns, and (c) `storeTokens` is defensive (idempotent upsert that converges even if a row was duplicated). Fully closing this in the schema would require upgrading Prisma to a version whose DSL supports `nullsNotDistinct`, which is out of scope for this fix.
 
 ## Open Questions
 
