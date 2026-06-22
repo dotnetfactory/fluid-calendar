@@ -53,6 +53,12 @@ const CONNECTION_ERROR_TOKENS = [
   "network",
   "timed out",
   "econn",
+  // A malformed/unparseable server URL is a "check the server URL" problem,
+  // not a credentials problem (Node fetch: ERR_INVALID_URL / "Failed to parse
+  // URL from ...").
+  "err_invalid_url",
+  "invalid url",
+  "failed to parse url",
 ];
 
 /**

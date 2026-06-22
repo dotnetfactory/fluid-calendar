@@ -76,6 +76,21 @@ describe("classifyCalDAVError", () => {
     expect(result.details).toBe("Invalid credentials");
   });
 
+  it("classifies a malformed server URL (ERR_INVALID_URL) as a connection error", () => {
+    // What Node's fetch throws for an unparseable URL.
+    const cause = Object.assign(
+      new Error("Invalid URL"),
+      { code: "ERR_INVALID_URL" }
+    );
+    const err = new TypeError("Failed to parse URL from not a url", { cause });
+
+    const result = classifyCalDAVError(err);
+
+    expect(result.kind).toBe("connection");
+    expect(result.status).toBe(502);
+    expect(result.message.toLowerCase()).toContain("server url");
+  });
+
   it("defaults an unrecognized error to an auth error (no regression below today's behavior)", () => {
     const err = new Error("something completely unexpected");
     const result = classifyCalDAVError(err);

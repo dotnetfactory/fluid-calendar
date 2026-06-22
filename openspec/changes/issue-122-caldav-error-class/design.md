@@ -61,7 +61,9 @@ Classification (first match wins):
      `EAI_AGAIN`, `EPIPE`, `UNABLE_TO_VERIFY_LEAF_SIGNATURE`,
      `SELF_SIGNED_CERT_IN_CHAIN`, `DEPTH_ZERO_SELF_SIGNED_CERT`,
      `CERT_HAS_EXPIRED`, `ERR_TLS_CERT_ALTNAME_INVALID`, `certificate`,
-     `ECONN`, `getaddrinfo`, `network`, `socket hang up`, `timed out`.
+     `ECONN`, `getaddrinfo`, `network`, `socket hang up`, `timed out`, and a
+     malformed/unparseable server URL (`ERR_INVALID_URL`, `invalid url`,
+     `failed to parse url` - a "check the server URL" problem, not credentials).
    - message: `"Could not connect to the CalDAV server. Please check the server
      URL, your network/firewall, and (for self-signed certificates) the server's
      TLS certificate."`; status `502`.

@@ -11,7 +11,9 @@
   (default); `details` always carries the raw message.
 - [x] 1.2 Implement `classifyCalDAVError(error: unknown): ClassifiedCalDAVError`
   in `src/app/api/calendar/caldav/utils.ts` (walks the `cause` chain, matches the
-  connection/TLS token list, defaults unknown to auth). Export the type.
+  connection/TLS token list - including a malformed server URL,
+  `ERR_INVALID_URL`/"Failed to parse URL", treated as connection - and defaults
+  unknown to auth). Export the type.
 
 ## 2. Wire the routes (TDD)
 
@@ -56,7 +58,7 @@
 
 ## 3. Verify
 
-- [x] 3.1 New tests green (`npm run test:unit`) - 26 new tests pass.
+- [x] 3.1 New tests green (`npm run test:unit`) - 27 new tests pass.
 - [x] 3.2 `npm run type-check` clean.
 - [x] 3.3 `npm run lint` clean.
 - [x] 3.4 Update `CHANGELOG.md` under `[Unreleased] > Fixed`.
