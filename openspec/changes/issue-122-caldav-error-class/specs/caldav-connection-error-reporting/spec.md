@@ -60,8 +60,9 @@ without change.
 #### Scenario: A post-login connection failure is also classified
 
 - **WHEN** login succeeds but a subsequent CalDAV network operation in the same
-  request (calendar discovery during list-available or add-calendar, or path
-  validation during connect) fails with a connection/TLS error
+  request (calendar discovery or path verification during test, calendar
+  discovery during list-available or add-calendar, or path validation during
+  connect) fails with a connection/TLS error
 - **THEN** the route reports it as a connection error (the connection message +
   a `5xx` gateway status) rather than a generic 500 or a bad-path error
 - **AND** the connection classification is scoped to the CalDAV network call, so

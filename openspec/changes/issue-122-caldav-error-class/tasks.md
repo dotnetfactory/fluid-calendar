@@ -44,16 +44,19 @@
   (calendar discovery in add-calendar / list-available, and path validation in
   connect) -> connection message + 502 (not a generic 500 / bad-path 400).
 - [x] 2c.2 Scope the connection classification to the post-login CalDAV calls
-  themselves: wrap `fetchCalDAVCalendars` in `route.ts` and `available/route.ts`
-  (and the path-validation `fetchCalDAVCalendars` in `auth/route.ts`) in their
-  own try/catch that returns the connection message + 502 for a connection
-  error and re-throws / keeps the existing message otherwise. The outer catches
-  keep their generic 500 so a DB/pool error is never mislabeled as a CalDAV
+  themselves: wrap `fetchCalDAVCalendars` in `route.ts`, `available/route.ts`,
+  the path-validation `fetchCalDAVCalendars` in `auth/route.ts`, and both the
+  path-verification and discovery `fetchCalDAVCalendars` branches in
+  `test/route.ts`, returning the connection message + 502 for a connection
+  error and re-throwing / keeping the existing message otherwise. The discovery
+  branch in `test/route.ts` returns immediately on a connection error instead
+  of continuing toward a misleading no-calendars result. The outer catches keep
+  their generic 500 so a DB/pool error is never mislabeled as a CalDAV
   connection failure.
 
 ## 3. Verify
 
-- [x] 3.1 New tests green (`npm run test:unit`) - 24 new tests pass.
+- [x] 3.1 New tests green (`npm run test:unit`) - 26 new tests pass.
 - [x] 3.2 `npm run type-check` clean.
 - [x] 3.3 `npm run lint` clean.
 - [x] 3.4 Update `CHANGELOG.md` under `[Unreleased] > Fixed`.

@@ -104,28 +104,37 @@ export async function POST(request: NextRequest) {
 
           calendars = await fetchCalDAVCalendars(client);
         } catch (pathError) {
+          // A connection/TLS failure here (after login) must be reported as a
+          // connection error, not a bad path. Non-connection failures keep the
+          // 400 path message.
+          const classified = classifyCalDAVError(pathError);
           logger.error(
             "Failed to validate CalDAV path",
             {
-              error:
-                pathError instanceof Error
-                  ? pathError.message
-                  : String(pathError),
+              kind: classified.kind,
+              error: classified.details,
               caldavPath,
               serverUrl,
               username,
             },
             LOG_SOURCE
           );
+          if (classified.kind === "connection") {
+            return NextResponse.json(
+              {
+                success: false,
+                error: classified.message,
+                details: classified.details,
+              },
+              { status: classified.status }
+            );
+          }
           return NextResponse.json(
             {
               success: false,
               error:
                 "Failed to validate the CalDAV path. Please check the path and try again.",
-              details:
-                pathError instanceof Error
-                  ? pathError.message
-                  : String(pathError),
+              details: classified.details,
             },
             { status: 400 }
           );
@@ -141,19 +150,31 @@ export async function POST(request: NextRequest) {
 
           calendars = await fetchCalDAVCalendars(client);
         } catch (discoverError) {
+          const classified = classifyCalDAVError(discoverError);
           logger.error(
             "Failed to discover calendars",
             {
-              error:
-                discoverError instanceof Error
-                  ? discoverError.message
-                  : String(discoverError),
+              kind: classified.kind,
+              error: classified.details,
               serverUrl,
               username,
             },
             LOG_SOURCE
           );
-          // Don't return an error here, as we'll try to use the principal URL next
+          // A connection/TLS failure won't be fixed by retrying the principal /
+          // home URL, so report it immediately as a connection error instead of
+          // continuing toward a misleading no-calendars result.
+          if (classified.kind === "connection") {
+            return NextResponse.json(
+              {
+                success: false,
+                error: classified.message,
+                details: classified.details,
+              },
+              { status: classified.status }
+            );
+          }
+          // Otherwise don't return; we'll try the principal URL next.
         }
       }
 
