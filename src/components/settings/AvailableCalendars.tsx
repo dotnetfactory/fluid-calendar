@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { extractCalendarFetchError } from "./available-calendars-error";
+
 interface AvailableCalendar {
   id: string;
   name: string;
@@ -21,6 +23,7 @@ interface Props {
 export function AvailableCalendars({ accountId, provider }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [calendars, setCalendars] = useState<AvailableCalendar[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [addingCalendars, setAddingCalendars] = useState<Set<string>>(
     new Set()
   );
@@ -28,6 +31,7 @@ export function AvailableCalendars({ accountId, provider }: Props) {
   const loadAvailableCalendars = useCallback(async () => {
     try {
       setIsLoading(true);
+      setErrorMessage(null);
       let endpoint;
 
       switch (provider) {
@@ -45,11 +49,18 @@ export function AvailableCalendars({ accountId, provider }: Props) {
       }
 
       const response = await fetch(endpoint);
-      if (!response.ok) throw new Error("Failed to fetch calendars");
+      if (!response.ok) {
+        // Surface the server's classified error (e.g. the CalDAV
+        // connection-vs-auth message) instead of a generic empty state.
+        setErrorMessage(await extractCalendarFetchError(response));
+        setCalendars([]);
+        return;
+      }
       const data = await response.json();
       setCalendars(data);
     } catch (error) {
       console.error("Failed to load available calendars:", error);
+      setErrorMessage("Failed to load available calendars");
     } finally {
       setIsLoading(false);
     }
@@ -64,6 +75,7 @@ export function AvailableCalendars({ accountId, provider }: Props) {
     async (calendar: AvailableCalendar) => {
       try {
         setAddingCalendars((prev) => new Set(prev).add(calendar.id));
+        setErrorMessage(null);
         let endpoint;
 
         switch (provider) {
@@ -93,7 +105,14 @@ export function AvailableCalendars({ accountId, provider }: Props) {
           }),
         });
 
-        if (!response.ok) throw new Error("Failed to add calendar");
+        if (!response.ok) {
+          // Surface the server's classified error (e.g. the CalDAV
+          // connection-vs-auth message) so a failed add is not silent.
+          setErrorMessage(
+            await extractCalendarFetchError(response, "Failed to add calendar")
+          );
+          return;
+        }
 
         // Remove from available list
         setCalendars((prev) =>
@@ -109,6 +128,7 @@ export function AvailableCalendars({ accountId, provider }: Props) {
         );
       } catch (error) {
         console.error("Failed to add calendar:", error);
+        setErrorMessage("Failed to add calendar");
       } finally {
         setAddingCalendars((prev) => {
           const next = new Set(prev);
@@ -135,6 +155,26 @@ export function AvailableCalendars({ accountId, provider }: Props) {
             <Skeleton className="h-8 w-16" />
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="space-y-3">
+        <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
+          {errorMessage}
+        </div>
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadAvailableCalendars}
+            disabled={isLoading}
+          >
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
