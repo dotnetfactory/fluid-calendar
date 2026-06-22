@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 import { TokenManager } from "@/lib/token-manager";
 
@@ -100,5 +102,48 @@ describe("TokenManager.storeTokens (OAuth)", () => {
     );
 
     expect(mockPrisma.connectedAccount.upsert).not.toHaveBeenCalled();
+  });
+
+  it("is idempotent when create races a concurrent callback (P2002 -> update existing)", async () => {
+    // First lookup misses (no row yet), create loses the race (unique
+    // violation), then the re-read finds the row the winner inserted.
+    mockPrisma.connectedAccount.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: "acc-raced" });
+    mockPrisma.connectedAccount.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError("unique", {
+        code: "P2002",
+        clientVersion: "6.3.1",
+      })
+    );
+    mockPrisma.connectedAccount.update.mockResolvedValue({ id: "acc-raced" });
+
+    const id = await TokenManager.getInstance().storeTokens(
+      "GOOGLE",
+      "race@gmail.com",
+      tokens,
+      "user-4"
+    );
+
+    expect(mockPrisma.connectedAccount.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "acc-raced" } })
+    );
+    expect(id).toBe("acc-raced");
+  });
+
+  it("rethrows non-P2002 create errors", async () => {
+    mockPrisma.connectedAccount.findFirst.mockResolvedValue(null);
+    mockPrisma.connectedAccount.create.mockRejectedValue(
+      new Error("db is down")
+    );
+
+    await expect(
+      TokenManager.getInstance().storeTokens(
+        "GOOGLE",
+        "boom@gmail.com",
+        tokens,
+        "user-5"
+      )
+    ).rejects.toThrow("db is down");
   });
 });

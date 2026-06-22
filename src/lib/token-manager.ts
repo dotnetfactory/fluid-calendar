@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 import { getOutlookCredentials } from "@/lib/auth";
 import { createGoogleOAuthClient } from "@/lib/google";
 import { prisma } from "@/lib/prisma";
@@ -102,11 +104,21 @@ export class TokenManager {
     },
     userId: string
   ): Promise<string> {
-    // Look up any existing OAuth account for this (userId, provider, email).
-    // We intentionally do not use a named composite unique input here: the
-    // ConnectedAccount uniqueness key includes caldavUrl (NULLS NOT DISTINCT)
-    // so multiple CalDAV servers can be connected, and OAuth rows (caldavUrl is
-    // null) remain one-per-(userId, provider, email).
+    // Upsert one OAuth account per (userId, provider, email). We can't use a
+    // named composite unique input here because the ConnectedAccount uniqueness
+    // key now includes caldavUrl (NULLS NOT DISTINCT) so multiple CalDAV servers
+    // can be connected; OAuth rows (caldavUrl is null) still collide on
+    // (userId, provider, email). To keep this path idempotent under concurrent
+    // first-time callbacks (two OAuth callbacks racing to create the same
+    // account), we update an existing row if found, otherwise create - and if
+    // the create loses the race and hits the unique constraint (P2002), we fall
+    // back to updating the row the winner just inserted.
+    const data = {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresAt: tokens.expiresAt,
+    };
+
     const existing = await prisma.connectedAccount.findFirst({
       where: { userId, provider, email },
     });
@@ -114,27 +126,35 @@ export class TokenManager {
     if (existing) {
       const updated = await prisma.connectedAccount.update({
         where: { id: existing.id },
-        data: {
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-          expiresAt: tokens.expiresAt,
-        },
+        data,
       });
       return updated.id;
     }
 
-    const created = await prisma.connectedAccount.create({
-      data: {
-        provider,
-        email,
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        expiresAt: tokens.expiresAt,
-        userId,
-      },
-    });
-
-    return created.id;
+    try {
+      const created = await prisma.connectedAccount.create({
+        data: { provider, email, userId, ...data },
+      });
+      return created.id;
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        // A concurrent callback created the row first; update it instead.
+        const raced = await prisma.connectedAccount.findFirst({
+          where: { userId, provider, email },
+        });
+        if (raced) {
+          const updated = await prisma.connectedAccount.update({
+            where: { id: raced.id },
+            data,
+          });
+          return updated.id;
+        }
+      }
+      throw error;
+    }
   }
 
   async refreshOutlookTokens(

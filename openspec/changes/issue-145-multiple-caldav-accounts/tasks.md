@@ -10,8 +10,9 @@
 
 ## 3. Code
 
-- [x] 3.1 Rewrite `TokenManager.storeTokens` to find the existing OAuth account by `(userId, provider, email)` (`findFirst`) and `update` by `id`, else `create` - no dependency on the named composite key. (`src/lib/token-manager.ts`)
+- [x] 3.1 Rewrite `TokenManager.storeTokens` to find the existing OAuth account by `(userId, provider, email)` (`findFirst`) and `update` by `id`, else `create` - no dependency on the named composite key. Kept idempotent under concurrent first-time callbacks: a `P2002` from the `create` re-reads and updates the row the winner inserted (atomicity equivalent to the prior `upsert`). (`src/lib/token-manager.ts`)
 - [x] 3.2 In `src/app/api/calendar/caldav/auth/route.ts`, catch Prisma `P2002` on the `create()` and return a 409 with a clear "this CalDAV server is already connected" message.
+- [x] 3.3 Hardening (from Codex review): documented in `schema.prisma` that this index must be provisioned via `migrate deploy`, not `db push` (which can't emit `NULLS NOT DISTINCT`), and added a guard test that fails if the migration ever drops `NULLS NOT DISTINCT`. (`src/__tests__/caldav-account-unique-migration.test.ts`)
 
 ## 4. Gate
 
