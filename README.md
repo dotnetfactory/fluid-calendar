@@ -268,6 +268,8 @@ Note: For production deployment:
 
 That's it! The application will be running with a PostgreSQL database automatically configured. The docker-compose.yml file is already configured to use the pre-built Docker image.
 
+> **Note on the port:** the container listens on port `3000`, which `docker-compose.yml` pins via `environment: PORT=3000`. Setting `PORT` in your `.env` will **not** change the published port (compose overrides it) - this avoids the app binding to a different port than the one published. To serve on a different host port, change the host side of the `ports` mapping in `docker-compose.yml` (for example `"8080:3000"` to use `http://localhost:8080`).
+
 ### For Developers
 
 If you want to develop FluidCalendar:
