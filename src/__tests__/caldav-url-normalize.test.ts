@@ -41,6 +41,23 @@ describe("normalizeCalDAVServerUrl", () => {
     );
   });
 
+  it("drops the fragment (client-only, not sent to the server)", () => {
+    // Two URLs differing only by fragment hit the same endpoint and must not
+    // be treated as distinct accounts.
+    expect(normalizeCalDAVServerUrl("https://s.example.com/dav#a")).toBe(
+      normalizeCalDAVServerUrl("https://s.example.com/dav#b")
+    );
+    expect(normalizeCalDAVServerUrl("https://s.example.com/dav#a")).toBe(
+      "https://s.example.com/dav"
+    );
+  });
+
+  it("preserves the query string", () => {
+    expect(normalizeCalDAVServerUrl("https://s.example.com/dav?x=1")).toBe(
+      "https://s.example.com/dav?x=1"
+    );
+  });
+
   it("keeps distinct servers distinct", () => {
     expect(normalizeCalDAVServerUrl("https://a.example.com")).not.toBe(
       normalizeCalDAVServerUrl("https://b.example.com")

@@ -52,6 +52,12 @@ The stored CalDAV server URL SHALL have its origin canonicalized so trivial text
 - **THEN** the stored URL preserves the path and its trailing slash exactly
 - **AND** the endpoint later used for listing/sync is the same one that was validated
 
+#### Scenario: A fragment does not create a distinct account
+
+- **WHEN** a user connects `https://server.example.com/dav#a` and later `https://server.example.com/dav#b`
+- **THEN** the fragment is dropped from the stored URL (it is never sent to the server)
+- **AND** the second attempt is rejected as a duplicate rather than creating a second account
+
 ### Requirement: Existing CalDAV URLs are canonicalized by the migration
 
 So that legacy rows (stored raw before this change) and post-upgrade reconnections share one identity, the migration SHALL canonicalize existing `caldavUrl` values to the same origin-only form the application now stores, before de-duplicating and creating the index.
@@ -76,9 +82,10 @@ Anywhere connected accounts are listed for management, CalDAV accounts that shar
 
 The migration that introduces the wider `NULLS NOT DISTINCT` key SHALL NOT fail on databases that contain pre-existing rows which would collide under the new key (e.g. duplicate rows with a null `userId`, which the old `NULLS DISTINCT` index permitted). It SHALL de-duplicate such rows first, keeping the most recently updated row per key. It SHALL preserve calendar data: the calendar feeds (and their cascade-linked events) of a removed duplicate account are reassigned to the surviving account for that key rather than deleted. Only after de-duplication does it create the new index.
 
-#### Scenario: Migration applies over legacy duplicate rows without losing calendar data
+#### Scenario: Migration applies over legacy duplicate rows without losing calendar or task-sync data
 
-- **WHEN** the database has two `ConnectedAccount` rows that are equal under `(userId, provider, email, caldavUrl)` with NULLs treated as equal, and the older one owns a calendar feed with events
+- **WHEN** the database has two `ConnectedAccount` rows that are equal under `(userId, provider, email, caldavUrl)` with NULLs treated as equal, and the older one owns a calendar feed (with events) and a task-sync provider
 - **THEN** the migration keeps the newest account and deletes the older duplicate
-- **AND** the older account's feed is reassigned to the surviving account (its events are preserved, not cascade-deleted)
+- **AND** the older account's calendar feed is reassigned to the surviving account (its events are preserved, not cascade-deleted)
+- **AND** the older account's task provider is reassigned to the surviving account (not detached/`SET NULL`)
 - **AND** the new unique index is created successfully

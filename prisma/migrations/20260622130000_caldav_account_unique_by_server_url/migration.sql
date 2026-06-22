@@ -10,13 +10,14 @@
 
 -- Canonicalize existing caldavUrl values to the SAME form the app now stores
 -- (normalizeCalDAVServerUrl): lowercase the scheme://host[:port] authority and
--- drop the redundant default port, leaving the path/query/fragment untouched.
--- The JS normalizer parses with the URL API, which appends a root "/" path when
--- none is present, so a host-only legacy value ("https://Server.com") becomes
--- "https://server.com/"; we replicate that here. Without this, a legacy raw row
--- would not match a post-upgrade reconnect that stores the canonical form,
--- recreating the very duplicate this change prevents - but only for existing
--- users. No-op for already-canonical and non-CalDAV (null) values.
+-- drop the redundant default port, keeping the path+query verbatim and dropping
+-- the (server-irrelevant) fragment. The JS normalizer parses with the URL API,
+-- which appends a root "/" path when none is present, so a host-only legacy
+-- value ("https://Server.com") becomes "https://server.com/"; we replicate that
+-- here. Without this, a legacy raw row would not match a post-upgrade reconnect
+-- that stores the canonical form, recreating the very duplicate this change
+-- prevents - but only for existing users. No-op for already-canonical and
+-- non-CalDAV (null) values.
 UPDATE "ConnectedAccount"
 SET "caldavUrl" = (
   -- authority: lowercased scheme://host[:port], with a redundant :443/:80 dropped
@@ -25,12 +26,12 @@ SET "caldavUrl" = (
     '^(https://[^:/?#]+):443$|^(http://[^:/?#]+):80$',
     '\1\2'
   )
-  -- rest: path+query+fragment verbatim, defaulting to "/" when there is none
-  -- (matching the URL API the JS normalizer uses, which appends a root path)
+  -- rest: path+query (everything after the authority up to a '#'), defaulting to
+  -- "/" when there is none; the fragment is dropped.
   || CASE
-       WHEN substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*(.*)$') = ''
+       WHEN substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*([^#]*)') = ''
          THEN '/'
-       ELSE substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*(.*)$')
+       ELSE substring("caldavUrl" from '^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*([^#]*)')
      END
 )
 WHERE "caldavUrl" IS NOT NULL
@@ -69,6 +70,14 @@ UPDATE "CalendarFeed" f
 SET "accountId" = d."keep_id"
 FROM "_dup_connected_accounts" d
 WHERE f."accountId" = d.loser_id;
+
+-- Move task-sync providers too: TaskProvider.accountId also references
+-- ConnectedAccount (ON DELETE SET NULL), so reassign them to the survivor
+-- instead of letting the delete silently detach (and break) task sync.
+UPDATE "TaskProvider" tp
+SET "accountId" = d."keep_id"
+FROM "_dup_connected_accounts" d
+WHERE tp."accountId" = d.loser_id;
 
 -- Delete only the now-detached duplicate accounts.
 DELETE FROM "ConnectedAccount"

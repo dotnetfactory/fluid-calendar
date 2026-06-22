@@ -80,11 +80,15 @@ export function formatAbsoluteUrl(baseUrl: string, path?: string): string {
  * duplicate-account guard robust against e.g. `https://Host.com/dav` vs
  * `https://host.com/dav`.
  *
- * The path/query/fragment are preserved BYTE-FOR-BYTE (no trailing-slash
- * trimming, no case changes): `caldavUrl` is the exact endpoint that calendar
- * listing and sync later use, and CalDAV collection paths are slash- and
- * case-sensitive (e.g. Fastmail `/dav/calendars/user/<email>/`). Mutating the
- * path could persist an endpoint that differs from the one we validated.
+ * The path and query are preserved BYTE-FOR-BYTE (no trailing-slash trimming,
+ * no case changes): `caldavUrl` is the exact endpoint that calendar listing and
+ * sync later use, and CalDAV collection paths are slash- and case-sensitive
+ * (e.g. Fastmail `/dav/calendars/user/<email>/`). Mutating the path could
+ * persist an endpoint that differs from the one we validated.
+ *
+ * The fragment (`#...`) is dropped: it is a client-only component never sent to
+ * the server, so two URLs differing only by fragment hit the same endpoint and
+ * must not be treated as distinct accounts (it would bypass the duplicate guard).
  *
  * If the input is not a parseable URL it is returned trimmed and otherwise
  * unchanged so we never reject an otherwise-working server.
@@ -112,11 +116,8 @@ export function normalizeCalDAVServerUrl(url: string): string {
 
   const origin = `${scheme}//${host}${port ? `:${port}` : ""}`;
 
-  // Re-attach the rest of the original URL (path + query + hash) verbatim.
-  // `parsed.protocol`/`host`/`port` are exactly the prefix `URL` parsed off
-  // the front, so slicing them off `trimmed` would be fragile; instead rebuild
-  // from the parsed components, preserving the original pathname/search/hash.
-  return `${origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+  // Re-attach the path + query verbatim; drop the (server-irrelevant) fragment.
+  return `${origin}${parsed.pathname}${parsed.search}`;
 }
 
 /**
