@@ -819,17 +819,23 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
 
     const events = tasks
       .filter((task) => {
-        // Skip completed tasks
+        if (task.isAutoScheduled && task.scheduledStart && task.scheduledEnd) {
+          // Auto-scheduled tasks render at their slot, INCLUDING completed ones:
+          // a completed task keeps its scheduledStart/End, so it stays put on the
+          // day you did it and is drawn dimmed/struck-through (see
+          // CalendarEventContent) rather than vanishing. Only its scheduled time
+          // needs to fall within the visible range.
+          const scheduledStart = newDate(task.scheduledStart);
+          return scheduledStart >= startDay && scheduledStart <= endDay;
+        }
+
+        // Non-auto-scheduled tasks: hide once completed so the calendar (esp.
+        // month view) isn't flooded with every finished to-do; otherwise place
+        // them on their due date.
         if (task.status === TaskStatus.COMPLETED) {
           return false;
         }
-
-        if (task.isAutoScheduled && task.scheduledStart && task.scheduledEnd) {
-          // For auto-scheduled tasks, check if scheduled time is within range
-          const scheduledStart = newDate(task.scheduledStart);
-          return scheduledStart >= startDay && scheduledStart <= endDay;
-        } else if (task.dueDate) {
-          // For non-auto-scheduled tasks, use due date logic
+        if (task.dueDate) {
           const taskDueDate = newDate(task.dueDate);
           const localDate = newDate(taskDueDate);
           localDate.setMinutes(
