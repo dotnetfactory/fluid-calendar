@@ -17,10 +17,13 @@ const LOG_SOURCE = "api-internal-cron-replan";
  * the past until the user next touches something. Hosted schedulers (Motion,
  * the SaaS edition) get this for free from a cloud worker; self-hosters don't.
  *
- * This endpoint is meant to be driven by a cron on the host (e.g. every 15 min
- * during work hours): it re-plans every auto-scheduling user and re-syncs the
- * pushed calendar blocks that moved, so past-due tasks roll forward on their own
- * and the user's calendar follows — even with no browser open.
+ * The host fires this on a frequent, fixed heartbeat (e.g. every minute); the
+ * cadence is governed in-app by SystemSettings.autoReplanIntervalMinutes, so an
+ * admin can dial the reflow from a conservative default (15 min) down to
+ * near-continuous (1 min) without ever touching the host schedule. When due it
+ * re-plans every auto-scheduling user and re-syncs the pushed calendar blocks
+ * that moved, so past-due tasks roll forward on their own and the calendar
+ * follows — even with no browser open.
  *
  * Auth is a shared secret (CRON_SECRET via Bearer), not a user API key. When
  * CRON_SECRET is unset the endpoint is disabled (404), so a default install
@@ -36,6 +39,36 @@ export async function POST(request: NextRequest) {
   if (auth === "unauthorized") {
     return new NextResponse("Unauthorized", { status: 401 });
   }
+
+  // Cadence is admin-controlled in SystemSettings; the host heartbeat may fire
+  // far more often than we want to re-plan. Gate on enabled + elapsed interval,
+  // and claim this run by stamping autoReplanLastRunAt BEFORE the work so two
+  // overlapping heartbeats can't both re-plan.
+  const settings = await prisma.systemSettings.findFirst({
+    select: {
+      id: true,
+      autoReplanEnabled: true,
+      autoReplanIntervalMinutes: true,
+      autoReplanLastRunAt: true,
+    },
+  });
+
+  if (!settings?.autoReplanEnabled) {
+    return NextResponse.json({ skipped: "disabled" });
+  }
+
+  const now = Date.now();
+  const intervalMs = Math.max(1, settings.autoReplanIntervalMinutes) * 60_000;
+  const lastRun = settings.autoReplanLastRunAt?.getTime() ?? 0;
+  if (now - lastRun < intervalMs) {
+    const dueInSec = Math.ceil((intervalMs - (now - lastRun)) / 1000);
+    return NextResponse.json({ skipped: "not_due", dueInSec });
+  }
+
+  await prisma.systemSettings.update({
+    where: { id: settings.id },
+    data: { autoReplanLastRunAt: new Date(now) },
+  });
 
   // Every user who has configured auto-scheduling. Single-tenant installs have
   // exactly one; iterating keeps this correct for multi-user self-hosting too.

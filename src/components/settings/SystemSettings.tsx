@@ -43,6 +43,8 @@ export function SystemSettings() {
           logLevel: data.logLevel,
           disableHomepage: data.disableHomepage,
           resendApiKey: data.resendApiKey,
+          autoReplanEnabled: data.autoReplanEnabled,
+          autoReplanIntervalMinutes: data.autoReplanIntervalMinutes,
         });
       })
       .catch((error) => {
@@ -265,6 +267,53 @@ export function SystemSettings() {
               When enabled, the homepage (/) will redirect to the login page for
               unauthenticated users or to the calendar for authenticated users.
             </p>
+          </div>
+        </SettingRow>
+
+        <SettingRow
+          label="Auto-Scheduling"
+          description="Periodically re-plan auto-scheduled tasks so unfinished, past-due tasks roll forward on their own — even with no browser open. Requires a host cron calling the internal re-plan endpoint."
+        >
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Periodic re-plan</Label>
+              <Select
+                value={system.autoReplanEnabled ? "true" : "false"}
+                onValueChange={(value) =>
+                  handleUpdate({ autoReplanEnabled: value === "true" })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Enabled</SelectItem>
+                  <SelectItem value="false">Disabled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Re-plan every (minutes)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={1440}
+                value={system.autoReplanIntervalMinutes ?? 15}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value, 10);
+                  if (!Number.isNaN(n) && n >= 1) {
+                    handleUpdate({ autoReplanIntervalMinutes: n });
+                  }
+                }}
+              />
+              <p className="text-sm text-muted-foreground">
+                How often the schedule is recalculated. A conservative default of
+                15 is plenty for most people; lower it toward 1 for near
+                real-time reflow. The host cron is a fixed heartbeat — this is the
+                actual cadence, so changing it here needs no cron change.
+              </p>
+            </div>
           </div>
         </SettingRow>
 

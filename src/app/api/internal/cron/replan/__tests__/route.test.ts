@@ -8,6 +8,7 @@ import { scheduleAllTasksForUser } from "@/services/scheduling/TaskSchedulingSer
 jest.mock("@/lib/auth/cron-auth");
 jest.mock("@/lib/prisma", () => ({
   prisma: {
+    systemSettings: { findFirst: jest.fn(), update: jest.fn() },
     autoScheduleSettings: { findMany: jest.fn() },
     userSettings: { findUnique: jest.fn() },
   },
@@ -19,6 +20,8 @@ jest.mock("@/lib/task-block-push");
 import { POST } from "../route";
 
 const mockVerify = verifyCronSecret as unknown as jest.Mock;
+const mockSysFind = prisma.systemSettings.findFirst as unknown as jest.Mock;
+const mockSysUpdate = prisma.systemSettings.update as unknown as jest.Mock;
 const mockFindMany = prisma.autoScheduleSettings.findMany as unknown as jest.Mock;
 const mockUserSettings = prisma.userSettings.findUnique as unknown as jest.Mock;
 const mockSchedule = scheduleAllTasksForUser as unknown as jest.Mock;
@@ -29,6 +32,14 @@ const req = () => ({ headers: new Headers() }) as unknown as NextRequest;
 describe("POST /api/internal/cron/replan", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Enabled, never run before -> due.
+    mockSysFind.mockResolvedValue({
+      id: "default",
+      autoReplanEnabled: true,
+      autoReplanIntervalMinutes: 15,
+      autoReplanLastRunAt: null,
+    });
+    mockSysUpdate.mockResolvedValue({});
     mockUserSettings.mockResolvedValue({ timeZone: "America/Chicago" });
     mockSchedule.mockResolvedValue([]);
     mockRepush.mockResolvedValue(undefined);
@@ -46,6 +57,53 @@ describe("POST /api/internal/cron/replan", () => {
     const res = await POST(req());
     expect(res.status).toBe(401);
     expect(mockFindMany).not.toHaveBeenCalled();
+  });
+
+  it("skips when auto-replan is disabled in settings", async () => {
+    mockVerify.mockReturnValue("ok");
+    mockSysFind.mockResolvedValue({
+      id: "default",
+      autoReplanEnabled: false,
+      autoReplanIntervalMinutes: 15,
+      autoReplanLastRunAt: null,
+    });
+
+    const body = await (await POST(req())).json();
+
+    expect(body.skipped).toBe("disabled");
+    expect(mockFindMany).not.toHaveBeenCalled();
+    expect(mockSysUpdate).not.toHaveBeenCalled();
+  });
+
+  it("throttles a heartbeat that fires before the interval elapses", async () => {
+    mockVerify.mockReturnValue("ok");
+    mockSysFind.mockResolvedValue({
+      id: "default",
+      autoReplanEnabled: true,
+      autoReplanIntervalMinutes: 15,
+      autoReplanLastRunAt: new Date(), // just ran -> not due
+    });
+
+    const body = await (await POST(req())).json();
+
+    expect(body.skipped).toBe("not_due");
+    expect(body.dueInSec).toBeGreaterThan(0);
+    expect(mockFindMany).not.toHaveBeenCalled();
+    expect(mockSysUpdate).not.toHaveBeenCalled();
+  });
+
+  it("claims the run by stamping lastRunAt before doing the work", async () => {
+    mockVerify.mockReturnValue("ok");
+    mockFindMany.mockResolvedValue([{ userId: "u1" }]);
+
+    await POST(req());
+
+    expect(mockSysUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "default" },
+        data: expect.objectContaining({ autoReplanLastRunAt: expect.any(Date) }),
+      })
+    );
   });
 
   it("re-plans and re-syncs every ready user", async () => {
