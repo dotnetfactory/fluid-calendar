@@ -6,6 +6,7 @@ import { persist } from "zustand/middleware";
 import { newDate, normalizeAllDayDate } from "@/lib/date-utils";
 import { DEFAULT_TASK_COLOR } from "@/lib/task-utils";
 
+import { useCalendarViewSettings } from "@/store/calendarViewSettings";
 import { useTaskStore } from "@/store/task";
 
 import {
@@ -809,6 +810,8 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
   // Convert tasks to calendar events
   getTasksAsEvents: (start: Date, end: Date) => {
     const tasks = useTaskStore.getState().tasks;
+    const showCompletedTasks =
+      useCalendarViewSettings.getState().showCompletedTasks;
     // const userTimeZone = useSettingsStore.getState().user.timeZone;
 
     // Create date boundaries in user's timezone
@@ -820,11 +823,13 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
     const events = tasks
       .filter((task) => {
         if (task.isAutoScheduled && task.scheduledStart && task.scheduledEnd) {
-          // Auto-scheduled tasks render at their slot, INCLUDING completed ones:
-          // a completed task keeps its scheduledStart/End, so it stays put on the
-          // day you did it and is drawn dimmed/struck-through (see
-          // CalendarEventContent) rather than vanishing. Only its scheduled time
-          // needs to fall within the visible range.
+          // A completed task keeps its scheduledStart/End, but its time has been
+          // freed for the re-plan. Hide it by default (Motion-style) so finishing
+          // one visibly opens its slot; the "Show completed" toggle brings it
+          // back, drawn dimmed/struck-through (see CalendarEventContent).
+          if (task.status === TaskStatus.COMPLETED && !showCompletedTasks) {
+            return false;
+          }
           const scheduledStart = newDate(task.scheduledStart);
           return scheduledStart >= startDay && scheduledStart <= endDay;
         }

@@ -1,12 +1,14 @@
 import { useCalendarStore } from "@/store/calendar";
+import { useCalendarViewSettings } from "@/store/calendarViewSettings";
 import { useTaskStore } from "@/store/task";
 
 import { TaskStatus } from "@/types/task";
 
 /**
- * Completed auto-scheduled tasks should stay on the calendar (drawn dimmed),
- * rather than vanishing, so the day reflects what was actually done. Completed
- * tasks WITHOUT a scheduled slot stay hidden so views aren't flooded.
+ * Completed auto-scheduled tasks are hidden from the calendar by default
+ * (Motion-style) so finishing one visibly frees its slot. The "Show completed"
+ * toggle brings them back, drawn dimmed. Completed tasks WITHOUT a scheduled
+ * slot stay hidden either way so views aren't flooded.
  */
 
 // A 9am–9:30am slot "today" and the day window around it.
@@ -39,12 +41,36 @@ function eventsForDay() {
 }
 
 describe("getTasksAsEvents — completed tasks", () => {
+  beforeEach(() => {
+    useCalendarViewSettings.setState({ showCompletedTasks: false });
+  });
   afterEach(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useTaskStore.setState({ tasks: [] } as any);
+    useCalendarViewSettings.setState({ showCompletedTasks: false });
   });
 
-  it("keeps a completed auto-scheduled task at its slot (so it can render dimmed)", () => {
+  it("hides a completed auto-scheduled task by default (frees its slot)", () => {
+    useTaskStore.setState({
+      tasks: [
+        task({
+          id: "done-default",
+          status: TaskStatus.COMPLETED,
+          isAutoScheduled: true,
+          scheduledStart: slotStart,
+          scheduledEnd: slotEnd,
+        }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ] as any,
+    });
+
+    expect(
+      eventsForDay().some((e) => e.extendedProps?.taskId === "done-default")
+    ).toBe(false);
+  });
+
+  it("shows a completed auto-scheduled task when the toggle is on (dimmed)", () => {
+    useCalendarViewSettings.setState({ showCompletedTasks: true });
     useTaskStore.setState({
       tasks: [
         task({
