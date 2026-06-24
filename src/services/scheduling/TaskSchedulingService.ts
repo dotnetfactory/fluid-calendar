@@ -174,11 +174,43 @@ export async function scheduleAllTasksForUser(
       },
     });
 
+    // Snapshot pre-replan positions so we can detect which already-pushed
+    // blocks actually moved.
+    const previousById = new Map(
+      tasksToSchedule.map((task) => [task.id, task])
+    );
+
     // Schedule all tasks
     const updatedTasks = await schedulingService.scheduleMultipleTasks(
       [...tasksToSchedule, ...lockedTasks],
       userId
     );
+
+    // A task whose auto-scheduled slot changed needs its pushed calendar block
+    // re-synced. scheduleMultipleTasks only writes scheduledStart/End; it never
+    // flags the block, so repushDirtyBlocks (which only matches blockDirty=true
+    // or a not-yet-pushed schedule) would otherwise skip a moved-but-already-
+    // pushed task and leave a stale event on the calendar. Flag only the tasks
+    // that have an existing block AND actually moved, so we don't churn the
+    // calendar API for unchanged slots.
+    const movedTaskIds = updatedTasks
+      .filter((task) => {
+        const previous = previousById.get(task.id);
+        if (!previous || !previous.blockEventId) return false;
+        return (
+          previous.scheduledStart?.getTime() !==
+            task.scheduledStart?.getTime() ||
+          previous.scheduledEnd?.getTime() !== task.scheduledEnd?.getTime()
+        );
+      })
+      .map((task) => task.id);
+
+    if (movedTaskIds.length > 0) {
+      await prisma.task.updateMany({
+        where: { id: { in: movedTaskIds }, userId },
+        data: { blockDirty: true },
+      });
+    }
 
     // Update the lastScheduled timestamp for all tasks
     await prisma.task.updateMany({
