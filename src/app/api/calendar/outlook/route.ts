@@ -4,7 +4,10 @@ import { getOutlookCredentials } from "@/lib/auth";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
-import { MICROSOFT_GRAPH_AUTH_ENDPOINTS } from "@/lib/outlook";
+import {
+  MICROSOFT_GRAPH_AUTH_ENDPOINTS,
+  resolveOutlookAccountEmail,
+} from "@/lib/outlook";
 import { OutlookCalendarService } from "@/lib/outlook-calendar";
 import { TokenManager } from "@/lib/token-manager";
 
@@ -89,10 +92,14 @@ export async function GET(req: NextRequest) {
     const outlookService = new OutlookCalendarService(tempAccount);
     try {
       const userProfile = await outlookService.getUserProfile();
-      if (!userProfile || !userProfile.mail) {
+      // Personal Microsoft accounts return `mail: null` from Graph /me and carry
+      // the address in `userPrincipalName`; fall back to it so they can connect
+      // instead of failing with profile-fetch-failed (issue #97).
+      const email = resolveOutlookAccountEmail(userProfile);
+      if (!email) {
         logger.error(
           "Failed to get user profile",
-          { profile: userProfile.id ?? "unknown" },
+          { profile: userProfile?.id ?? "unknown" },
           LOG_SOURCE
         );
         return NextResponse.redirect(
@@ -104,7 +111,7 @@ export async function GET(req: NextRequest) {
       const tokenManager = TokenManager.getInstance();
       await tokenManager.storeTokens(
         "OUTLOOK",
-        userProfile.mail,
+        email,
         {
           accessToken: tokenData.access_token,
           refreshToken: tokenData.refresh_token,

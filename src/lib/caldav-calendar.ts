@@ -16,8 +16,71 @@ import {
   ExtendedDAVClient,
   SyncResult,
 } from "./caldav-interfaces";
+import {
+  buildVTimezoneComponent,
+  isValidTimeZone,
+  zonedTime,
+} from "./caldav-vtimezone";
 
 const LOG_SOURCE = "CalDAVCalendar";
+
+/**
+ * Build a RECURRENCE-ID / EXDATE property that points at a single instance of a
+ * recurring master, using the SAME value type as the master's DTSTART so the
+ * CalDAV server can pair the exception with the correct instance.
+ *
+ * - Timed master (DATE-TIME DTSTART): emit a UTC date-time (`...Z`) so the
+ *   reference is an unambiguous absolute instant regardless of the client's
+ *   timezone (GitHub issue #135).
+ * - All-day master (`VALUE=DATE` DTSTART): emit a floating `VALUE=DATE` value so
+ *   it matches the master's date-typed instances (GitHub issue #100). A UTC
+ *   date-time here would not match an all-day instance and the single-instance
+ *   update/delete would silently fail.
+ *
+ * @param name "recurrence-id" or "exdate"
+ * @param masterVevent the parsed master VEVENT (used to read DTSTART's type)
+ * @param instanceStart the instance's start instant
+ */
+function buildInstanceReference(
+  name: "recurrence-id" | "exdate",
+  masterVevent: ICAL.Component,
+  instanceStart: Date
+): ICAL.Property {
+  const masterDtstart = masterVevent.getFirstProperty("dtstart");
+  const masterStartValue = masterDtstart?.getFirstValue() as
+    | ICAL.Time
+    | undefined;
+  const masterIsAllDay = masterStartValue?.isDate === true;
+  const masterTzid = masterDtstart?.getParameter("tzid") as string | undefined;
+
+  const property = new ICAL.Property(name);
+
+  // Let the ICAL.Time value's own type drive the VALUE parameter: a date-typed
+  // value serializes as `VALUE=DATE` automatically, and a date-time value omits
+  // VALUE (DATE-TIME is the default). Calling setParameter("value", ...) on top
+  // of a typed value emits an invalid duplicate `VALUE=date;VALUE=DATE` that
+  // strict servers reject (see GitHub issue #100), so we deliberately do not.
+  if (masterIsAllDay) {
+    // Match the master's floating DATE value (no time, no Z).
+    const dateString = instanceStart.toISOString().split("T")[0];
+    property.setValue(ICAL.Time.fromDateString(dateString));
+  } else if (masterTzid && isValidTimeZone(masterTzid)) {
+    // Master DTSTART is TZID-qualified with a resolvable IANA zone: emit the
+    // exception with the SAME TZID and the instance's wall-clock in that zone,
+    // so servers that key exceptions by the DTSTART value form pair it with the
+    // right instance (GitHub issue #135). A server-supplied custom/non-IANA
+    // TZID is not usable here, so we fall through to an unambiguous UTC value
+    // rather than throwing (which, in the delete path, would leave the master
+    // un-updated after the remote DELETE already fired).
+    property.setValue(zonedTime(instanceStart, masterTzid));
+    property.setParameter("tzid", masterTzid);
+  } else {
+    // Timed master without a TZID (UTC `Z` form): match with a UTC date-time.
+    property.setValue(ICAL.Time.fromJSDate(instanceStart, true));
+  }
+
+  return property;
+}
 
 /**
  * Service for interacting with CalDAV servers
@@ -540,10 +603,15 @@ export class CalDAVCalendarService {
       // Create a URL for the event using the externalEventId
       const eventUrl = `${normalizedCalendarPath}/${externalEventId}.ics`;
 
+      // Resolve the user's timezone so timed events serialize with a TZID
+      // (keeps wall-clock time across DST for recurring events; issue #135).
+      const timeZone = event.timeZone ?? (await this.resolveUserTimeZone(userId));
+
       // Generate the iCalendar data
       const icalData = this.convertToICalendar({
         ...event,
         id: externalEventId,
+        timeZone,
       });
 
       let response;
@@ -641,11 +709,6 @@ export class CalDAVCalendarService {
         });
 
         if (masterEvent && masterEvent.recurrenceRule) {
-          // Create a RECURRENCE-ID for this instance
-          const recurrenceId = new ICAL.Property("recurrence-id");
-          recurrenceId.setValue(ICAL.Time.fromJSDate(event.start, false));
-          recurrenceId.setParameter("value", "date-time");
-
           // Get the master event's iCalendar data
           const masterEventUrl = `${normalizedCalendarPath}/${masterEvent.externalEventId}.ics`;
           const masterEventResponse = await fetch(masterEventUrl, {
@@ -667,6 +730,18 @@ export class CalDAVCalendarService {
             const vevent = vcalendar.getFirstSubcomponent("vevent");
 
             if (vevent) {
+              // Create a RECURRENCE-ID for this instance, matching the master
+              // DTSTART's value type so the server can pair the exception with
+              // the right instance. For timed series use UTC (`...Z`) so it
+              // references the same absolute instant regardless of client
+              // timezone (GitHub issue #135); for all-day series keep the
+              // floating `VALUE=DATE` form the master uses (issue #100).
+              const recurrenceId = buildInstanceReference(
+                "recurrence-id",
+                vevent,
+                event.start
+              );
+
               // Add the RECURRENCE-ID to the event
               vevent.addProperty(recurrenceId);
 
@@ -837,11 +912,6 @@ export class CalDAVCalendarService {
         });
 
         if (masterEvent && masterEvent.recurrenceRule) {
-          // Create an EXDATE for this instance
-          const exdate = new ICAL.Property("exdate");
-          exdate.setValue(ICAL.Time.fromJSDate(event.start, false));
-          exdate.setParameter("value", "date-time");
-
           // Get the master event's iCalendar data
           const masterEventUrl = `${normalizedCalendarPath}/${masterEvent.externalEventId}.ics`;
           const masterEventResponse = await fetch(masterEventUrl, {
@@ -863,6 +933,17 @@ export class CalDAVCalendarService {
             const vevent = vcalendar.getFirstSubcomponent("vevent");
 
             if (vevent) {
+              // Create an EXDATE for this instance, matching the master
+              // DTSTART's value type so the server excludes the right instance.
+              // For timed series use UTC (`...Z`) so it matches the master's
+              // instants regardless of client timezone (GitHub issue #135); for
+              // all-day series keep the floating `VALUE=DATE` form (issue #100).
+              const exdate = buildInstanceReference(
+                "exdate",
+                vevent,
+                event.start
+              );
+
               // Add the EXDATE to the event
               vevent.addProperty(exdate);
 
@@ -904,6 +985,34 @@ export class CalDAVCalendarService {
   }
 
   /**
+   * Looks up the user's IANA timezone from their settings, used to serialize
+   * timed events with a `TZID` so recurring events keep wall-clock time across
+   * DST (GitHub issue #135). Returns undefined when no setting exists, in which
+   * case serialization falls back to UTC.
+   */
+  private async resolveUserTimeZone(
+    userId: string
+  ): Promise<string | undefined> {
+    try {
+      const settings = await prisma.userSettings.findUnique({
+        where: { userId },
+        select: { timeZone: true },
+      });
+      return settings?.timeZone || undefined;
+    } catch (error) {
+      logger.warn(
+        "Failed to load user timezone for CalDAV serialization; using UTC",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          userId,
+        },
+        LOG_SOURCE
+      );
+      return undefined;
+    }
+  }
+
+  /**
    * Converts an internal event to iCalendar format
    * @param event Calendar event to convert
    * @returns iCalendar data as string
@@ -932,10 +1041,11 @@ export class CalDAVCalendarService {
     const dtend = new ICAL.Property("dtend");
 
     if (event.allDay) {
-      dtstart.setParameter("value", "date");
-      dtend.setParameter("value", "date");
-
-      // Use ICAL.Time for all-day events with isDate=true
+      // Use ICAL.Time for all-day events with isDate=true. The date-typed value
+      // makes ical.js emit `VALUE=DATE` exactly once; also calling
+      // setParameter("value", "date") produced an invalid
+      // `VALUE=date;VALUE=DATE` that strict CalDAV servers (Baikal, Nextcloud)
+      // reject with an auth/error response (see GitHub issue #100).
       const formatDate = (date: Date) => {
         const dateString = date.toISOString().split("T")[0];
         return ICAL.Time.fromDateString(dateString);
@@ -948,12 +1058,30 @@ export class CalDAVCalendarService {
       const endDate = new Date(event.end);
       dtend.setValue(formatDate(endDate));
     } else {
-      // Set as date-time with timezone
-      const startTime = ICAL.Time.fromJSDate(event.start, false);
-      const endTime = ICAL.Time.fromJSDate(event.end, false);
+      // Serialize timed events with an explicit timezone so other CalDAV
+      // clients interpret them at the correct instant AND so recurring events
+      // keep their wall-clock time across DST transitions (a fixed-UTC DTSTART +
+      // RRULE would drift by an hour after a DST change). See GitHub issue #135.
+      //
+      // When a user timezone is available we emit `DTSTART;TZID=<zone>` plus a
+      // matching VTIMEZONE; otherwise we fall back to UTC (`...Z`), which is
+      // still unambiguous for single (non-recurring) events.
+      const vtimezone = event.timeZone
+        ? buildVTimezoneComponent(event.timeZone)
+        : null;
 
-      dtstart.setValue(startTime);
-      dtend.setValue(endTime);
+      if (vtimezone && event.timeZone) {
+        calendar.addSubcomponent(vtimezone);
+        dtstart.setValue(zonedTime(event.start, event.timeZone));
+        dtend.setValue(zonedTime(event.end, event.timeZone));
+        dtstart.setParameter("tzid", event.timeZone);
+        dtend.setParameter("tzid", event.timeZone);
+      } else {
+        // Floating local time (no `Z`, no `TZID`) would be re-interpreted in
+        // each client's own timezone and shift the event; emit UTC instead.
+        dtstart.setValue(ICAL.Time.fromJSDate(event.start, true));
+        dtend.setValue(ICAL.Time.fromJSDate(event.end, true));
+      }
     }
 
     vevent.addProperty(dtstart);
@@ -1015,10 +1143,15 @@ export class CalDAVCalendarService {
       // Generate a unique ID for the event if not provided
       const eventId = event.id || crypto.randomUUID();
 
+      // Resolve the user's timezone so timed events serialize with a TZID
+      // (keeps wall-clock time across DST for recurring events; issue #135).
+      const timeZone = event.timeZone ?? (await this.resolveUserTimeZone(userId));
+
       // Generate the iCalendar data
       const icalData = this.convertToICalendar({
         ...event,
         id: eventId,
+        timeZone,
       });
 
       // Get the CalDAV client

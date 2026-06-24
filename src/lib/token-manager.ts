@@ -65,8 +65,9 @@ export class TokenManager {
 
     try {
       const response = await oauth2Client.refreshAccessToken();
+      // expiry_date is an absolute epoch-ms timestamp, not a duration.
       const expiresAt = newDate(
-        Date.now() + (response.credentials.expiry_date || 3600 * 1000)
+        response.credentials.expiry_date || Date.now() + 3600 * 1000
       );
 
       // Update tokens in database

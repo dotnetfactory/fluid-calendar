@@ -118,12 +118,13 @@ To enable Google Calendar integration:
      - App name: "FluidCalendar" (or your preferred name)
      - User support email
      - Developer contact information
-   - Add scopes:
-     - `./auth/calendar.events`
-     - `./auth/calendar`
-     - `./auth/userinfo.email`
+   - Add scopes (these match what FluidCalendar actually requests):
      - `openid`
-     - `/auth/tasks` _(Required if you plan to sync Google Tasks)_
+     - `email`
+     - `https://www.googleapis.com/auth/calendar`
+     - `https://www.googleapis.com/auth/calendar.events`
+     - `https://www.googleapis.com/auth/userinfo.email`
+     - `https://www.googleapis.com/auth/tasks` _(used for Google Tasks sync)_
    - Add test users if in testing mode
 
 4. Create OAuth 2.0 Credentials:
@@ -134,11 +135,15 @@ To enable Google Calendar integration:
    - Set Authorized JavaScript origins:
      - `http://localhost:3000` (for development)
      - Your production URL (if deployed)
-   - Set Authorized redirect URIs:
+   - Set Authorized redirect URIs (add **both** paths - one is used for Google sign-in, the other for connecting a calendar):
+     - `http://localhost:3000/api/auth/callback/google` (for development)
      - `http://localhost:3000/api/calendar/google` (for development)
+     - `https://your-domain.com/api/auth/callback/google` (for production)
      - `https://your-domain.com/api/calendar/google` (for production)
    - Click "Create"
    - Save the generated Client ID and Client Secret
+
+   > These are the same two redirect URIs the in-app **Settings > System** panel shows for your deployment, so the app and these instructions match. Replace the host with the exact URL you open FluidCalendar at.
 
 5. Configure Credentials:
    - Go to FluidCalendar Settings > System
@@ -148,6 +153,14 @@ To enable Google Calendar integration:
      GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
      GOOGLE_CLIENT_SECRET="your-client-secret"
      ```
+
+### Troubleshooting the Google connection
+
+If Google returns `Error 400: redirect_uri_mismatch` or "Invalid Redirect" when you connect:
+
+- **`NEXTAUTH_URL` must match the public URL you open in the browser.** The OAuth redirect host is derived from `NEXTAUTH_URL` (not `NEXT_PUBLIC_APP_URL`). If `NEXTAUTH_URL` is still `http://localhost:3000` but you reach the app at a different URL, Google is sent back to `localhost` and the connection fails. Set `NEXTAUTH_URL` to the exact public URL and restart the app.
+- **Register both redirect URIs.** Google rejects the request if the exact callback URL is not in the authorized list. Make sure both `…/api/auth/callback/google` and `…/api/calendar/google` are listed for your host (see step 4 above).
+- **Google does not accept bare private IP addresses (e.g. `http://192.168.1.150:3000`) or `.local` hostnames** as redirect URIs ("must end with a public top-level domain"). For local development use `localhost`; otherwise expose the app on a public domain (a reverse proxy or tunnel) and use that domain in both `NEXTAUTH_URL` and the Google redirect URIs.
 
 Note: For production deployment, you'll need to:
 
@@ -172,9 +185,9 @@ To enable Outlook Calendar integration:
    - In your registered app, go to "Authentication"
    - Click "Add a platform"
    - Choose "Web"
-   - Add Redirect URIs:
-     - `http://localhost:3000/api/auth/callback/azure-ad` (for development)
-     - `https://your-domain.com/api/auth/callback/azure-ad` (for production)
+   - Add Redirect URIs (this is the exact callback path FluidCalendar uses for Outlook - it must match with no trailing slash):
+     - `http://localhost:3000/api/calendar/outlook` (for development)
+     - `https://your-domain.com/api/calendar/outlook` (for production)
    - Under "Implicit grant", check "Access tokens" and "ID tokens"
    - Click "Configure"
 
@@ -254,6 +267,8 @@ Note: For production deployment:
 5. Visit http://localhost:3000
 
 That's it! The application will be running with a PostgreSQL database automatically configured. The docker-compose.yml file is already configured to use the pre-built Docker image.
+
+> **Note on the port:** the container listens on `0.0.0.0:3000`, which `docker-compose.yml` pins via `environment: PORT=3000` and `HOSTNAME=0.0.0.0`. Setting `PORT` or `HOSTNAME` in your `.env` will **not** change where the app binds (compose overrides them) - this avoids the app binding to a different port or to a loopback address than the one published. To serve on a different host port, change the host side of the `ports` mapping in `docker-compose.yml` (for example `"8080:3000"` to use `http://localhost:8080`) **and** update `NEXTAUTH_URL` (and the other browser-facing URLs - `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`) in your `.env` to the same host/port, since the app derives its OAuth redirect URLs from `NEXTAUTH_URL`; leaving it on `:3000` while browsing on `:8080` breaks sign-in and calendar auth.
 
 ### For Developers
 

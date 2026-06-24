@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 
 import { DndProvider } from "@/components/dnd/DndProvider";
 import { AppNav } from "@/components/navigation/AppNav";
+import { VersionBadge } from "@/components/navigation/VersionBadge";
 import { PrivacyProvider } from "@/components/providers/PrivacyProvider";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { SetupCheck } from "@/components/setup/SetupCheck";
@@ -84,6 +85,11 @@ export default function RootLayout({
             <main className="relative flex-1">
               <NotificationProvider>{children}</NotificationProvider>
             </main>
+            <footer className="flex-none border-t border-border bg-background px-4 py-2">
+              <div className="flex justify-end">
+                <VersionBadge />
+              </div>
+            </footer>
             <Toaster />
           </DndProvider>
         </PrivacyProvider>

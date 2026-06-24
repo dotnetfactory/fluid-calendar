@@ -113,8 +113,23 @@ export function SystemSettings() {
                   <li>Go to Credentials</li>
                   <li>Create OAuth 2.0 Client ID credentials</li>
                   <li>
-                    Add authorized redirect URI: {window.location.origin}
-                    /api/calendar/google
+                    Add both authorized redirect URIs (one for sign-in, one for
+                    connecting a calendar):
+                    <ul className="ml-4 mt-1 list-disc">
+                      <li>{window.location.origin}/api/auth/callback/google</li>
+                      <li>{window.location.origin}/api/calendar/google</li>
+                    </ul>
+                    <span className="mt-1 block text-xs">
+                      These use the URL shown in your browser. The server sends
+                      Google back to the host in{" "}
+                      <code>NEXTAUTH_URL</code>, so make sure{" "}
+                      <code>NEXTAUTH_URL</code> matches this address (otherwise
+                      Google returns <code>redirect_uri_mismatch</code>). Google
+                      also rejects bare private IPs (e.g.{" "}
+                      <code>192.168.x.x</code>) and <code>.local</code>{" "}
+                      hostnames - use <code>localhost</code> for local
+                      development or a public domain.
+                    </span>
                   </li>
                   <li>Copy the Client ID and Client Secret</li>
                 </ol>
