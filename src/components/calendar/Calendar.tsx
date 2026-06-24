@@ -4,7 +4,11 @@ import { useEffect } from "react";
 
 import dynamic from "next/dynamic";
 import { HiMenu } from "react-icons/hi";
-import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+import {
+  IoCheckmarkCircleOutline,
+  IoChevronBack,
+  IoChevronForward,
+} from "react-icons/io5";
 
 import { DayView } from "@/components/calendar/DayView";
 import { FeedManager } from "@/components/calendar/FeedManager";
@@ -22,6 +26,7 @@ import {
   useCalendarUIStore,
   useViewStore,
 } from "@/store/calendar";
+import { useCalendarViewSettings } from "@/store/calendarViewSettings";
 import { useTaskStore } from "@/store/task";
 
 import { CalendarEvent, CalendarFeed } from "@/types/calendar";
@@ -45,6 +50,8 @@ export function Calendar({
 }: CalendarProps) {
   const { date: currentDate, setDate, view, setView } = useViewStore();
   const { isSidebarOpen, setSidebarOpen, isHydrated } = useCalendarUIStore();
+  const { showCompletedTasks, toggleShowCompletedTasks } =
+    useCalendarViewSettings();
   const { scheduleAllTasks } = useTaskStore();
   const { setFeeds, setEvents } = useCalendarStore();
 
@@ -172,6 +179,23 @@ export function Calendar({
 
           {/* View Switching Buttons */}
           <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={toggleShowCompletedTasks}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium",
+                showCompletedTasks
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+              title={
+                showCompletedTasks
+                  ? "Hide completed tasks"
+                  : "Show completed tasks"
+              }
+            >
+              <IoCheckmarkCircleOutline className="h-4 w-4" />
+              Completed
+            </button>
             <button
               onClick={() => setView("day")}
               className={cn(

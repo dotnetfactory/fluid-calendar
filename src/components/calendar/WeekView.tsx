@@ -18,6 +18,7 @@ import { useEventModalStore } from "@/lib/commands/groups/calendar";
 import { newDate } from "@/lib/date-utils";
 
 import { useCalendarStore } from "@/store/calendar";
+import { useCalendarViewSettings } from "@/store/calendarViewSettings";
 import { useSettingsStore } from "@/store/settings";
 import { useTaskStore } from "@/store/task";
 
@@ -63,6 +64,9 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
   >([]);
   const calendarRef = useRef<FullCalendar>(null);
   const tasks = useTaskStore((state) => state.tasks);
+  const showCompletedTasks = useCalendarViewSettings(
+    (state) => state.showCompletedTasks
+  );
   const [quickViewItem, setQuickViewItem] = useState<CalendarEvent | Task>();
   const [isTask, setIsTask] = useState(false);
   const eventModalStore = useEventModalStore();
@@ -144,7 +148,7 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
         view: calendar.view,
       });
     }
-  }, [isLoading, feeds, userSettings.timeZone, handleDatesSet, tasks]);
+  }, [isLoading, feeds, userSettings.timeZone, handleDatesSet, tasks, showCompletedTasks]);
 
   // Update calendar date when currentDate changes
   useEffect(() => {
