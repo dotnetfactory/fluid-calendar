@@ -95,6 +95,8 @@ export interface SystemSettings {
   disableHomepage?: boolean; // Whether to disable the homepage and redirect to login/calendar
   publicSignup?: boolean; // Whether public signup is enabled
   resendApiKey?: string; // API key for Resend email service
+  autoReplanEnabled?: boolean; // Periodically re-plan auto-scheduled tasks so past-due tasks roll forward
+  autoReplanIntervalMinutes?: number; // How often the re-plan runs (minutes); lower = closer to real-time
 }
 
 export interface Settings {

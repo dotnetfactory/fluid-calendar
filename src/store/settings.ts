@@ -112,6 +112,8 @@ const defaultSettings: Settings & { accounts: ConnectedAccount[] } = {
     logRetention: undefined,
     logDestination: "db",
     disableHomepage: false,
+    autoReplanEnabled: true,
+    autoReplanIntervalMinutes: 15,
   },
   accounts: [],
 };
@@ -468,6 +470,8 @@ export const useSettingsStore = create<SettingsStore>()(
             logRetention: systemSettings.logRetention,
             logDestination: systemSettings.logDestination,
             disableHomepage: systemSettings.disableHomepage,
+            autoReplanEnabled: systemSettings.autoReplanEnabled,
+            autoReplanIntervalMinutes: systemSettings.autoReplanIntervalMinutes,
           });
         } catch (error) {
           logger.error(

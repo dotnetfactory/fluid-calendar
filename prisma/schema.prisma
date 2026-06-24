@@ -413,6 +413,12 @@ model SystemSettings {
   publicSignup        Boolean  @default(false) // Whether public signup is enabled
   disableHomepage     Boolean  @default(false) // Whether to disable the homepage and redirect to login/calendar
   resendApiKey        String? // API key for Resend email service
+  // Periodic auto-replan (driven by the internal cron endpoint). The host fires
+  // a frequent heartbeat; the endpoint only re-plans once this interval elapses,
+  // so the cadence is configurable in-app without touching the host schedule.
+  autoReplanEnabled         Boolean   @default(true)
+  autoReplanIntervalMinutes Int       @default(15) // conservative default; admins may go as low as 1 for near-continuous reflow
+  autoReplanLastRunAt       DateTime? // last time the heartbeat actually re-planned
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
