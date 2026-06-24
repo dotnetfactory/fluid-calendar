@@ -282,6 +282,20 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
       // Sync the feed's events
       if (url) {
         await get().syncFeed(id);
+
+        // Subscribing to an iCal URL must be atomic: if the very first sync
+        // fails (unreachable/private/invalid URL, unparseable body), the feed
+        // is useless and the spec requires no feed to be left behind. syncFeed
+        // records the error on the feed instead of throwing, so detect it here,
+        // roll the feed back, and surface the error to the caller.
+        if (type === "ICAL") {
+          const synced = get().feeds.find((f) => f.id === id);
+          if (synced?.error) {
+            const message = synced.error;
+            await get().removeFeed(id);
+            throw new Error(message);
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to add feed:", error);

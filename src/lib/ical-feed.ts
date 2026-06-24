@@ -186,6 +186,14 @@ export function assertSafeIcalHost(parsed: URL): void {
  * Resolves the host and rejects if any resolved address is in private space.
  * Catches public hostnames that point at internal IPs (a common SSRF vector).
  * Best-effort: if resolution fails we let the fetch surface the network error.
+ *
+ * Known residual risk (DNS rebinding): this check resolves the host, but the
+ * subsequent `fetch` resolves it again, so a hostile domain could return a
+ * public IP here and a private/metadata IP at connect time (TOCTOU). Fully
+ * closing this requires pinning the vetted address into the connection via a
+ * custom dispatcher/lookup.
+ * //todo: pin the resolved IP into the fetch (undici dispatcher with a `lookup`
+ * that returns the pre-vetted address) to defeat DNS rebinding.
  */
 async function assertResolvedHostSafe(parsed: URL): Promise<void> {
   const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
@@ -350,9 +358,17 @@ export function expandIcalEvents(
       options.dtstart = start;
       const rule = new RRule(options);
 
-      const occurrences = rule
-        .between(windowStart, windowEnd, true)
-        .slice(0, MAX_EXPANDED_INSTANCES);
+      // Bound generation, not just the result. A hostile feed can carry a
+      // high-frequency rule (e.g. FREQ=SECONDLY) with no COUNT/UNTIL; calling
+      // `.between(...).slice(cap)` would still materialize every occurrence in
+      // the multi-year window first (CPU/memory DoS). The iterator callback
+      // stops rrule as soon as we hit the cap, so generation itself is bounded.
+      const occurrences = rule.between(
+        windowStart,
+        windowEnd,
+        true,
+        (_date, i) => i < MAX_EXPANDED_INSTANCES
+      );
 
       for (const date of occurrences) {
         const instanceStart = newDate(date);

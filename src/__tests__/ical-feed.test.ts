@@ -236,6 +236,36 @@ describe("expandIcalEvents", () => {
     expect(instances.some((inst) => inst.start.getTime() === other)).toBe(true);
   });
 
+  it("bounds a high-frequency unbounded rule to the instance cap quickly", () => {
+    // A hostile feed with FREQ=SECONDLY and no COUNT/UNTIL would produce tens of
+    // millions of occurrences across the window. Generation must be bounded (not
+    // just the result sliced), so this completes fast and stays capped.
+    const secondly = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//EN
+BEGIN:VEVENT
+UID:flood-1@example.com
+SUMMARY:Flood
+DTSTART:20260101T000000Z
+DTEND:20260101T000100Z
+RRULE:FREQ=SECONDLY
+END:VEVENT
+END:VCALENDAR`;
+    const parsed = parseIcalEvents(secondly);
+    const wideEnd = new Date("2029-01-01T00:00:00.000Z");
+
+    const t0 = Date.now();
+    const expanded = expandIcalEvents(parsed, windowStart, wideEnd);
+    const elapsed = Date.now() - t0;
+
+    const instances = expanded.filter((e) => !e.isMaster);
+    // Capped at MAX_EXPANDED_INSTANCES (1000) and generated, not enumerated.
+    expect(instances.length).toBeLessThanOrEqual(1000);
+    expect(instances.length).toBeGreaterThan(0);
+    // Bounded generation keeps this well under a second even on slow CI.
+    expect(elapsed).toBeLessThan(5000);
+  });
+
   it("keeps a master with an unparseable rule as a single fallback row", () => {
     const parsed = parseIcalEvents(RECURRING_EVENT_ICS);
     // Corrupt the rule so RRule.fromString throws.
