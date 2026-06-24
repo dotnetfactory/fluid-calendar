@@ -32,3 +32,13 @@
 - [x] 8.1 SSRF/resource hardening in `fetchIcalEvents`: block loopback/private/link-local/metadata hosts (literal IPs + DNS resolution via `assertSafeIcalHost`/`assertResolvedHostSafe`), manual redirect re-validation, `AbortController` timeout, streamed byte cap; unit tests for `assertSafeIcalHost`
 - [x] 8.2 Recurring events render: add `expandIcalEvents` to materialize occurrence rows at sync time (the render path does not expand masters); wire into the sync route; unit tests for expansion
 - [x] 8.3 Read-only enforced on delete: add `ICAL` rejection in store `removeEvent`; add server-side `isWritableFeedType` guards (403) to `/api/events` POST/PATCH/DELETE and `/api/events/[id]` PATCH/DELETE; unit tests for `isWritableFeedType`
+
+## 9. Codex review round 2 (finalize): deeper hardening
+- [x] 9.1 SSRF: IPv4-mapped IPv6 literals (`::ffff:127.0.0.1` canonicalized to `::ffff:7f00:1`) bypassed the private-IP guard; normalize dotted + hex mapped forms before classifying; regression tests
+- [x] 9.2 Read-only: the generic `POST /api/feeds/[id]/sync` replaced events from caller JSON with no type check; reject non-writable (ICAL) feeds before deletion; route test
+- [x] 9.3 Read-only: `PATCH /api/events/[id]` spread the raw body (smuggled `feedId` could retarget into a read-only/other feed); whitelist mutable fields; route test
+- [x] 9.4 Recurrence: honor `EXDATE` so cancelled occurrences are not materialized; test
+- [x] 9.5 DoS: bound recurrence generation (rrule iterator) per master AND a feed-level total-row cap so a dense ICS cannot expand into an unbounded write; tests
+- [x] 9.6 Atomic subscribe: roll back the feed and rethrow if the first iCal sync fails (no broken feed left behind); store test
+- [ ] 9.7 DEFERRED (documented `//todo`): pin the vetted IP into the fetch to defeat DNS rebinding (needs a custom undici dispatcher / egress layer; out of scope for the MVP subscribe path)
+- [ ] 9.8 DEFERRED (documented `//todo`): honor `RDATE` and `RECURRENCE-ID` overrides for moved/edited recurring instances (a recurrence-exception feature beyond the MVP)
