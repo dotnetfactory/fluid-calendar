@@ -2,6 +2,7 @@ import { CalendarEvent } from "@prisma/client";
 
 import { areIntervalsOverlapping } from "@/lib/date-utils";
 import { prisma } from "@/lib/prisma";
+import { getPushedBlockEventIds } from "@/lib/task-block-push";
 
 import { Conflict, TimeSlot } from "@/types/scheduling";
 
@@ -240,15 +241,9 @@ export class CalendarServiceImpl implements CalendarService {
     // Events that are projections of our own pushed task blocks must not
     // count as conflicts: the task side already owns that time via the
     // scheduled-task check, and a feed sync of the push target would
-    // otherwise make every scheduled task block its own slot.
-    const pushedBlockIds = new Set(
-      (
-        await prisma.task.findMany({
-          where: { userId, blockEventId: { not: null } },
-          select: { blockEventId: true },
-        })
-      ).map((t) => t.blockEventId)
-    );
+    // otherwise make every scheduled task block its own slot. (Echoes are also
+    // skipped at import now; this stays as defense-in-depth.)
+    const pushedBlockIds = await getPushedBlockEventIds(userId);
 
     // Check conflicts for each slot
     return slots.map(({ slot, taskId }) => {
