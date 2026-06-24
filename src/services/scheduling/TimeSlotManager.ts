@@ -226,6 +226,12 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
   ): TimeSlot[] {
     const slots: TimeSlot[] = [];
     const MINIMUM_BUFFER_MINUTES = 15;
+    // Candidate task slots are generated on a fine granularity instead of being
+    // snapped to a coarse 30-minute grid. Task blocks are fluid work items, not
+    // meetings, so they don't need round start times; a fine step lets a task
+    // pack right after the previous one (or an odd-ending calendar event) at the
+    // configured buffer distance rather than rounding the gap up to the grid.
+    const SLOT_GRANULARITY_MINUTES = 5;
 
     // Convert start and end dates to local time zone
     const localStartDate = toZonedTime(startDate, this.timeZone);
@@ -261,9 +267,10 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       );
     }
 
-    localCurrentStart = roundDateUp(localCurrentStart);
-    localEndDate = roundDateUp(localEndDate);
-    // Generate slots advancing by task duration
+    localCurrentStart = roundDateUp(localCurrentStart, SLOT_GRANULARITY_MINUTES);
+    localEndDate = roundDateUp(localEndDate, SLOT_GRANULARITY_MINUTES);
+    // Advance by the fine granularity so candidate starts aren't locked to the
+    // task duration; the duration still defines each slot's length.
     while (localCurrentStart < localEndDate) {
       const slotEnd = addMinutes(localCurrentStart, duration);
       // localCurrentStart/slotEnd hold wall-clock values in the user's
@@ -279,7 +286,7 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       };
 
       slots.push(slot);
-      localCurrentStart = addMinutes(localCurrentStart, duration);
+      localCurrentStart = addMinutes(localCurrentStart, SLOT_GRANULARITY_MINUTES);
     }
 
     return slots;
@@ -344,10 +351,20 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       return [];
     }
 
-    return this.calendarService.findConflicts(slot, selectedCalendars, userId);
+    return this.calendarService.findConflicts(
+      slot,
+      selectedCalendars,
+      userId,
+      undefined,
+      this.settings.bufferMinutes
+    );
   }
 
   private hasInMemoryConflict(slot: TimeSlot): boolean {
+    // Tasks scheduled earlier in this same run live only in memory (the DB
+    // schedules were cleared at the start of the replan), so the buffer must be
+    // enforced here too — otherwise back-to-back tasks slip through.
+    const bufferMinutes = this.settings.bufferMinutes;
     // Check all project tasks for conflicts
     for (const [, projectTasks] of this.slotScorer
       .getScheduledTasks()
@@ -356,7 +373,10 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
         if (
           areIntervalsOverlapping(
             { start: slot.start, end: slot.end },
-            { start: projectTask.start, end: projectTask.end }
+            {
+              start: addMinutes(projectTask.start, -bufferMinutes),
+              end: addMinutes(projectTask.end, bufferMinutes),
+            }
           )
         ) {
           return true;
@@ -386,7 +406,8 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
       slotsToCheck,
       selectedCalendars,
       task.userId || "",
-      task.id
+      task.id,
+      this.settings.bufferMinutes
     );
 
     // Process results and check for conflicts with in-memory scheduled tasks

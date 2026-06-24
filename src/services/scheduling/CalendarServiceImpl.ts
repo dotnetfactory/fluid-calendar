@@ -1,6 +1,6 @@
 import { CalendarEvent } from "@prisma/client";
 
-import { areIntervalsOverlapping } from "@/lib/date-utils";
+import { addMinutes, areIntervalsOverlapping } from "@/lib/date-utils";
 import { prisma } from "@/lib/prisma";
 
 import { Conflict, TimeSlot } from "@/types/scheduling";
@@ -68,7 +68,8 @@ export class CalendarServiceImpl implements CalendarService {
     slot: TimeSlot,
     selectedCalendarIds: string[],
     userId: string,
-    excludeTaskId?: string
+    excludeTaskId?: string,
+    bufferMinutes = 0
   ): Promise<Conflict[]> {
     const conflicts: Conflict[] = [];
 
@@ -83,7 +84,12 @@ export class CalendarServiceImpl implements CalendarService {
       if (
         areIntervalsOverlapping(
           { start: slot.start, end: slot.end },
-          { start: event.start, end: event.end }
+          // Pad the busy interval by the user's buffer so a candidate slot must
+          // keep a gap from each event rather than just avoid overlapping it.
+          {
+            start: addMinutes(event.start, -bufferMinutes),
+            end: addMinutes(event.end, bufferMinutes),
+          }
         )
       ) {
         conflicts.push({
@@ -118,7 +124,10 @@ export class CalendarServiceImpl implements CalendarService {
         task.scheduledEnd &&
         areIntervalsOverlapping(
           { start: slot.start, end: slot.end },
-          { start: task.scheduledStart, end: task.scheduledEnd }
+          {
+            start: addMinutes(task.scheduledStart, -bufferMinutes),
+            end: addMinutes(task.scheduledEnd, bufferMinutes),
+          }
         )
       ) {
         conflicts.push({
@@ -202,7 +211,8 @@ export class CalendarServiceImpl implements CalendarService {
     slots: { slot: TimeSlot; taskId: string }[],
     selectedCalendarIds: string[],
     userId: string,
-    excludeTaskId?: string
+    excludeTaskId?: string,
+    bufferMinutes = 0
   ): Promise<BatchConflictCheck[]> {
     // Safety check: if slots array is empty, return empty results
     if (!slots || slots.length === 0) {
@@ -268,7 +278,12 @@ export class CalendarServiceImpl implements CalendarService {
         if (
           areIntervalsOverlapping(
             { start: slot.start, end: slot.end },
-            { start: event.start, end: event.end }
+            // Pad the busy interval by the user's buffer so a candidate slot
+            // must keep a gap from each event, not merely avoid overlapping it.
+            {
+              start: addMinutes(event.start, -bufferMinutes),
+              end: addMinutes(event.end, bufferMinutes),
+            }
           )
         ) {
           conflicts.push({
@@ -293,7 +308,10 @@ export class CalendarServiceImpl implements CalendarService {
             task.scheduledEnd &&
             areIntervalsOverlapping(
               { start: slot.start, end: slot.end },
-              { start: task.scheduledStart, end: task.scheduledEnd }
+              {
+                start: addMinutes(task.scheduledStart, -bufferMinutes),
+                end: addMinutes(task.scheduledEnd, bufferMinutes),
+              }
             )
           ) {
             conflicts.push({

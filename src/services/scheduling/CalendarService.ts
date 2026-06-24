@@ -12,7 +12,8 @@ export interface CalendarService {
     slot: TimeSlot,
     selectedCalendarIds: string[],
     userId: string,
-    excludeTaskId?: string
+    excludeTaskId?: string,
+    bufferMinutes?: number
   ): Promise<Conflict[]>;
 
   getEvents(
@@ -26,6 +27,7 @@ export interface CalendarService {
     slots: { slot: TimeSlot; taskId: string }[],
     selectedCalendarIds: string[],
     userId: string,
-    excludeTaskId?: string
+    excludeTaskId?: string,
+    bufferMinutes?: number
   ): Promise<BatchConflictCheck[]>;
 }
