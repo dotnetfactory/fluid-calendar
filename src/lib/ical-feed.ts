@@ -23,6 +23,13 @@ const FETCH_TIMEOUT_MS = 15_000;
 // path, which only expands masters when explicitly asked.
 const MAX_EXPANDED_INSTANCES = 1000;
 
+// Feed-level cap on TOTAL materialized rows (masters + one-offs + every
+// expanded instance). The per-master cap alone is not enough: a single (byte-
+// capped) feed can carry many recurring masters, so without a global ceiling a
+// sync could still expand to `masters * 1000` rows and exhaust memory / DB
+// transaction time. Expansion stops once this is reached.
+const MAX_TOTAL_EXPANDED_EVENTS = 50_000;
+
 /**
  * Fields of a parsed iCal event that are safe to persist for a new feed event.
  *
@@ -299,21 +306,6 @@ function extractExdates(vevent: ICAL.Component): number[] {
 }
 
 /**
- * Materializes recurring masters into concrete occurrence rows within a window.
- *
- * The calendar render path (`getAllCalendarItems` -> `getExpandedEvents`) does
- * NOT expand masters (it only emits stored instances), so a master alone would
- * be invisible. Mirroring the Google provider, we persist a master row (kept
- * for metadata, skipped at render because `isMaster` is true) plus standalone
- * instance rows that actually render. Instances carry no `masterEventId` to
- * avoid a self-FK violation on a single-pass `createMany`.
- *
- * @param events Parsed events (from `parseIcalEvents`)
- * @param windowStart Earliest occurrence to materialize
- * @param windowEnd Latest occurrence to materialize
- * @returns Events ready to persist (masters + materialized instances + one-offs)
- */
-/**
  * Drops the internal, non-persisted `exdates` field so the row is safe to write
  * to the database (Prisma `createMany` rejects unknown columns).
  */
@@ -324,14 +316,39 @@ function stripExdates(event: ParsedIcalEvent): ParsedIcalEvent {
   return rest;
 }
 
+/**
+ * Materializes recurring masters into concrete occurrence rows within a window.
+ *
+ * The calendar render path (`getAllCalendarItems` -> `getExpandedEvents`) does
+ * NOT expand masters (it only emits stored instances), so a master alone would
+ * be invisible. Mirroring the Google provider, we persist a master row (kept
+ * for metadata, skipped at render because `isMaster` is true) plus standalone
+ * instance rows that actually render. Instances carry no `masterEventId` to
+ * avoid a self-FK violation on a single-pass `createMany`.
+ *
+ * Generation is bounded both per master (`MAX_EXPANDED_INSTANCES`) and across
+ * the whole feed (`MAX_TOTAL_EXPANDED_EVENTS`), so a single byte-capped ICS with
+ * many recurring masters cannot expand into an unbounded database write.
+ *
+ * @param events Parsed events (from `parseIcalEvents`)
+ * @param windowStart Earliest occurrence to materialize
+ * @param windowEnd Latest occurrence to materialize
+ * @returns Events ready to persist (masters + materialized instances + one-offs)
+ */
 export function expandIcalEvents(
   events: ParsedIcalEvent[],
   windowStart: Date,
   windowEnd: Date
 ): ParsedIcalEvent[] {
   const result: ParsedIcalEvent[] = [];
+  let capped = false;
 
   for (const event of events) {
+    if (result.length >= MAX_TOTAL_EXPANDED_EVENTS) {
+      capped = true;
+      break;
+    }
+
     if (!event.isMaster || !event.recurrenceRule) {
       // `exdates` is an internal parse artifact; never persist it.
       result.push(stripExdates(event));
@@ -371,6 +388,10 @@ export function expandIcalEvents(
       );
 
       for (const date of occurrences) {
+        if (result.length >= MAX_TOTAL_EXPANDED_EVENTS) {
+          capped = true;
+          break;
+        }
         const instanceStart = newDate(date);
         if (excluded.has(instanceStart.getTime())) continue;
         result.push({
@@ -399,6 +420,14 @@ export function expandIcalEvents(
         LOG_SOURCE
       );
     }
+  }
+
+  if (capped) {
+    logger.warn(
+      "iCal feed expansion hit the total event cap; truncating",
+      { cap: MAX_TOTAL_EXPANDED_EVENTS, kept: result.length },
+      LOG_SOURCE
+    );
   }
 
   return result;

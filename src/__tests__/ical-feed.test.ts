@@ -266,6 +266,36 @@ END:VCALENDAR`;
     expect(elapsed).toBeLessThan(5000);
   });
 
+  it("caps total materialized rows across many recurring masters", () => {
+    // 60 masters x up to 1000 instances each would be 60k rows; the feed-level
+    // cap (50k) must stop expansion so a small-but-dense feed can't blow up the
+    // bulk insert. Each SECONDLY master is itself per-master bounded, so this
+    // stays fast.
+    const masters = Array.from({ length: 60 }, (_, n) => {
+      const min = String(n % 60).padStart(2, "0");
+      return `BEGIN:VEVENT
+UID:flood-${n}@example.com
+SUMMARY:Flood ${n}
+DTSTART:20260101T00${min}00Z
+DTEND:20260101T00${min}30Z
+RRULE:FREQ=SECONDLY
+END:VEVENT`;
+    }).join("\n");
+    const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//test//EN\n${masters}\nEND:VCALENDAR`;
+
+    const parsed = parseIcalEvents(ics);
+    const expanded = expandIcalEvents(
+      parsed,
+      windowStart,
+      new Date("2029-01-01T00:00:00.000Z")
+    );
+
+    // Hard ceiling enforced regardless of how many masters/instances were asked.
+    expect(expanded.length).toBeLessThanOrEqual(50_000);
+    // And it did materialize a large number (proving the cap, not an early bail).
+    expect(expanded.length).toBeGreaterThan(40_000);
+  });
+
   it("keeps a master with an unparseable rule as a single fallback row", () => {
     const parsed = parseIcalEvents(RECURRING_EVENT_ICS);
     // Corrupt the rule so RRule.fromString throws.
