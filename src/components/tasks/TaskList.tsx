@@ -126,8 +126,8 @@ export function TaskList({
           if (!b.project?.name) return -1;
           return direction * a.project.name.localeCompare(b.project.name);
         case "priority":
-          // Sort by semantic rank (none < low < medium < high), not the
-          // alphabetical order of the labels. See task-list-utils.
+          // Sort by semantic rank (low < medium < high, no-priority last), not
+          // the alphabetical order of the labels. See task-list-utils.
           return compareTaskPriority(a, b, direction);
         case "energyLevel":
           // Sort by semantic rank (low < medium < high), not alphabetically.
