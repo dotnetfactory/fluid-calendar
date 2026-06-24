@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { getMsGraphClient } from "@/lib/outlook-utils";
 import { prisma } from "@/lib/prisma";
+import { CalDAVTaskProvider } from "@/lib/task-sync/providers/caldav-provider";
 import { OutlookTaskProvider } from "@/lib/task-sync/providers/outlook-provider";
 import { TaskProviderInterface } from "@/lib/task-sync/providers/task-provider.interface";
 
@@ -82,6 +83,22 @@ export async function GET(
       );
       const tasksClient = await getGoogleTasksClient(provider.account.id, provider.userId);
       providerImpl = new GoogleTaskProvider(tasksClient, provider.account.id, provider.userId);
+    } else if (provider.type === "CALDAV") {
+      // Defense-in-depth: only use the account's CalDAV credentials if the
+      // account is owned by this user and is a CalDAV account, so a provider
+      // row cannot be pointed at another user's account to enumerate its task
+      // lists with its stored URL/password (issue #144 review).
+      if (
+        provider.account.userId !== userId ||
+        provider.account.provider !== "CALDAV"
+      ) {
+        return NextResponse.json(
+          { error: "Provider is not linked to a CalDAV account you own" },
+          { status: 403 }
+        );
+      }
+      // The CalDAV provider creates its own tsdav client from the account
+      providerImpl = new CalDAVTaskProvider(provider.account);
     } else {
       return NextResponse.json(
         { error: `Provider type ${provider.type} not supported` },

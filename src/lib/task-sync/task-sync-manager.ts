@@ -15,7 +15,6 @@ import {
 
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
-// import { CalDAVTaskProvider } from "./providers/caldav-provider";
 // Import utility to get Microsoft Graph client
 import { getMsGraphClient } from "@/lib/outlook-utils";
 import { prisma } from "@/lib/prisma";
@@ -23,6 +22,8 @@ import { prisma } from "@/lib/prisma";
 import { TaskStatus } from "@/types/task";
 
 import { FieldMapper } from "./field-mapper";
+import { CalDAVFieldMapper } from "./providers/caldav-field-mapper";
+import { CalDAVTaskProvider } from "./providers/caldav-provider";
 import { OutlookFieldMapper } from "./providers/outlook-field-mapper";
 import { GoogleFieldMapper } from "./providers/google-field-mapper";
 // Import provider implementations
@@ -57,6 +58,8 @@ export class TaskSyncManager {
         return new OutlookFieldMapper();
       case "GOOGLE":
         return new GoogleFieldMapper();
+      case "CALDAV":
+        return new CalDAVFieldMapper();
       // Add cases for other provider types
       default:
         return new FieldMapper();
@@ -105,8 +108,26 @@ export class TaskSyncManager {
         );
         const googleClient = await getGoogleTasksClient(dbProvider.accountId, dbProvider.account.userId);
         return new GoogleTaskProvider(googleClient, dbProvider.accountId, dbProvider.account.userId);
-      // case "CALDAV":
-      //   return new CalDAVTaskProvider(dbProvider);
+      case "CALDAV":
+        if (!dbProvider.account) {
+          throw new Error(
+            `Missing account for CalDAV provider ${providerId}`
+          );
+        }
+        // Defense-in-depth: only use the account's CalDAV credentials if the
+        // account is actually owned by the provider's user and is a CalDAV
+        // account. A provider row's accountId is client-supplied at creation,
+        // so without this check a row could point at another user's
+        // ConnectedAccount and leak its CalDAV URL/password (issue #144 review).
+        if (
+          dbProvider.account.userId !== dbProvider.userId ||
+          dbProvider.account.provider !== "CALDAV"
+        ) {
+          throw new Error(
+            `CalDAV provider ${providerId} is not linked to a CalDAV account owned by the user`
+          );
+        }
+        return new CalDAVTaskProvider(dbProvider.account);
       default:
         throw new Error(`Unsupported provider type: ${dbProvider.type}`);
     }
@@ -170,14 +191,22 @@ export class TaskSyncManager {
       // Get the tracker instance
       const tracker = new TaskChangeTracker();
 
-      // Implement true bidirectional sync
-      await this.syncBidirectional(
-        provider,
-        mapping,
-        result,
-        fieldMapper,
-        tracker
-      );
+      // Import-only providers (e.g. CalDAV) cannot accept write-back, so run an
+      // incoming-only path that pulls external -> local and never pushes local
+      // changes or deletes local tasks based on a possibly-partial external read.
+      if (provider.supportsWriteBack?.() === false) {
+        result.direction = "incoming";
+        await this.syncIncomingOnly(provider, mapping, result, fieldMapper);
+      } else {
+        // Implement true bidirectional sync
+        await this.syncBidirectional(
+          provider,
+          mapping,
+          result,
+          fieldMapper,
+          tracker
+        );
+      }
 
       // Update the mapping with success status
       await prisma.taskListMapping.update({
@@ -289,6 +318,159 @@ export class TaskSyncManager {
       );
 
       throw error;
+    }
+  }
+
+  /**
+   * Incoming-only sync for import-only providers (e.g. CalDAV, GitHub issue
+   * #144). Pulls external tasks into the local project: updates linked local
+   * tasks from their external counterpart and creates local tasks for new
+   * external ones. It deliberately does NOT push local changes to the external
+   * service and does NOT delete local tasks that are absent from the external
+   * read - a transient or partial read must never destroy previously imported
+   * data, and the provider cannot accept write-back anyway.
+   *
+   * @param provider The (import-only) task provider
+   * @param mapping The task list mapping
+   * @param result The sync result tracker
+   * @param fieldMapper The field mapper for this provider type
+   */
+  private async syncIncomingOnly(
+    provider: TaskProviderInterface,
+    mapping: TaskListMapping & { provider: DbTaskProvider },
+    result: SyncResult,
+    fieldMapper: FieldMapper
+  ): Promise<void> {
+    const tracker = new TaskChangeTracker();
+
+    // Local tasks already linked to this provider, keyed by external id.
+    // todo: this keys by (projectId, source, externalTaskId) and ignores
+    // externalListId (matching the pre-existing bidirectional path). If two
+    // CalDAV collections that happen to share a VTODO UID are mapped into the
+    // SAME project, the second could update/skip the wrong local task. RFC 5545
+    // UIDs are meant to be globally unique so this is rare; include
+    // externalListId in the key if cross-list UID collisions become a problem.
+    const localTasks = (await prisma.task.findMany({
+      where: { projectId: mapping.projectId },
+      include: { tags: true, project: true },
+    })) as unknown as TaskWithSync[];
+
+    const localTaskByExternalId = new Map(
+      localTasks
+        .filter((t) => t.externalTaskId && t.source === mapping.provider.type)
+        .map((t) => [t.externalTaskId as string, t])
+    );
+
+    const externalTasks = await provider.getTasks(mapping.externalListId);
+
+    for (const externalTask of externalTasks) {
+      try {
+        const localTask = localTaskByExternalId.get(externalTask.id);
+
+        if (localTask) {
+          // Update the existing local task from the external version, preserving
+          // local-owned fields via the field mapper's merge rules.
+          const mappedExternalTask = fieldMapper.mapToInternalTask(
+            externalTask,
+            mapping.projectId
+          );
+          const mergedData = fieldMapper.mergeTaskData(
+            localTask,
+            mappedExternalTask
+          );
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { tags, project, ...updateData } = mergedData;
+
+          await prisma.task.update({
+            where: { id: localTask.id },
+            data: {
+              ...updateData,
+              externalUpdatedAt: externalTask.lastModified
+                ? newDate(externalTask.lastModified)
+                : externalTask.lastModifiedDateTime
+                  ? newDate(externalTask.lastModifiedDateTime)
+                  : newDate(),
+              lastSyncedAt: newDate(),
+              syncStatus: "SYNCED",
+              // Hash the merged (post-update) data so the stored hash reflects
+              // what was actually written, not the pre-merge snapshot.
+              syncHash: tracker.generateTaskHash(mergedData),
+            },
+          });
+
+          result.updated++;
+        } else {
+          // Guard against creating a duplicate if a concurrent/previous sync
+          // already imported this external task after our snapshot was taken.
+          // (This narrows but does not fully close the race; the engine has no
+          // DB-level unique constraint on external task identity.)
+          const existing = await prisma.task.findFirst({
+            where: {
+              projectId: mapping.projectId,
+              source: mapping.provider.type,
+              externalTaskId: externalTask.id,
+            },
+            select: { id: true },
+          });
+          if (existing) {
+            result.skipped++;
+            continue;
+          }
+
+          // Create a new local task for this external task.
+          const internalTask = fieldMapper.mapToInternalTask(
+            externalTask,
+            mapping.projectId
+          );
+
+          await prisma.task.create({
+            data: {
+              title: internalTask.title || "Untitled Task",
+              description: internalTask.description,
+              status: internalTask.status || TaskStatus.TODO,
+              dueDate: internalTask.dueDate,
+              startDate: internalTask.startDate,
+              duration: internalTask.duration,
+              priority: internalTask.priority,
+              energyLevel: internalTask.energyLevel,
+              preferredTime: internalTask.preferredTime,
+              // External-owned completion state: an imported already-completed
+              // VTODO must carry its completion timestamp from the first import.
+              completedAt: internalTask.completedAt,
+              isRecurring: internalTask.isRecurring || false,
+              recurrenceRule: internalTask.recurrenceRule,
+              isAutoScheduled: mapping.isAutoScheduled,
+              scheduleLocked: false,
+              source: mapping.provider.type,
+              externalListId: mapping.externalListId,
+              externalTaskId: externalTask.id,
+              lastSyncedAt: newDate(),
+              syncStatus: "SYNCED",
+              userId: mapping.provider.userId,
+              projectId: mapping.projectId,
+              externalUpdatedAt: externalTask.lastModified
+                ? newDate(externalTask.lastModified)
+                : externalTask.lastModifiedDateTime
+                  ? newDate(externalTask.lastModifiedDateTime)
+                  : newDate(),
+              syncHash: tracker.generateTaskHash({
+                title: internalTask.title,
+                description: internalTask.description,
+                status: internalTask.status,
+                dueDate: internalTask.dueDate,
+              }),
+            },
+          });
+
+          result.imported++;
+        }
+      } catch (error) {
+        result.errors.push({
+          taskId: externalTask.id,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+        result.skipped++;
+      }
     }
   }
 

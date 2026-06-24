@@ -6,6 +6,7 @@ import { DAVCalendar } from "tsdav";
 import { logger } from "@/lib/logger";
 
 import {
+  classifyCalDAVError,
   createCalDAVClient,
   fetchCalDAVCalendars,
   formatAbsoluteUrl,
@@ -67,13 +68,12 @@ export async function POST(request: NextRequest) {
       try {
         await loginToCalDAVServer(client, serverUrl, username);
       } catch (loginError) {
+        const classified = classifyCalDAVError(loginError);
         logger.error(
           "Failed to login to CalDAV server",
           {
-            error:
-              loginError instanceof Error
-                ? loginError.message
-                : String(loginError),
+            kind: classified.kind,
+            error: classified.details,
             serverUrl,
             username,
           },
@@ -82,14 +82,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error:
-              "Failed to authenticate with CalDAV server. Please check your credentials.",
-            details:
-              loginError instanceof Error
-                ? loginError.message
-                : String(loginError),
+            error: classified.message,
+            details: classified.details,
           },
-          { status: 401 }
+          { status: classified.status }
         );
       }
 
@@ -99,22 +95,18 @@ export async function POST(request: NextRequest) {
       // If path is provided, try to fetch calendars to verify the path
       let calendars: DAVCalendar[] = [];
       if (caldavPath) {
+        // Build the absolute URL outside the network try so a malformed path
+        // (a local construction error) stays a 400 bad-path response and is not
+        // misclassified as an upstream connection failure.
+        let fullUrl: string;
         try {
-          logger.info(
-            `Testing CalDAV path: ${caldavPath}`,
-            { fullUrl: formatAbsoluteUrl(serverUrl, caldavPath), username },
-            LOG_SOURCE
-          );
-
-          calendars = await fetchCalDAVCalendars(client);
-        } catch (pathError) {
+          fullUrl = formatAbsoluteUrl(serverUrl, caldavPath);
+        } catch (urlError) {
           logger.error(
-            "Failed to validate CalDAV path",
+            "Invalid CalDAV path",
             {
               error:
-                pathError instanceof Error
-                  ? pathError.message
-                  : String(pathError),
+                urlError instanceof Error ? urlError.message : String(urlError),
               caldavPath,
               serverUrl,
               username,
@@ -127,9 +119,52 @@ export async function POST(request: NextRequest) {
               error:
                 "Failed to validate the CalDAV path. Please check the path and try again.",
               details:
-                pathError instanceof Error
-                  ? pathError.message
-                  : String(pathError),
+                urlError instanceof Error ? urlError.message : String(urlError),
+            },
+            { status: 400 }
+          );
+        }
+
+        try {
+          logger.info(
+            `Testing CalDAV path: ${caldavPath}`,
+            { fullUrl, username },
+            LOG_SOURCE
+          );
+
+          calendars = await fetchCalDAVCalendars(client);
+        } catch (pathError) {
+          // A connection/TLS failure here (after login) must be reported as a
+          // connection error, not a bad path. Non-connection failures keep the
+          // 400 path message.
+          const classified = classifyCalDAVError(pathError);
+          logger.error(
+            "Failed to validate CalDAV path",
+            {
+              kind: classified.kind,
+              error: classified.details,
+              caldavPath,
+              serverUrl,
+              username,
+            },
+            LOG_SOURCE
+          );
+          if (classified.kind === "connection") {
+            return NextResponse.json(
+              {
+                success: false,
+                error: classified.message,
+                details: classified.details,
+              },
+              { status: classified.status }
+            );
+          }
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                "Failed to validate the CalDAV path. Please check the path and try again.",
+              details: classified.details,
             },
             { status: 400 }
           );
@@ -145,19 +180,31 @@ export async function POST(request: NextRequest) {
 
           calendars = await fetchCalDAVCalendars(client);
         } catch (discoverError) {
+          const classified = classifyCalDAVError(discoverError);
           logger.error(
             "Failed to discover calendars",
             {
-              error:
-                discoverError instanceof Error
-                  ? discoverError.message
-                  : String(discoverError),
+              kind: classified.kind,
+              error: classified.details,
               serverUrl,
               username,
             },
             LOG_SOURCE
           );
-          // Don't return an error here, as we'll try to use the principal URL next
+          // A connection/TLS failure won't be fixed by retrying the principal /
+          // home URL, so report it immediately as a connection error instead of
+          // continuing toward a misleading no-calendars result.
+          if (classified.kind === "connection") {
+            return NextResponse.json(
+              {
+                success: false,
+                error: classified.message,
+                details: classified.details,
+              },
+              { status: classified.status }
+            );
+          }
+          // Otherwise don't return; we'll try the principal URL next.
         }
       }
 
@@ -226,20 +273,29 @@ export async function POST(request: NextRequest) {
             });
           }
         } catch (principalError) {
+          const classified = classifyCalDAVError(principalError);
           logger.error(
             "Failed to use principal URL to find calendars",
             {
-              error:
-                principalError instanceof Error
-                  ? principalError.message
-                  : String(principalError),
+              kind: classified.kind,
+              error: classified.details,
               principalUrl: client.account.principalUrl,
               serverUrl,
               username,
             },
             LOG_SOURCE
           );
-          // Don't return an error here, as we'll try to use the home URL next
+          if (classified.kind === "connection") {
+            return NextResponse.json(
+              {
+                success: false,
+                error: classified.message,
+                details: classified.details,
+              },
+              { status: classified.status }
+            );
+          }
+          // Otherwise don't return; we'll try the home URL next.
         }
       }
 
@@ -283,19 +339,28 @@ export async function POST(request: NextRequest) {
             });
           }
         } catch (homeError) {
+          const classified = classifyCalDAVError(homeError);
           logger.error(
             "Failed to use home URL to find calendars",
             {
-              error:
-                homeError instanceof Error
-                  ? homeError.message
-                  : String(homeError),
+              kind: classified.kind,
+              error: classified.details,
               homeUrl: client.account.homeUrl,
               serverUrl,
               username,
             },
             LOG_SOURCE
           );
+          if (classified.kind === "connection") {
+            return NextResponse.json(
+              {
+                success: false,
+                error: classified.message,
+                details: classified.details,
+              },
+              { status: classified.status }
+            );
+          }
         }
       }
 

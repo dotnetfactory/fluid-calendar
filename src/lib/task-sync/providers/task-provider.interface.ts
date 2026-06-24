@@ -112,6 +112,15 @@ export interface TaskProviderInterface {
   getName(): string;
 
   /**
+   * Whether the provider supports pushing local changes back to the external
+   * service (create/update/delete). Providers that omit this are treated as
+   * supporting write-back (the historical default). Import-only providers
+   * (e.g. CalDAV) return false so the sync engine runs an incoming-only path
+   * and never attempts unsupported writes or read-driven local deletions.
+   */
+  supportsWriteBack?(): boolean;
+
+  /**
    * Gets all available task lists from the external service
    */
   getTaskLists(): Promise<ExternalTaskList[]>;

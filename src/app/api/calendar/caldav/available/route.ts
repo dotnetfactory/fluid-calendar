@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
 import {
+  classifyCalDAVError,
   createCalDAVClient,
   fetchCalDAVCalendars,
   loginToCalDAVServer,
@@ -109,32 +110,47 @@ export async function GET(request: NextRequest) {
           account.caldavUsername
         );
       } catch (loginError) {
+        const classified = classifyCalDAVError(loginError);
         logger.error(
           `Failed to login to CalDAV server for account: ${accountId}`,
           {
-            error:
-              loginError instanceof Error
-                ? loginError.message
-                : String(loginError),
+            kind: classified.kind,
+            error: classified.details,
             url: account.caldavUrl,
           },
           LOG_SOURCE
         );
         return NextResponse.json(
           {
-            error:
-              "Failed to authenticate with CalDAV server. Please check your credentials.",
-            details:
-              loginError instanceof Error
-                ? loginError.message
-                : String(loginError),
+            error: classified.message,
+            details: classified.details,
           },
-          { status: 401 }
+          { status: classified.status }
         );
       }
 
-      // Fetch available calendars
-      const calendars = await fetchCalDAVCalendars(client);
+      // Fetch available calendars. A connection/TLS failure can occur here
+      // (after login succeeds); classify it so the user gets the connection
+      // message rather than a generic 500. Scoped to the CalDAV call only so a
+      // later DB error is not mistaken for a CalDAV connection failure.
+      let calendars;
+      try {
+        calendars = await fetchCalDAVCalendars(client);
+      } catch (fetchError) {
+        const classified = classifyCalDAVError(fetchError);
+        if (classified.kind === "connection") {
+          logger.error(
+            `Failed to fetch CalDAV calendars for account: ${accountId}`,
+            { kind: classified.kind, error: classified.details },
+            LOG_SOURCE
+          );
+          return NextResponse.json(
+            { error: classified.message, details: classified.details },
+            { status: classified.status }
+          );
+        }
+        throw fetchError;
+      }
 
       // Process calendars to ensure proper type handling
       const processedCalendars = calendars.map((calendar) => ({
