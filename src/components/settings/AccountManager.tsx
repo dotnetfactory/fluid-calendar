@@ -19,6 +19,7 @@ import { useSettingsStore } from "@/store/settings";
 
 import { AvailableCalendars } from "./AvailableCalendars";
 import { CalDAVAccountForm } from "./CalDAVAccountForm";
+import { ICalCalendarForm } from "./ICalCalendarForm";
 
 const LOG_SOURCE = "AccountManager";
 
@@ -31,6 +32,7 @@ export function AccountManager() {
   const { accounts, refreshAccounts, removeAccount } = useSettingsStore();
   const [showAvailableFor, setShowAvailableFor] = useState<string | null>(null);
   const [showCalDAVForm, setShowCalDAVForm] = useState(false);
+  const [showICalForm, setShowICalForm] = useState(false);
   const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus>(
     {
       google: { configured: false },
@@ -88,6 +90,10 @@ export function AccountManager() {
     refreshAccounts();
   };
 
+  const handleICalSuccess = () => {
+    setShowICalForm(false);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -136,6 +142,9 @@ export function AccountManager() {
             <Button onClick={() => setShowCalDAVForm(true)} variant="outline">
               Connect CalDAV Calendar
             </Button>
+            <Button onClick={() => setShowICalForm(true)} variant="outline">
+              Subscribe to iCal Calendar
+            </Button>
           </div>
 
           {showCalDAVForm && (
@@ -144,6 +153,17 @@ export function AccountManager() {
                 <CalDAVAccountForm
                   onSuccess={handleCalDAVSuccess}
                   onCancel={() => setShowCalDAVForm(false)}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {showICalForm && (
+            <Card>
+              <CardContent className="pt-6">
+                <ICalCalendarForm
+                  onSuccess={handleICalSuccess}
+                  onCancel={() => setShowICalForm(false)}
                 />
               </CardContent>
             </Card>
