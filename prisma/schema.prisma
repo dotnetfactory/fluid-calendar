@@ -85,6 +85,9 @@ model User {
   taskProviders        TaskProvider[]
   TaskChange           TaskChange[]
   PasswordReset        PasswordReset[]
+  apiKeys              ApiKey[]
+  apiSettings          ApiSettings?
+  idempotencyKeys      IdempotencyKey[]
 }
 
 model VerificationToken {
@@ -644,4 +647,48 @@ model Subscription {
 
   @@index([stripeCustomerId])
   @@index([stripePaymentIntentId])
+}
+
+// Programmatic API access (issue #160). API keys authenticate requests on /api/v1 only.
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  keyPrefix  String    @unique // public, indexed lookup id parsed from the token
+  hashedKey  String // SHA-256 of the full key; constant-time compared in auth
+  lastUsedAt DateTime?
+  expiresAt  DateTime? // null = never expires
+  revokedAt  DateTime? // soft-delete; active when null
+  scopes     Json? // reserved for Phase 2 granular permissions; null = full access
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([keyPrefix])
+  @@index([userId])
+}
+
+// Per-user master switch for programmatic API access. Default-deny.
+model ApiSettings {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enabled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Replay-safe writes: stores the first response for an Idempotency-Key per user. TTL-pruned.
+model IdempotencyKey {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key          String
+  route        String
+  statusCode   Int
+  responseJson Json
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([createdAt])
 }
