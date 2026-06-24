@@ -95,7 +95,10 @@ export function TaskSyncSettings() {
 
   // Get accounts that can be used as task providers
   const compatibleAccounts = accounts.filter(
-    (acc) => acc.provider === "OUTLOOK" || acc.provider === "GOOGLE"
+    (acc) =>
+      acc.provider === "OUTLOOK" ||
+      acc.provider === "GOOGLE" ||
+      acc.provider === "CALDAV"
   );
   // Fetch providers
   const fetchProviders = useCallback(async () => {
@@ -241,7 +244,9 @@ export function TaskSyncSettings() {
       // Find account email for UI display
       const account = accounts.find((acc) => acc.id === selectedAccount);
       const accountEmail = account?.email || "Unknown Account";
-      const providerType = (account?.provider as "OUTLOOK" | "GOOGLE" | undefined) || "OUTLOOK";
+      const providerType =
+        (account?.provider as "OUTLOOK" | "GOOGLE" | "CALDAV" | undefined) ||
+        "OUTLOOK";
 
       const response = await fetch("/api/task-sync/providers", {
         method: "POST",

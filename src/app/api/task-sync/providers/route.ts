@@ -72,6 +72,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createProviderSchema.parse(body);
 
+    // If an account is supplied, it must belong to the requesting user and
+    // match the provider type. Without this, a client could link a provider to
+    // another user's ConnectedAccount and have the sync/list paths use that
+    // account's stored credentials (issue #144 review).
+    if (validatedData.accountId) {
+      const account = await prisma.connectedAccount.findUnique({
+        where: { id: validatedData.accountId },
+        select: { userId: true, provider: true },
+      });
+
+      if (
+        !account ||
+        account.userId !== userId ||
+        account.provider !== validatedData.type
+      ) {
+        return NextResponse.json(
+          { error: "Invalid account for this provider" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Create the provider
     const provider = await prisma.taskProvider.create({
       data: {
