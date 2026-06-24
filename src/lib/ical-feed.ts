@@ -37,7 +37,14 @@ const MAX_EXPANDED_INSTANCES = 1000;
 export type ParsedIcalEvent = Omit<
   CalendarEvent,
   "id" | "feedId" | "createdAt" | "updatedAt" | "organizer" | "attendees"
->;
+> & {
+  /**
+   * Internal, non-persisted: epoch-millis of occurrences cancelled via EXDATE
+   * on a recurring master. Consumed (and stripped) by {@link expandIcalEvents}
+   * so cancelled instances are not materialized. Never written to the DB.
+   */
+  exdates?: number[];
+};
 
 /**
  * Normalizes a user-supplied iCal subscription URL.
@@ -80,6 +87,33 @@ export function normalizeIcalUrl(url: string): string {
 }
 
 /**
+ * Extracts the embedded IPv4 dotted address from an IPv4-mapped IPv6 literal
+ * (`::ffff:a.b.c.d`), returning `null` if the input is not such a literal.
+ *
+ * Node/WHATWG-URL canonicalizes the bracketed dotted form to the compressed
+ * HEX form (`::ffff:127.0.0.1` -> `::ffff:7f00:1`), so a dotted-only check let a
+ * mapped loopback/metadata address slip past the SSRF guard. We normalize both
+ * the dotted (`::ffff:127.0.0.1`) and the two-group hex (`::ffff:7f00:1`) forms
+ * back to dotted IPv4 so the v4 classifier can vet them.
+ */
+function mappedIpv4(lowerIp: string): string | null {
+  const match = lowerIp.match(/^::ffff:(.+)$/);
+  if (!match) return null;
+
+  const rest = match[1];
+  // Already dotted (::ffff:127.0.0.1).
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(rest)) return rest;
+
+  // Compressed hex form: two 16-bit groups encoding the 32-bit v4 address.
+  const groups = rest.split(":");
+  if (groups.length !== 2) return null;
+  const hi = parseInt(groups[0], 16);
+  const lo = parseInt(groups[1], 16);
+  if (Number.isNaN(hi) || Number.isNaN(lo)) return null;
+  return [(hi >> 8) & 0xff, hi & 0xff, (lo >> 8) & 0xff, lo & 0xff].join(".");
+}
+
+/**
  * Returns true if an IP address string is in a loopback, private, link-local,
  * or otherwise non-public range that we must not let a user-supplied URL reach.
  */
@@ -106,9 +140,10 @@ function isPrivateIp(ip: string): boolean {
     if (lower === "::1" || lower === "::") return true; // loopback / unspecified
     if (lower.startsWith("fe80")) return true; // link-local
     if (lower.startsWith("fc") || lower.startsWith("fd")) return true; // unique-local
-    // IPv4-mapped IPv6 (::ffff:a.b.c.d) - validate the embedded v4.
-    const mapped = lower.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (mapped) return isPrivateIp(mapped[1]);
+    // IPv4-mapped IPv6 (::ffff:a.b.c.d or its compressed hex form) - validate
+    // the embedded v4 so a mapped private/loopback address can't slip through.
+    const mapped = mappedIpv4(lower);
+    if (mapped) return isPrivateIp(mapped);
     return false;
   }
 
@@ -194,6 +229,7 @@ export function parseIcalEvents(icsText: string): ParsedIcalEvent[] {
 
   return vevents.map((vevent) => {
     const event = convertVEventToCalendarEvent(vevent);
+    const exdates = extractExdates(vevent);
     // Strip placeholder/DB-managed fields so the persistence layer assigns
     // them and the caller's feedId wins.
     const {
@@ -221,8 +257,37 @@ export function parseIcalEvents(icsText: string): ParsedIcalEvent[] {
       ...rest,
       masterEventId: null,
       recurringEventId: null,
+      ...(exdates.length > 0 ? { exdates } : {}),
     };
   });
+}
+
+/**
+ * Collects EXDATE timestamps (epoch-millis) from a VEVENT. Handles multiple
+ * EXDATE lines and comma-separated values within a line. Returns an empty array
+ * when the event has none or extraction fails.
+ */
+function extractExdates(vevent: ICAL.Component): number[] {
+  try {
+    const props = vevent.getAllProperties("exdate");
+    const times: number[] = [];
+    for (const prop of props) {
+      for (const value of prop.getValues()) {
+        // EXDATE values parse as ICAL.Time; convert to a JS Date epoch.
+        const date =
+          value && typeof (value as ICAL.Time).toJSDate === "function"
+            ? (value as ICAL.Time).toJSDate()
+            : new Date(String(value));
+        const ms = date.getTime();
+        if (!Number.isNaN(ms)) times.push(ms);
+      }
+    }
+    return times;
+  } catch {
+    // EXDATE is best-effort: if parsing fails we fall back to expanding the
+    // full rule rather than dropping the event.
+    return [];
+  }
 }
 
 /**
@@ -240,6 +305,17 @@ export function parseIcalEvents(icsText: string): ParsedIcalEvent[] {
  * @param windowEnd Latest occurrence to materialize
  * @returns Events ready to persist (masters + materialized instances + one-offs)
  */
+/**
+ * Drops the internal, non-persisted `exdates` field so the row is safe to write
+ * to the database (Prisma `createMany` rejects unknown columns).
+ */
+function stripExdates(event: ParsedIcalEvent): ParsedIcalEvent {
+  if (!("exdates" in event)) return event;
+  const { exdates: _exdates, ...rest } = event;
+  void _exdates;
+  return rest;
+}
+
 export function expandIcalEvents(
   events: ParsedIcalEvent[],
   windowStart: Date,
@@ -249,17 +325,23 @@ export function expandIcalEvents(
 
   for (const event of events) {
     if (!event.isMaster || !event.recurrenceRule) {
-      result.push(event);
+      // `exdates` is an internal parse artifact; never persist it.
+      result.push(stripExdates(event));
       continue;
     }
 
     // Keep the master row (preserves recurrence metadata; not rendered).
-    result.push(event);
+    result.push(stripExdates(event));
 
     try {
       const start = newDate(event.start);
       const end = newDate(event.end);
       const duration = end.getTime() - start.getTime();
+
+      // Occurrences cancelled via EXDATE must not be materialized.
+      //todo: also honor RDATE (extra dates) and RECURRENCE-ID overrides so
+      // moved/edited instances render at their new time instead of duplicating.
+      const excluded = new Set(event.exdates ?? []);
 
       // The stored recurrenceRule is just the RRULE body (no DTSTART), so anchor
       // it on the event's start - otherwise rrule has no origin and yields no
@@ -274,8 +356,9 @@ export function expandIcalEvents(
 
       for (const date of occurrences) {
         const instanceStart = newDate(date);
+        if (excluded.has(instanceStart.getTime())) continue;
         result.push({
-          ...event,
+          ...stripExdates(event),
           externalEventId: event.externalEventId
             ? `${event.externalEventId}_${instanceStart.toISOString()}`
             : null,

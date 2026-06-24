@@ -42,6 +42,21 @@ DTEND;VALUE=DATE:20260102
 END:VEVENT
 END:VCALENDAR`;
 
+// Weekly Mondays from 2026-01-05, with the 2026-01-19 occurrence cancelled
+// via EXDATE. The cancelled date must not be materialized.
+const RECURRING_WITH_EXDATE_ICS = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//EN
+BEGIN:VEVENT
+UID:recurring-exdate-1@example.com
+SUMMARY:Weekly Standup
+DTSTART:20260105T090000Z
+DTEND:20260105T093000Z
+RRULE:FREQ=WEEKLY;BYDAY=MO
+EXDATE:20260119T090000Z
+END:VEVENT
+END:VCALENDAR`;
+
 const MULTI_EVENT_ICS = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//test//EN
@@ -206,6 +221,21 @@ describe("expandIcalEvents", () => {
     expect(instance.end.getTime() - instance.start.getTime()).toBe(30 * 60_000);
   });
 
+  it("does not materialize occurrences cancelled via EXDATE", () => {
+    const parsed = parseIcalEvents(RECURRING_WITH_EXDATE_ICS);
+    const expanded = expandIcalEvents(parsed, windowStart, windowEnd);
+    const cancelled = new Date("2026-01-19T09:00:00.000Z").getTime();
+
+    const instances = expanded.filter((e) => !e.isMaster);
+    // The cancelled Monday must be absent from the materialized instances.
+    expect(
+      instances.some((inst) => inst.start.getTime() === cancelled)
+    ).toBe(false);
+    // Other Mondays in the window are still materialized.
+    const other = new Date("2026-01-12T09:00:00.000Z").getTime();
+    expect(instances.some((inst) => inst.start.getTime() === other)).toBe(true);
+  });
+
   it("keeps a master with an unparseable rule as a single fallback row", () => {
     const parsed = parseIcalEvents(RECURRING_EVENT_ICS);
     // Corrupt the rule so RRule.fromString throws.
@@ -261,6 +291,34 @@ describe("assertSafeIcalHost", () => {
     expect(() =>
       assertSafeIcalHost(new URL("http://metadata.internal/cal.ics"))
     ).toThrow();
+  });
+
+  it("rejects IPv4-mapped IPv6 loopback/metadata literals", () => {
+    // Node canonicalizes the bracketed dotted form to the hex form
+    // (::ffff:127.0.0.1 -> ::ffff:7f00:1), which an earlier dotted-only check
+    // missed - letting a user reach loopback/metadata via a mapped literal.
+    expect(() =>
+      assertSafeIcalHost(new URL("http://[::ffff:127.0.0.1]/cal.ics"))
+    ).toThrow();
+    expect(() =>
+      assertSafeIcalHost(new URL("http://[::ffff:7f00:1]/cal.ics"))
+    ).toThrow();
+    expect(() =>
+      assertSafeIcalHost(new URL("http://[::ffff:169.254.169.254]/meta"))
+    ).toThrow();
+    expect(() =>
+      assertSafeIcalHost(new URL("http://[::ffff:a9fe:a9fe]/meta"))
+    ).toThrow();
+    expect(() =>
+      assertSafeIcalHost(new URL("http://[::ffff:10.0.0.1]/cal.ics"))
+    ).toThrow();
+  });
+
+  it("still allows an IPv4-mapped IPv6 public address", () => {
+    // A mapped public address (8.8.8.8 -> ::ffff:808:808) must NOT be rejected.
+    expect(() =>
+      assertSafeIcalHost(new URL("http://[::ffff:808:808]/cal.ics"))
+    ).not.toThrow();
   });
 });
 
