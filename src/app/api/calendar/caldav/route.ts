@@ -166,9 +166,16 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Scope the existing-feed lookup to this account. CalDAV calendar
+      // URLs/hrefs are account-local server data, so two CalDAV accounts can
+      // return the same calendar URL; without the accountId filter, adding a
+      // calendar for the second account would return the first account's feed
+      // instead of creating one under the selected account (see #145).
       const existingCalendar = await prisma.calendarFeed.findFirst({
         where: {
+          type: "CALDAV",
           url: calendarId,
+          accountId,
           userId,
         },
       });

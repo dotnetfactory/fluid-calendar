@@ -132,6 +132,87 @@ export const priorityColors = {
   [Priority.NONE]: "bg-muted text-muted-foreground",
 };
 
+// Semantic rank for the Priority column so the Tasks list sorts by meaning
+// (low < medium < high) instead of alphabetically by the enum label.
+// Priority.NONE is intentionally omitted: the app represents "no priority" as
+// BOTH null (an untouched modal) and the literal "none" (explicit select), so
+// both must bucket last together rather than "none" sorting among real values.
+// An omitted key makes rankOf return undefined, which compareRanks sorts last.
+export const PRIORITY_SORT_RANK: Partial<Record<Priority, number>> = {
+  [Priority.LOW]: 1,
+  [Priority.MEDIUM]: 2,
+  [Priority.HIGH]: 3,
+};
+
+// Semantic rank for the Energy column (low < medium < high).
+export const ENERGY_LEVEL_SORT_RANK: Partial<Record<EnergyLevel, number>> = {
+  [EnergyLevel.LOW]: 1,
+  [EnergyLevel.MEDIUM]: 2,
+  [EnergyLevel.HIGH]: 3,
+};
+
+// Look up a value's rank in a rank map, returning undefined for missing values
+// AND for any value not present in the map. The DB stores priority/energyLevel
+// as plain strings, so a stale or externally-imported value (e.g. "urgent")
+// can reach the comparator; we treat such unknown values like a missing value
+// rather than producing NaN.
+const rankOf = (
+  value: string | null | undefined,
+  ranks: Partial<Record<string, number>>
+): number | undefined => {
+  if (value == null) return undefined;
+  // Use an own-property check so prototype keys ("toString", "__proto__", ...)
+  // don't resolve to an inherited property; an unknown string is treated like a
+  // missing one. hasOwnProperty.call avoids depending on Object.hasOwn at
+  // runtime and on the value owning its own hasOwnProperty.
+  return Object.prototype.hasOwnProperty.call(ranks, value)
+    ? ranks[value]
+    : undefined;
+};
+
+// Compare two rank lookups so missing/unknown values always sort last,
+// regardless of direction (matching the other nullable columns), and two
+// missing/unknown values compare equal (stable). `direction` is 1 (asc) or -1
+// (desc).
+const compareRanks = (
+  rankA: number | undefined,
+  rankB: number | undefined,
+  direction: number
+): number => {
+  if (rankA === undefined && rankB === undefined) return 0;
+  if (rankA === undefined) return 1;
+  if (rankB === undefined) return -1;
+  return direction * (rankA - rankB);
+};
+
+// Comparator for sorting tasks by priority rank. `direction` is 1 (asc) or -1
+// (desc), matching how the Tasks list applies its sort direction. Tasks with no
+// priority (or an unrecognized value) always sort last, regardless of
+// direction, like the other nullable columns.
+export const compareTaskPriority = (
+  a: Pick<Task, "priority">,
+  b: Pick<Task, "priority">,
+  direction: number
+): number =>
+  compareRanks(
+    rankOf(a.priority, PRIORITY_SORT_RANK),
+    rankOf(b.priority, PRIORITY_SORT_RANK),
+    direction
+  );
+
+// Comparator for sorting tasks by energy-level rank. Same direction and
+// missing/unknown-last semantics as compareTaskPriority.
+export const compareTaskEnergyLevel = (
+  a: Pick<Task, "energyLevel">,
+  b: Pick<Task, "energyLevel">,
+  direction: number
+): number =>
+  compareRanks(
+    rankOf(a.energyLevel, ENERGY_LEVEL_SORT_RANK),
+    rankOf(b.energyLevel, ENERGY_LEVEL_SORT_RANK),
+    direction
+  );
+
 // Format date in a contextual way (Today, Tomorrow, etc.)
 export const formatContextualDate = (date: Date) => {
   const now = newDate();

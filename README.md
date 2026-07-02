@@ -91,6 +91,7 @@ The checkout asks for your repo, deploy URL, or setup notes plus the main blocke
 ## Prerequisites
 
 - Node.js (version specified in `.nvmrc`)
+- PostgreSQL 15 or newer (the bundled `docker-compose.yml` uses PostgreSQL 16; if you point `DATABASE_URL` at your own database, it must be PostgreSQL 15+)
 - A Google Cloud Project (for Google Calendar integration)
 
 ## Google Cloud Setup

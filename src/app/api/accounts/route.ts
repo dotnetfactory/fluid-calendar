@@ -35,6 +35,9 @@ export async function GET(request: NextRequest) {
         id: account.id,
         provider: account.provider,
         email: account.email,
+        // Surface the CalDAV server URL so multiple CalDAV accounts that share a
+        // username (now allowed, see #145) are distinguishable in the UI.
+        caldavUrl: account.caldavUrl,
         calendars: account.calendars,
       }))
     );

@@ -189,6 +189,54 @@ export function formatAbsoluteUrl(baseUrl: string, path?: string): string {
 }
 
 /**
+ * Canonicalizes ONLY the origin (scheme + host + port) of a CalDAV server URL
+ * so trivial textual variants - scheme/host case, redundant default ports -
+ * collapse to one value. This is the value stored in `caldavUrl` and used as
+ * part of the account uniqueness key, so canonicalizing the origin makes the
+ * duplicate-account guard robust against e.g. `https://Host.com/dav` vs
+ * `https://host.com/dav`.
+ *
+ * The path and query are preserved BYTE-FOR-BYTE (no trailing-slash trimming,
+ * no case changes): `caldavUrl` is the exact endpoint that calendar listing and
+ * sync later use, and CalDAV collection paths are slash- and case-sensitive
+ * (e.g. Fastmail `/dav/calendars/user/<email>/`). Mutating the path could
+ * persist an endpoint that differs from the one we validated.
+ *
+ * The fragment (`#...`) is dropped: it is a client-only component never sent to
+ * the server, so two URLs differing only by fragment hit the same endpoint and
+ * must not be treated as distinct accounts (it would bypass the duplicate guard).
+ *
+ * If the input is not a parseable URL it is returned trimmed and otherwise
+ * unchanged so we never reject an otherwise-working server.
+ */
+export function normalizeCalDAVServerUrl(url: string): string {
+  const trimmed = url.trim();
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return trimmed;
+  }
+
+  const scheme = parsed.protocol.toLowerCase(); // includes trailing ":"
+  const host = parsed.hostname.toLowerCase();
+
+  // Drop redundant default ports; otherwise keep the explicit port.
+  let port = parsed.port;
+  if (
+    (scheme === "https:" && port === "443") ||
+    (scheme === "http:" && port === "80")
+  ) {
+    port = "";
+  }
+
+  const origin = `${scheme}//${host}${port ? `:${port}` : ""}`;
+
+  // Re-attach the path + query verbatim; drop the (server-irrelevant) fragment.
+  return `${origin}${parsed.pathname}${parsed.search}`;
+}
+
+/**
  * Creates a DAVClient instance for CalDAV operations
  * @param serverUrl The CalDAV server URL
  * @param username The username for authentication

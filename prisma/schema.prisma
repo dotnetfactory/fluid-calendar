@@ -29,7 +29,18 @@ model ConnectedAccount {
   user         User?          @relation(fields: [userId], references: [id])
   TaskProvider TaskProvider[]
 
-  @@unique([userId, provider, email])
+  // Account identity is scoped by server URL for CalDAV so a user can connect
+  // multiple CalDAV servers (even with the same username). For OAuth providers
+  // caldavUrl is null; the migration creates this index with NULLS NOT DISTINCT
+  // (a Prisma-schema-unexpressible Postgres feature) so null URLs are treated as
+  // equal and OAuth stays one-account-per-(userId, provider, email). See the
+  // migration `20260622130000_caldav_account_unique_by_server_url` and issue #145.
+  //
+  // IMPORTANT: provision the database with `prisma migrate deploy` (as this repo
+  // does), NOT `prisma db push`. `db push` builds this index from the schema DSL,
+  // which cannot express NULLS NOT DISTINCT, so it would treat null caldavUrl as
+  // distinct and silently allow duplicate OAuth (Google/Outlook) accounts.
+  @@unique([userId, provider, email, caldavUrl], map: "ConnectedAccount_userId_provider_email_caldavUrl_key")
   @@index([userId])
 }
 

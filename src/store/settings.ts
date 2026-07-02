@@ -9,8 +9,9 @@ const LOG_SOURCE = "SettingsStore";
 
 interface ConnectedAccount {
   id: string;
-  provider: "GOOGLE" | "OUTLOOK";
+  provider: "GOOGLE" | "OUTLOOK" | "CALDAV";
   email: string;
+  caldavUrl?: string | null;
   calendars: Array<{ id: string; name: string }>;
 }
 
