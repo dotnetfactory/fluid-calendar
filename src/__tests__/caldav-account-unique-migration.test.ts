@@ -30,4 +30,19 @@ describe("ConnectedAccount unique-by-server-url migration", () => {
   it("drops the old (userId, provider, email) unique index", () => {
     expect(sql).toMatch(/DROP INDEX[^;]*"ConnectedAccount_userId_provider_email_key"/);
   });
+
+  // The legacy-URL canonicalization must strip a redundant default port even
+  // when the host is a bracketed IPv6 literal (e.g. "https://[::1]:443/dav"),
+  // matching the runtime normalizer which yields "https://[::1]/dav". The host
+  // group must therefore be greedy `(.+)` and NOT a colon-excluding class like
+  // `[^:]+`, which cannot match the colons inside the brackets - the port would
+  // survive and a post-upgrade reconnect would bypass the duplicate guard for
+  // IPv6 servers. See issue #145.
+  it("strips default ports for bracketed IPv6 hosts during legacy URL canon", () => {
+    // greedy host group anchored on the trailing default port
+    expect(sql).toMatch(/'\^\(\.\+\):443\$'/);
+    expect(sql).toMatch(/'\^\(\.\+\):80\$'/);
+    // the old colon-excluding class (the IPv6 bug) must be gone
+    expect(sql).not.toMatch(/\[\^:\]\+\):(?:443|80)\$/);
+  });
 });

@@ -38,9 +38,13 @@ SET "caldavUrl" = (
     scheme
     -- host[:port], lowercased, userinfo stripped, redundant default port dropped
     -- only when it matches the scheme (https:443 / http:80), like the JS normalizer.
+    -- The host group is greedy `.+` (not `[^:]+`) so a bracketed IPv6 literal
+    -- whose host contains colons still has its trailing default port stripped,
+    -- e.g. "[::1]:443" -> "[::1]" (matching URL.hostname); the `:443$`/`:80$`
+    -- end-anchor keeps non-default ports like "[::1]:8443" intact.
     || CASE
-         WHEN scheme = 'https://' THEN regexp_replace(hostport, '^([^:]+):443$', '\1')
-         WHEN scheme = 'http://'  THEN regexp_replace(hostport, '^([^:]+):80$',  '\1')
+         WHEN scheme = 'https://' THEN regexp_replace(hostport, '^(.+):443$', '\1')
+         WHEN scheme = 'http://'  THEN regexp_replace(hostport, '^(.+):80$',  '\1')
          ELSE hostport
        END
     -- rest: path+query (fragment dropped); ensure it begins with "/" so a

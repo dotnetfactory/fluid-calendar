@@ -26,6 +26,22 @@ describe("normalizeCalDAVServerUrl", () => {
     );
   });
 
+  it("drops default ports for bracketed IPv6 literals and keeps non-default ones", () => {
+    // The URL API removes the default port and yields a bracketed host, so a
+    // future connect stores "https://[::1]/dav". The legacy-URL migration must
+    // canonicalize an existing "https://[::1]:443/dav" row to the same value or
+    // the duplicate guard is bypassed for IPv6 servers. See issue #145.
+    expect(normalizeCalDAVServerUrl("https://[::1]:443/dav")).toBe(
+      "https://[::1]/dav"
+    );
+    expect(normalizeCalDAVServerUrl("http://[::1]:80/dav")).toBe(
+      "http://[::1]/dav"
+    );
+    expect(normalizeCalDAVServerUrl("https://[::1]:8443/dav")).toBe(
+      "https://[::1]:8443/dav"
+    );
+  });
+
   it("preserves the path byte-for-byte (no trailing-slash trimming, no case change)", () => {
     // A path-style CalDAV collection URL must be stored exactly as validated:
     // its trailing slash and case are significant for sync.
