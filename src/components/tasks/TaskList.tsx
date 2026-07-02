@@ -22,6 +22,8 @@ import { EnergyLevel, Task, TaskStatus, TimePreference } from "@/types/task";
 
 import { SortableHeader, StatusFilter, TaskRow } from "./components";
 import {
+  compareTaskEnergyLevel,
+  compareTaskPriority,
   formatEnumValue,
   taskMatchesListFilters,
 } from "./utils/task-list-utils";
@@ -124,13 +126,12 @@ export function TaskList({
           if (!b.project?.name) return -1;
           return direction * a.project.name.localeCompare(b.project.name);
         case "priority":
-          if (!a.priority) return 1;
-          if (!b.priority) return -1;
-          return direction * a.priority.localeCompare(b.priority);
+          // Sort by semantic rank (low < medium < high, no-priority last), not
+          // the alphabetical order of the labels. See task-list-utils.
+          return compareTaskPriority(a, b, direction);
         case "energyLevel":
-          if (!a.energyLevel) return 1;
-          if (!b.energyLevel) return -1;
-          return direction * a.energyLevel.localeCompare(b.energyLevel);
+          // Sort by semantic rank (low < medium < high), not alphabetically.
+          return compareTaskEnergyLevel(a, b, direction);
         case "preferredTime":
           if (!a.preferredTime) return 1;
           if (!b.preferredTime) return -1;
