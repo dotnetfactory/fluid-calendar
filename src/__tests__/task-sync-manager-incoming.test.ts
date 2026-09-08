@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { TaskSyncManager } from "@/lib/task-sync/task-sync-manager";
 import { CalDAVFieldMapper } from "@/lib/task-sync/providers/caldav-field-mapper";
+import { GoogleTaskProvider } from "@/lib/task-sync/providers/google-provider";
 import {
   ExternalTask,
   TaskProviderInterface,
 } from "@/lib/task-sync/providers/task-provider.interface";
+import { TaskSyncManager } from "@/lib/task-sync/task-sync-manager";
 
 jest.mock("@/lib/prisma", () => ({
   prisma: {
@@ -26,7 +27,12 @@ jest.mock("@/lib/prisma", () => ({
 }));
 
 jest.mock("@/lib/logger", () => ({
-  logger: { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
 }));
 
 const mockPrisma = prisma as unknown as {
@@ -42,6 +48,80 @@ const mockPrisma = prisma as unknown as {
 };
 
 const WRITE_NOT_SUPPORTED = "CalDAV task write-back is not supported";
+
+it.each(["new", "existing", "reopened"])(
+  "persists Google completion state for a %s task through the real provider and mapper",
+  async (state) => {
+    jest.clearAllMocks();
+    const completedDate = new Date("2025-01-02T12:00:00.000Z");
+    const client = {
+      tasks: {
+        list: jest.fn().mockResolvedValue({
+          data: {
+            items: [
+              {
+                id: "google-1",
+                title: "Buy milk",
+                notes: "Two liters",
+                due: "2025-01-01T00:00:00.000Z",
+                status: state === "reopened" ? "needsAction" : "completed",
+                completed:
+                  state === "reopened"
+                    ? undefined
+                    : completedDate.toISOString(),
+                updated: "2025-01-03T00:00:00.000Z",
+              },
+            ],
+          },
+        }),
+      },
+    } as unknown as ReturnType<typeof import("googleapis").google.tasks>;
+    const manager = new TaskSyncManager();
+    jest
+      .spyOn(manager, "getProvider")
+      .mockResolvedValue(new GoogleTaskProvider(client, "account-1", "user-1"));
+    mockPrisma.taskListMapping.findUnique.mockResolvedValue({
+      id: "map-google",
+      providerId: "prov-google",
+      projectId: "proj-1",
+      externalListId: "list-1",
+      isAutoScheduled: false,
+      provider: { id: "prov-google", type: "GOOGLE", userId: "user-1" },
+    });
+    const startDate = new Date("2025-01-04T00:00:00.000Z");
+    mockPrisma.task.findMany.mockResolvedValue(
+      state === "new"
+        ? []
+        : [
+            {
+              id: "local-1",
+              title: "Old title",
+              externalTaskId: "google-1",
+              source: "GOOGLE",
+              updatedAt: new Date(0),
+              externalUpdatedAt: new Date(0),
+              startDate,
+              completedAt: state === "existing" ? new Date(0) : completedDate,
+            },
+          ]
+    );
+
+    const result = await manager.syncTaskList("map-google");
+
+    expect(result.errors).toEqual([]);
+    const write =
+      state === "new" ? mockPrisma.task.create : mockPrisma.task.update;
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(write.mock.calls[0][0].data).toMatchObject({
+      description: "Two liters",
+      dueDate: new Date("2025-01-01T00:00:00.000Z"),
+      status: state === "reopened" ? "todo" : "completed",
+      completedAt: state === "reopened" ? null : completedDate,
+    });
+    if (state !== "new")
+      expect(write.mock.calls[0][0].data.startDate).toEqual(startDate);
+  }
+);
 
 /**
  * A provider that reports it does not support write-back and throws on any

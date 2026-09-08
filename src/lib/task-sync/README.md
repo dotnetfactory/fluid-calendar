@@ -41,6 +41,10 @@ This allows users to customize their tasks in FluidCalendar without worrying abo
 - Auto-scheduling settings (isAutoScheduled, scheduleLocked)
 - Schedule information (scheduledStart, scheduledEnd)
 
+### Google task fields
+
+The Google provider normalizes API `notes`, `due`, and `completed` into `description`, `dueDate`, and `completedDate` before the field mapper runs. The mapper uses `completedDate` for local `completedAt`, including clearing it when Google reopens a task. The provider uses canonical `dueDate` for its wire date; local `startDate` changes do not change that Google date.
+
 ## How It Works
 
 1. When a sync is triggered (manually or via scheduled job):

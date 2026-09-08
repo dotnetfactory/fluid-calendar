@@ -1,3 +1,5 @@
+import { newDate } from "@/lib/date-utils";
+
 import { TaskStatus } from "@/types/task";
 
 import { FieldMapper } from "../field-mapper";
@@ -37,37 +39,19 @@ export class GoogleFieldMapper extends FieldMapper {
           }
         },
       },
-      // Google Tasks uses `notes` for description. Use `description` as the canonical external field
-      // and read `notes` from the provider payload inside transformToInternal. Keep
-      {
-        internalField: "description",
-        externalField: "notes",
-//        preserveLocalValue: true,
-      },
-      {
-        internalField: "dueDate",
-        externalField: "due",
-        preserveLocalValue: true,
-        transformToExternal: (value: unknown) => {
-          if (!value) return null;
-          return new Date(new Date(value as string | number | Date).toISOString());
-        },
-        transformToInternal: (value: unknown) => {
-          if (!value) return null;
-          return new Date(new Date(value as string | number | Date).toISOString());
-        },
-      },
+      // The provider already normalizes notes/due to description/dueDate,
+      // so the default mappings handle those fields.
       {
         internalField: "completedAt",
-        externalField: "completed",
-        preserveLocalValue: true,
+        externalField: "completedDate",
+        preserveLocalValue: false, // Reopening a Google task clears completion locally.
         transformToExternal: (value: unknown) => {
           if (!value) return null;
-          return new Date(new Date(value as string | number | Date).toISOString());
+          return newDate(value as string | number | Date);
         },
         transformToInternal: (value: unknown) => {
           if (!value) return null;
-          return new Date(new Date(value as string | number | Date).toISOString());
+          return newDate(value as string | number | Date);
         },
       },
       // Priority isn't present in Google Tasks; preserve the local priority

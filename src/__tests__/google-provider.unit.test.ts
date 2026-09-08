@@ -7,8 +7,12 @@ describe("GoogleTaskProvider - pagination and retry", () => {
       tasks: {
         list: jest
           .fn()
-          .mockResolvedValueOnce({ data: { items: [{ id: "a", title: "one" }], nextPageToken: "t1" } })
-          .mockResolvedValueOnce({ data: { items: [{ id: "b", title: "two" }] } }),
+          .mockResolvedValueOnce({
+            data: { items: [{ id: "a", title: "one" }], nextPageToken: "t1" },
+          })
+          .mockResolvedValueOnce({
+            data: { items: [{ id: "b", title: "two" }] },
+          }),
       },
       tasklists: { list: jest.fn().mockResolvedValue({ data: { items: [] } }) },
     } as unknown as ReturnType<typeof import("googleapis").google.tasks>;
@@ -21,10 +25,21 @@ describe("GoogleTaskProvider - pagination and retry", () => {
     expect(tasks.map((t) => t.id)).toEqual(["a", "b"]);
   });
 
-  it("maps external `due` to internal startDate and ignores external due as dueDate", async () => {
+  it("maps Google `due` to canonical dueDate without importing a local startDate", async () => {
     const fakeClient = {
       tasks: {
-        list: jest.fn().mockResolvedValue({ data: { items: [{ id: "a", title: "one", due: "2025-07-01T00:00:00.000Z", start: "2025-06-30T00:00:00.000Z" }] } }),
+        list: jest.fn().mockResolvedValue({
+          data: {
+            items: [
+              {
+                id: "a",
+                title: "one",
+                due: "2025-07-01T00:00:00.000Z",
+                start: "2025-06-30T00:00:00.000Z",
+              },
+            ],
+          },
+        }),
       },
       tasklists: { list: jest.fn().mockResolvedValue({ data: { items: [] } }) },
     } as unknown as ReturnType<typeof import("googleapis").google.tasks>;
@@ -32,105 +47,136 @@ describe("GoogleTaskProvider - pagination and retry", () => {
     const provider = new GoogleTaskProvider(fakeClient, "acc", "user");
     const tasks = await provider.getTasks("list-1");
 
-    // `due` should map to internal startDate per single-date sync policy
-    expect(tasks[0].startDate).toBeInstanceOf(Date);
-    // dueDate should not be populated from external `due`
-    expect(tasks[0].dueDate).toBeUndefined();
+    // The task-sync contract keeps startDate local and uses dueDate for provider dates.
+    expect(tasks[0].dueDate).toEqual(new Date("2025-07-01T00:00:00.000Z"));
+    expect(tasks[0].startDate).toBeUndefined();
   });
 
-  it("maps startDate in create and sends it as `due` on the external task", async () => {
+  it("sends canonical dueDate as Google `due` when creating a task", async () => {
     let capturedBody: Record<string, unknown> | undefined;
     const fakeClient = {
       tasks: {
-        insert: jest.fn().mockImplementation(({ requestBody }: { requestBody: Record<string, unknown> }) => {
-          capturedBody = requestBody;
-          return { data: { id: "x" } };
-        }),
+        insert: jest
+          .fn()
+          .mockImplementation(
+            ({ requestBody }: { requestBody: Record<string, unknown> }) => {
+              capturedBody = requestBody;
+              return { data: { id: "x" } };
+            }
+          ),
       },
       tasklists: { list: jest.fn().mockResolvedValue({ data: { items: [] } }) },
     } as unknown as ReturnType<typeof import("googleapis").google.tasks>;
 
     const provider = new GoogleTaskProvider(fakeClient, "acc", "user");
 
-    await provider.createTask("list-1", { title: "t", startDate: new Date("2025-08-01T00:00:00.000Z") });
+    await provider.createTask("list-1", {
+      title: "t",
+      dueDate: new Date("2025-08-01T00:00:00.000Z"),
+    });
 
-    // We send the internal startDate as external `due`
-    expect((capturedBody! as Record<string, unknown>)["due"]).toBeDefined();
-    expect(new Date((capturedBody! as Record<string, unknown>)["due"] as string).toISOString()).toBe(new Date("2025-08-01T00:00:00.000Z").toISOString());
-    expect((capturedBody! as Record<string, unknown>)["start"]).toBeUndefined();
+    // Google API field names are introduced only at the provider boundary.
+    expect(capturedBody?.due).toBeDefined();
+    expect(capturedBody?.due).toBe("2025-08-01T00:00:00.000Z");
+    expect(capturedBody?.start).toBeUndefined();
   });
 
-  it("updates `due` when updates.startDate is provided", async () => {
+  it("updates and clears Google `due` from canonical dueDate", async () => {
     let capturedBody: Record<string, unknown> | undefined;
     const fakeClient = {
       tasks: {
-        patch: jest.fn().mockImplementation(({ requestBody }: { requestBody: Record<string, unknown> }) => {
-          capturedBody = requestBody;
-          return { data: { id: "x" } };
-        }),
+        patch: jest
+          .fn()
+          .mockImplementation(
+            ({ requestBody }: { requestBody: Record<string, unknown> }) => {
+              capturedBody = requestBody;
+              return { data: { id: "x" } };
+            }
+          ),
       },
       tasklists: { list: jest.fn().mockResolvedValue({ data: { items: [] } }) },
     } as unknown as ReturnType<typeof import("googleapis").google.tasks>;
 
     const provider = new GoogleTaskProvider(fakeClient, "acc", "user");
 
-    await provider.updateTask("list-1", "t1", { startDate: new Date("2025-09-01T00:00:00.000Z") });
+    await provider.updateTask("list-1", "t1", {
+      dueDate: new Date("2025-09-01T00:00:00.000Z"),
+    });
 
-    expect((capturedBody! as Record<string, unknown>)["due"]).toBeDefined();
-    expect(new Date((capturedBody! as Record<string, unknown>)["due"] as string).toISOString()).toBe(new Date("2025-09-01T00:00:00.000Z").toISOString());
-  });
-
-  it("does not send internal dueDate as external `due` on create (dueDate is local-only)", async () => {
-    let capturedBody: Record<string, unknown> | undefined;
-    const fakeClient = {
-      tasks: {
-        insert: jest.fn().mockImplementation(({ requestBody }: { requestBody: Record<string, unknown> }) => {
-          capturedBody = requestBody;
-          return { data: { id: "x" } };
-        }),
-      },
-      tasklists: { list: jest.fn().mockResolvedValue({ data: { items: [] } }) },
-    } as unknown as ReturnType<typeof import("googleapis").google.tasks>;
-
-    const provider = new GoogleTaskProvider(fakeClient, "acc", "user");
-
-    await provider.createTask("list-1", { title: "t", dueDate: new Date("2025-10-01T00:00:00.000Z") });
-
-    expect((capturedBody! as Record<string, unknown>)["due"]).toBeUndefined();
-    expect((capturedBody! as Record<string, unknown>)["start"]).toBeUndefined();
-  });
-
-  it("ignores updates.dueDate (dueDate is local-only) and only applies updates.startDate", async () => {
-    let capturedBody: Record<string, unknown> | undefined;
-    const fakeClient = {
-      tasks: {
-        patch: jest.fn().mockImplementation(({ requestBody }: { requestBody: Record<string, unknown> }) => {
-          capturedBody = requestBody;
-          return { data: { id: "x" } };
-        }),
-      },
-      tasklists: { list: jest.fn().mockResolvedValue({ data: { items: [] } }) },
-    } as unknown as ReturnType<typeof import("googleapis").google.tasks>;
-
-    const provider = new GoogleTaskProvider(fakeClient, "acc", "user");
-
-    await provider.updateTask("list-1", "t1", { dueDate: new Date("2025-11-01T00:00:00.000Z") });
-    // since dueDate is not mapped externally, patch body should not include `due`
-    expect((capturedBody! as Record<string, unknown>)["due"]).toBeUndefined();
-
+    expect(capturedBody?.due).toBeDefined();
+    expect(capturedBody?.due).toBe("2025-09-01T00:00:00.000Z");
     await provider.updateTask("list-1", "t1", { dueDate: null });
-    expect((capturedBody! as Record<string, unknown>)["due"]).toBeUndefined();
+    expect(capturedBody).toEqual({ due: null });
+  });
+
+  it("does not send local startDate as Google `due` on create", async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    const fakeClient = {
+      tasks: {
+        insert: jest
+          .fn()
+          .mockImplementation(
+            ({ requestBody }: { requestBody: Record<string, unknown> }) => {
+              capturedBody = requestBody;
+              return { data: { id: "x" } };
+            }
+          ),
+      },
+      tasklists: { list: jest.fn().mockResolvedValue({ data: { items: [] } }) },
+    } as unknown as ReturnType<typeof import("googleapis").google.tasks>;
+
+    const provider = new GoogleTaskProvider(fakeClient, "acc", "user");
+
+    await provider.createTask("list-1", {
+      title: "t",
+      startDate: new Date("2025-10-01T00:00:00.000Z"),
+    });
+
+    expect(capturedBody?.due).toBeUndefined();
+    expect(capturedBody?.start).toBeUndefined();
+  });
+
+  it("does not send or clear Google `due` when only local startDate changes", async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    const fakeClient = {
+      tasks: {
+        patch: jest
+          .fn()
+          .mockImplementation(
+            ({ requestBody }: { requestBody: Record<string, unknown> }) => {
+              capturedBody = requestBody;
+              return { data: { id: "x" } };
+            }
+          ),
+      },
+      tasklists: { list: jest.fn().mockResolvedValue({ data: { items: [] } }) },
+    } as unknown as ReturnType<typeof import("googleapis").google.tasks>;
+
+    const provider = new GoogleTaskProvider(fakeClient, "acc", "user");
+
+    await provider.updateTask("list-1", "t1", {
+      startDate: new Date("2025-11-01T00:00:00.000Z"),
+    });
+    // Local scheduling changes must not alter the provider date.
+    expect(capturedBody?.due).toBeUndefined();
+
+    await provider.updateTask("list-1", "t1", { startDate: null });
+    expect(capturedBody).toEqual({});
   });
 
   it("retries transient errors and succeeds", async () => {
-    const transientError = Object.assign(new Error("Timeout"), { code: "ETIMEDOUT" });
+    const transientError = Object.assign(new Error("Timeout"), {
+      code: "ETIMEDOUT",
+    });
 
     const fakeClient = {
       tasks: {
         list: jest
           .fn()
           .mockRejectedValueOnce(transientError)
-          .mockResolvedValueOnce({ data: { items: [{ id: "c", title: "three" }] } }),
+          .mockResolvedValueOnce({
+            data: { items: [{ id: "c", title: "three" }] },
+          }),
       },
       tasklists: { list: jest.fn().mockResolvedValue({ data: { items: [] } }) },
     } as unknown as ReturnType<typeof import("googleapis").google.tasks>;

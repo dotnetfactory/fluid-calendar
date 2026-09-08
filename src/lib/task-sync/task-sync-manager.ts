@@ -669,6 +669,7 @@ export class TaskSyncManager {
                   priority: internalTask.priority,
                   energyLevel: internalTask.energyLevel,
                   preferredTime: internalTask.preferredTime,
+                  completedAt: internalTask.completedAt,
                   isRecurring: internalTask.isRecurring || false,
                   recurrenceRule: internalTask.recurrenceRule,
                   isAutoScheduled: mapping.isAutoScheduled,
