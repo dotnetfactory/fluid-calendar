@@ -12,7 +12,7 @@ describe("container startup", () => {
     const commands = {
       nc: 'if [ ! -f "$TRACE.ready" ]; then touch "$TRACE.ready"; exit 1; fi',
       sleep: "exit 0",
-      npx: 'printf "%s\\n" "$*" >> "$TRACE"; if [ "$3" = "$FAIL_STEP" ]; then exit 23; fi',
+      node: 'printf "%s\\n" "$*" >> "$TRACE"; if [ "$2" = "$FAIL_STEP" ]; then exit 23; fi',
       app: 'printf "app <%s>\\n" "$@" >> "$TRACE"; exit 17',
     };
     for (const [name, body] of Object.entries(commands)) {
@@ -25,14 +25,21 @@ describe("container startup", () => {
   afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
 
   it.each([
-    ["generate", 23, ["--yes prisma generate"]],
-    ["migrate", 23, ["--yes prisma generate", "--yes prisma migrate deploy"]],
+    ["generate", 23, ["./node_modules/prisma/build/index.js generate"]],
+    [
+      "migrate",
+      23,
+      [
+        "./node_modules/prisma/build/index.js generate",
+        "./node_modules/prisma/build/index.js migrate deploy",
+      ],
+    ],
     [
       "",
       17,
       [
-        "--yes prisma generate",
-        "--yes prisma migrate deploy",
+        "./node_modules/prisma/build/index.js generate",
+        "./node_modules/prisma/build/index.js migrate deploy",
         "app <two words>",
         "app <>",
       ],

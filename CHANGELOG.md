@@ -67,7 +67,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Startup behavior change for self-hosters:** Docker containers now stop with a nonzero exit status if Prisma client generation or database migrations fail, instead of starting the app anyway. After upgrading, a container with a failed migration may stop or restart repeatedly. Inspect the Prisma error in the container logs, back up the database, repair the reported migration or connection issue, and restart the container. Startup will resume once preparation succeeds.
 - Upgraded the runtime from Node.js 20 to Node.js 22 (LTS): updated `.nvmrc`, both Docker base images, bumped `@types/node` to v22, and added an `engines.node >=22.11.0` constraint to `package.json`
 - Removed "Upcoming:" prefix from due dates in task views to reduce confusion with the "upcoming" label used for tasks with future start dates
 - Updated future task detection to consider tasks as "upcoming" only if they are scheduled for tomorrow or later
@@ -102,7 +101,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Google task completion timestamps now persist when completed tasks are imported or refreshed, and clear when tasks are reopened in Google.
 - Fixed deleting a single occurrence of a recurring Google Calendar event removing the wrong instance: single-occurrence deletes re-queried Google for the "next upcoming" instance (`timeMin: now`, `maxResults: 1`) and deleted that, so deleting a past or non-next row could silently delete a different (often future) occurrence. Single-mode deletion now targets the clicked occurrence directly. Affects all calendar views and pushed task blocks (#199)
 - Fixed the Tasks list so sorting by the Priority or Energy column orders rows by meaning (low < medium < high) instead of alphabetically by label; tasks with no priority/energy (including the "None" priority) sort to the end (#131)
 - Fixed CalDAV connection failures (unreachable server, DNS error, connection refused/timeout, or an untrusted/self-signed TLS certificate) being reported as "Failed to authenticate with CalDAV server. Please check your credentials." When the underlying failure is a network/TLS problem, the Test Connection, Connect, and calendar-discovery flows now return a connection-oriented error ("Could not connect to the CalDAV server. Please check the server URL, your network/firewall, and the server's TLS certificate.") with an HTTP 502, while genuine credential rejections still show the credentials message with HTTP 401. This stops sending users with Radicale/Nextcloud/Baikal down the wrong debugging path (#122, #117, #115)
@@ -137,6 +135,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced console.log with logger.error in (common)/calendar/page.tsx for proper logging.
 
 ### Removed
+
+## [1.5.0]
+
+### Changed
+
+- **Startup behavior change for self-hosters:** Docker containers now stop with a nonzero exit status if Prisma client generation or database migrations fail, instead of starting the app anyway. After upgrading, a container with a failed migration may stop or restart repeatedly. Inspect the Prisma error in the container logs, back up the database, repair the reported migration or connection issue, and restart the container. Startup will resume once preparation succeeds.
+
+### Fixed
+
+- Bundle the locked Prisma CLI and engines in self-hosted images so startup does not require registry or CDN access.
+- Google task completion timestamps now persist when completed tasks are imported or refreshed, and clear when tasks are reopened in Google.
 
 ## [1.3.0] 2025-03-25
 
