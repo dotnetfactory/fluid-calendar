@@ -84,7 +84,9 @@ chmod 644 "$scratch/schema.prisma"
 if run_app -v "$scratch/schema.prisma:/app/prisma/schema.prisma:ro" >"$scratch/generate.log" 2>&1; then
   echo 'Generation failure incorrectly started the app'; exit 1
 fi
-! grep -q '^APP_STARTED$' "$scratch/generate.log"
+if grep -q '^APP_STARTED$' "$scratch/generate.log"; then
+  echo 'Generation failure unexpectedly ran the app'; exit 1
+fi
 grep -q 'P1012' "$scratch/generate.log"
 echo "PASS: $image generation failure blocks startup"
 
@@ -93,6 +95,8 @@ docker exec "$test_name-db" psql -U postgres -d fluid -v ON_ERROR_STOP=1 -c \
 if run_app >"$scratch/migrate.log" 2>&1; then
   echo 'Migration failure incorrectly started the app'; exit 1
 fi
-! grep -q '^APP_STARTED$' "$scratch/migrate.log"
+if grep -q '^APP_STARTED$' "$scratch/migrate.log"; then
+  echo 'Migration failure unexpectedly ran the app'; exit 1
+fi
 grep -q 'P3009' "$scratch/migrate.log"
 echo "PASS: $image uses its bundled CLI offline and stops on generation/migration failures"
