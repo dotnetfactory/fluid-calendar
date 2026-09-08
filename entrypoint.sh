@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 # Extract database connection details from DATABASE_URL
 PG_HOST=$(echo "$DATABASE_URL" | sed -E 's#.*@([^:/]+).*#\1#')

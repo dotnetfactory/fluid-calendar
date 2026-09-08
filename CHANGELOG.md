@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Startup behavior change for self-hosters:** Docker containers now stop with a nonzero exit status if Prisma client generation or database migrations fail, instead of starting the app anyway. After upgrading, a container with a failed migration may stop or restart repeatedly. Inspect the Prisma error in the container logs, back up the database, repair the reported migration or connection issue, and restart the container. Startup will resume once preparation succeeds.
 - Upgraded the runtime from Node.js 20 to Node.js 22 (LTS): updated `.nvmrc`, both Docker base images, bumped `@types/node` to v22, and added an `engines.node >=22.11.0` constraint to `package.json`
 - Removed "Upcoming:" prefix from due dates in task views to reduce confusion with the "upcoming" label used for tasks with future start dates
 - Updated future task detection to consider tasks as "upcoming" only if they are scheduled for tomorrow or later
