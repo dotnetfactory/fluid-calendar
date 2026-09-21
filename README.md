@@ -235,6 +235,15 @@ Note: For production deployment:
 
 ## Installation
 
+### Easypanel
+
+If you'd rather not manage the containers yourself, [Easypanel](https://easypanel.io) is a self-hosted deployment platform with a one-click FluidCalendar template:
+
+[![Deploy on Easypanel][easypanel-btn]][easypanel-deploy]
+
+[easypanel-btn]: https://easypanel.io/img/deploy-on-easypanel-40.svg
+[easypanel-deploy]: https://easypanel.io/templates/fluid-calendar
+
 ### Quick Start with Docker (Recommended)
 
 1. Install Docker on your machine
