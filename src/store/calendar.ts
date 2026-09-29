@@ -88,7 +88,7 @@ interface CalendarStore extends CalendarState {
   addFeed: (
     name: string,
     url: string,
-    type: "GOOGLE" | "OUTLOOK" | "CALDAV",
+    type: "GOOGLE" | "OUTLOOK" | "CALDAV" | "ICAL",
     color?: string
   ) => Promise<void>;
   removeFeed: (id: string) => Promise<void>;
@@ -282,6 +282,20 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
       // Sync the feed's events
       if (url) {
         await get().syncFeed(id);
+
+        // Subscribing to an iCal URL must be atomic: if the very first sync
+        // fails (unreachable/private/invalid URL, unparseable body), the feed
+        // is useless and the spec requires no feed to be left behind. syncFeed
+        // records the error on the feed instead of throwing, so detect it here,
+        // roll the feed back, and surface the error to the caller.
+        if (type === "ICAL") {
+          const synced = get().feeds.find((f) => f.id === id);
+          if (synced?.error) {
+            const message = synced.error;
+            await get().removeFeed(id);
+            throw new Error(message);
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to add feed:", error);
@@ -612,6 +626,10 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         if (!response.ok) {
           throw new Error("Failed to delete event from CalDAV Calendar");
         }
+      } else if (feed.type === "ICAL") {
+        // iCal subscriptions are read-only mirrors of an external document;
+        // deleting locally would only be undone on the next sync.
+        throw new Error("iCal subscriptions are read-only");
       } else {
         // For other calendars, use the existing API
         const response = await fetch(`/api/events/${id}`, {
@@ -672,6 +690,17 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
 
         if (!response.ok) {
           throw new Error("Failed to sync CalDAV Calendar");
+        }
+      } else if (feed.type === "ICAL") {
+        const response = await fetch(`/api/feeds/${id}/ical-sync`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ feedId: id }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to sync iCal Calendar");
         }
       }
 

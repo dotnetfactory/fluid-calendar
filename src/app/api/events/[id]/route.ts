@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { isWritableFeedType } from "@/lib/calendar-drag";
 import { getEvent } from "@/lib/calendar-db";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -91,7 +92,34 @@ export async function PATCH(
       );
     }
 
-    const updates = await request.json();
+    if (!isWritableFeedType(existingEvent.feed.type)) {
+      return NextResponse.json(
+        { error: "This calendar is read-only" },
+        { status: 403 }
+      );
+    }
+
+    // Whitelist mutable presentation fields. Spreading the raw body would let a
+    // caller smuggle `feedId` (moving the event into a read-only ICAL feed or
+    // another user's feed, bypassing the writable check above) or overwrite
+    // identity columns like `id`/`userId`. Only accept fields a user may edit.
+    const body = await request.json();
+    const allowedFields = [
+      "title",
+      "description",
+      "location",
+      "start",
+      "end",
+      "allDay",
+      "isRecurring",
+      "recurrenceRule",
+      "status",
+    ] as const;
+    const updates: Record<string, unknown> = {};
+    for (const field of allowedFields) {
+      if (field in body) updates[field] = body[field];
+    }
+
     const updated = await prisma.calendarEvent.update({
       where: { id },
       data: updates,
@@ -145,6 +173,13 @@ export async function DELETE(
       return NextResponse.json(
         { error: "Event not found or you don't have permission to delete it" },
         { status: 404 }
+      );
+    }
+
+    if (!isWritableFeedType(existingEvent.feed.type)) {
+      return NextResponse.json(
+        { error: "This calendar is read-only" },
+        { status: 403 }
       );
     }
 

@@ -10,6 +10,17 @@ interface TaskDragProps {
 
 const WRITABLE_FEED_TYPES = new Set(["GOOGLE", "OUTLOOK", "CALDAV"]);
 
+/**
+ * Whether events on a feed of this type may be created/updated/deleted.
+ * iCal (ICS URL) subscriptions are read-only mirrors of an external document,
+ * so any local mutation would be lost on the next sync and must be rejected.
+ * Shared by the calendar store and the server event routes so the read-only
+ * contract has a single source of truth.
+ */
+export function isWritableFeedType(type: string | null | undefined): boolean {
+  return type != null && WRITABLE_FEED_TYPES.has(type);
+}
+
 export interface DragChange {
   item: CalendarEvent;
   newStart: Date;

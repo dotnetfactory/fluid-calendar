@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { isWritableFeedType } from "@/lib/calendar-drag";
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -40,6 +41,17 @@ export async function POST(
 
     if (!feed) {
       return NextResponse.json({ error: "Feed not found" }, { status: 404 });
+    }
+
+    // This endpoint replaces the feed's events with caller-supplied JSON, so it
+    // must only run for client-synced feed types. Read-only feeds (e.g.
+    // subscribed iCal/ICAL) are server-synced; accepting a body here would let a
+    // user wipe or forge their read-only mirror. Reject before any deletion.
+    if (!isWritableFeedType(feed.type)) {
+      return NextResponse.json(
+        { error: "This calendar is read-only" },
+        { status: 403 }
+      );
     }
 
     // Start a transaction to ensure data consistency

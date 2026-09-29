@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { isWritableFeedType } from "@/lib/calendar-drag";
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -103,6 +104,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!isWritableFeedType(feed.type)) {
+      return NextResponse.json(
+        { error: "This calendar is read-only" },
+        { status: 403 }
+      );
+    }
+
     // Create event in database
     const event = await prisma.calendarEvent.create({
       data: {
@@ -178,6 +186,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    if (!isWritableFeedType(existingEvent.feed.type)) {
+      return NextResponse.json(
+        { error: "This calendar is read-only" },
+        { status: 403 }
+      );
+    }
+
     const event = await prisma.calendarEvent.update({
       where: { id },
       data: {
@@ -239,6 +254,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: "Event not found or you don't have permission to delete it" },
         { status: 404 }
+      );
+    }
+
+    if (!isWritableFeedType(existingEvent.feed.type)) {
+      return NextResponse.json(
+        { error: "This calendar is read-only" },
+        { status: 403 }
       );
     }
 
